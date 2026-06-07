@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework', #llamada a django RestFramework
     'rest_framework.authtoken', #Para la generacion del token al iniciar sesion 
+    'organization',
 ]
 
 MIDDLEWARE = [
