@@ -1,0 +1,62 @@
+/*Barra lateral*/
+.barra-lateral {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 200px;
+    height: calc(100vh - 70px);
+
+    background-color: var(--background-color);
+    border-right: 1px solid var(--border-color);
+
+    overflow-y: auto;  
+}
+
+.barra-lateral ul {
+    list-style: none;
+}
+
+.barra-lateral li {
+    margin: .4rem;
+}
+
+.barra-lateral a {
+    text-decoration: none;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border-radius: 10px;
+    transition: .2s;
+}
+
+.barra-lateral a:hover {
+    background-color: var(--background-hover);
+}
+
+.barra-lateral span {
+    font-size: .95rem;
+    font-weight: 600;
+}
+
+.barra-lateral p {
+    font-size: .8rem;
+    color: var(--menu-color);
+    margin-top: .2rem;
+}
+
+/*Para uso con Angular Router*/
+.item-activo {
+    background-color: var(--background-selected);
+}
+
+.item-activo span {
+    color: var(--text-selected-color);
+}
+
+/*Para el contenido*/
+.contenido {
+    margin-top: 70px;
+    margin-left: 280px;
+    padding: 2rem;
+}

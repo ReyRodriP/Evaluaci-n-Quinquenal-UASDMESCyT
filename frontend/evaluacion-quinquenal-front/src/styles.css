@@ -1,0 +1,30 @@
+/* You can add global styles to this file, and also import other style files */
+
+/*Colores a usar*/
+:root {
+    --background-color: #fff;
+    --text-title-color: #053D4E;
+    --text-color: #32363B;
+    --icon-color: #32363B;
+    --menu-color: #707780;
+    --icon-menu-color: #707780;
+
+    --text-selected-color: #355CC0;
+    --background-selected: #EBF0FF;
+    --background-hover: #F7F9FA;
+
+    --border-color: #E6E9ED;
+}
+
+/*Estilos globales*/
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+body {
+    width: 100%;
+    height: 100vh;
+}
