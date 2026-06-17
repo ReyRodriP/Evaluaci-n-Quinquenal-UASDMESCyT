@@ -1,8 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink } from "@angular/router";
-import { Dashboard } from '../../../layouts/admin-layout/dashboard/dashboard';
-import { Usuarios } from '../../../layouts/admin-layout/usuarios/usuarios';
 import { Navbar } from "../navbar/navbar";
+import { Register } from '../../../features/auth/pages/register/register';
 
 @Component({
   selector: 'app-sidebar',

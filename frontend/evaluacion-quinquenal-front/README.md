@@ -111,3 +111,7 @@ src/
 ├── assets/
 ├── environments/
 └── styles/
+
+# Libreria o bibliotecas que uso en este proyecto
+
+1. pnpm install ngx-toastr      //Para uso de toast y notificaciones esteticas

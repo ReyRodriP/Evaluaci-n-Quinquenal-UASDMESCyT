@@ -40,9 +40,11 @@ INSTALLED_APPS = [
     'accounts',
     'rest_framework', #llamada a django RestFramework
     'rest_framework.authtoken', #Para la generacion del token al iniciar sesion 
+    'corsheaders', #Para el uso de CORS y enlazar back con front
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -102,6 +104,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",
+] #Aqui le damos acceso a la ruta del front, cambialo si usas otro puerto
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
