@@ -18,5 +18,15 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
 
 
 class PerfilUsuarioViewSet(viewsets.ModelViewSet):
-    queryset = PerfilUsuario.objects.all().order_by('usuario__username')
+    queryset = PerfilUsuario.objects.all()
     serializer_class = PerfilUsuarioSerializer
+
+    def get_queryset(self):
+        queryset = PerfilUsuario.objects.all().order_by('usuario__username')
+
+        departamento_id = self.request.query_params.get('departamento')
+
+        if departamento_id:
+            queryset = queryset.filter(departamento_id=departamento_id)
+
+        return queryset
