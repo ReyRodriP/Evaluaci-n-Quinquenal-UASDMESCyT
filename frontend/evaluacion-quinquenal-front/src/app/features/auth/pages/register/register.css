@@ -17,20 +17,6 @@
     box-sizing:border-box;
 }
 
-body{
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:linear-gradient(
-        135deg,
-        #f4f6f9 0%,
-        #e8eef7 100%
-    );
-    font-family:'Poppins',sans-serif;
-    padding:2rem;
-}
-
 /* CONTENEDOR PRINCIPAL */
 
 .register-container{
@@ -209,6 +195,10 @@ input:focus{
 
 .login-link a:hover{
     text-decoration:underline;
+}
+
+.login-link p {
+    margin-bottom: 10px;
 }
 
 /* BARRA DE CONTRASEÑA */
