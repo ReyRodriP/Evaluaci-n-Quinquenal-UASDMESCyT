@@ -1,41 +1,36 @@
-<header class="barra-navegacion">
+<header class="barra-navegacion" [class.close]="!sidebarOpen">
 
   <div class="izquierda">
 
-    <button class="contenedor-menu" type="button" aria-label="Abrir menú">
-      <div class="menu">
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
-    </button>
+    <img
+      src="img/UASD-Logo.png"
+      alt="Logo UASD"
+      class="logo-uasd">
 
-    <div class="perfil">
-      <img
-        src="https://preview.redd.it/i-cried-while-making-this-v0-01tuowjtld931.jpg?width=640&crop=smart&auto=webp&s=5359e064b8305668128b4088df6063e0bcdee550"
-        alt="Foto de perfil"
-        class="foto-perfil">
+    <div class="info-sistema">
 
-      <span class="nombre">Reynaldo Rodriguez</span>
+      <span class="titulo">
+        Sistema de Gestión de Tesis
+      </span>
+
+      <span class="subtitulo">
+        Universidad Autónoma de Santo Domingo
+      </span>
+
     </div>
 
   </div>
 
   <div class="derecha">
 
-    <a routerLink="auth/register">
-      Registro
+    <a routerLink="auth/login" class="btn-login">
+      Iniciar Sesión
     </a>
 
-    <a routerLink="auth/login">
-      Login
-    </a>
-    
-    <a href="#">
-      <img src="#" alt="Logo UASD" class="logo-uasd">
+    <a routerLink="auth/register" class="btn-register">
+      Registrarse
     </a>
 
-    <span>Universidad Autónoma de Santo Domingo</span>
   </div>
 
 </header>

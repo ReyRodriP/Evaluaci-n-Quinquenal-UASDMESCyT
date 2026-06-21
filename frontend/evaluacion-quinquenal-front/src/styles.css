@@ -3,7 +3,6 @@
 
 /*Colores a usar*/
 :root {
-    --background-color: #fff;
     --text-title-color: #053D4E;
     --text-color: #32363B;
     --icon-color: #32363B;
@@ -15,17 +14,65 @@
     --background-hover: #F7F9FA;
 
     --border-color: #E6E9ED;
+
+    /*--------Global Colors---------*/
+    --body-color: #fff;
+    --background-color: #E4E9F7;
+    --sidebar-color: #fff;
+    --primary-color: #0091ff;
+    --primary-color-light: #f6f5ff;
+    --toggle-color: #000;
+    --text-color: #707070;
+
+    /*--------Transitions---------*/
+    --tran-02: all 0.2s ease;
+    --tran-03: all 0.3s ease;
+    --tran-04: all 0.4s ease;
+    --tran-05: all 0.5s ease;
 }
 
-/*Estilos globales*/
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 body {
-    width: 100%;
     height: 100vh;
+    background-color: var(--body-color);
+    transition: var(--tran-04);
+}
+
+body.dark {
+    --body-color: #18191a;
+    --sidebar-color: #242526;
+    --primary-color: #ffffff;
+    --primary-color-light: #3a3b3c;
+    --toggle-color: #fff;
+    --text-color: #ccc;
+}
+
+body.dark .switch::before {
+    left: 25px;
+}
+
+body.dark .toggle {
+    color: var(--text-color);
+}
+
+body.dark .sidebar li a:hover .icon,
+body.dark .sidebar li a:hover .text {
+    color: var(--text-color);
+}
+
+.menu-bar .mode i.sun {
+    opacity: 0;
+}
+
+body.dark .menu-bar .mode i.sun {
+    opacity: 1;
+}
+
+body.dark .menu-bar .mode i.moon {
+    opacity: 0;
 }

@@ -10,5 +10,5 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './admin-layout.css',
 })
 export class AdminLayout {
-
+  sidebarOpen: boolean = false
 }
