@@ -1,0 +1,24 @@
+.auth-container {
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-family:'Poppins',sans-serif;
+
+    min-height:100vh;
+
+    padding:2rem;
+
+    background:
+        linear-gradient(
+            rgba(0,51,102,.75),
+            rgba(0,119,204,.65)
+        ),
+        url("/img/Imagen-UASD.webp");
+
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+}
