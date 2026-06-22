@@ -5,6 +5,7 @@ import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
 import { Usuarios } from './features/usuarios/usuarios';
 import { Register } from './features/auth/pages/register/register';
 import { Login } from './features/auth/pages/login/login';
+import { Facultades } from './features/facultades/facultades';
 
 export const routes: Routes = [
     {
@@ -38,6 +39,10 @@ export const routes: Routes = [
                 path: 'usuarios',
                 component: Usuarios
             },
+            {
+                path: 'facultades',
+                component: Facultades
+            }
             //Seguir insertando rutas hijas
         ]
     },
