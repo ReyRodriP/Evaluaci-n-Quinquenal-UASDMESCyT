@@ -1,0 +1,91 @@
+<aside class="barra-lateral">
+
+  <nav class="sidebar" [class.close]="!open">
+    <div class="image-text">
+        <span class="image">
+            <img src="img\noUser.png" alt="Foto de perfil">
+        </span>
+    </div>
+
+    <div class="text sidebar-text">
+        <span class="name">Hola!</span>
+        <span class="slogan">*Nombre de usuario*</span>
+    </div>
+
+    <i class='bx bx-caret-right toggle' (click)="toggleSidebar()"></i>
+
+    <div class="menu-bar">
+        <div class="menu">
+            <ul class="menu-links">
+                <li class="nav-link">
+                    <a routerLink="/dashboard">
+                        <i class='bx  bx-home icon'></i>
+                        <span class="text nav-text">Dashboard -</span> 
+                    </a>
+                </li>
+
+                <li class="nav-link">
+                    <a routerLink="/usuarios">
+                        <i class='bx  bx-user icon'></i>
+                        <span class="text nav-text">Usuarios -</span> 
+                    </a>
+                </li>
+
+                <li class="nav-link">
+                    <a routerLink="/facultades">
+                        <i class='bx  bx-arch icon'></i>
+                        <span class="text nav-text">Facultades</span> 
+                    </a>
+                </li>
+
+<!-- 
+                 <li class="nav-link">
+                    <a routerLink="/plans">
+                        <i class='bx  bx-reading icon'></i>
+                        <span class="text nav-text">Planes de estudios</span> 
+                    </a>
+                </li>
+                <li class="nav-link">
+                    <a routerLink="#">
+                        <i class='bx  bx-clipboard-detail icon'></i>
+                        <span class="text nav-text">Evaluadores</span> 
+                    </a>
+                </li>
+
+                 <li class="nav-link">
+                    <a routerLink="#">
+                        <i class='bx  bx-archive icon'></i>
+                        <span class="text nav-text">Auditorias</span> 
+                    </a>
+                </li>
+                 <li class="nav-link">
+                    <a routerLink="#">
+                        <i class='bx  bx-vertical-align-bottom icon'></i>
+                        <span class="text nav-text">Reportes</span> 
+                    </a>
+                </li> -->
+            </ul>
+        </div>
+
+        <div class="botton-content">
+             <li class="nav-link">
+                    <a routerLink="/login">
+                        <i class='bx  bx-arrow-out-left-square-half icon'></i>
+                        <span class="text nav-text">Cerrar sesión</span> 
+                    </a>
+            </li>
+             <li class="mode">
+                    <div class="moon-sun">
+                        <i class="bx bx-moon icon moon"></i>
+                        <i class="bx bx-sun icon sun"></i>
+                    </div>
+                    <span class="mode-text text">Modo oscuro</span>
+
+                    <div class="toggle-switch">
+                        <span class="switch" (click)="toggleTheme()"></span>
+                    </div>
+            </li>
+        </div>
+    </div>
+</nav>
+</aside>

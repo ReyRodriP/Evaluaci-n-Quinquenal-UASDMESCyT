@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root{
+    --primary:#003366;
+    --secondary:#0077cc;
+    --white:#ffffff;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Poppins',sans-serif;
+
+    min-height:100vh;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    padding:2rem;
+
+    background:
+        linear-gradient(
+            rgba(0,51,102,.75),
+            rgba(0,119,204,.65)
+        ),
+        url("/img/Imagen-UASD.webp");
+
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+}
+
+/* CONTENEDOR LOGIN */
+
+.login-container{
+    width:100%;
+    max-width:430px;
+
+    padding:3rem;
+
+    border-radius:25px;
+
+    backdrop-filter:blur(15px);
+
+    background:rgba(255,255,255,.15);
+
+    border:1px solid rgba(255,255,255,.25);
+
+    box-shadow:
+        0 8px 32px rgba(0,0,0,.25);
+
+    text-align:center;
+}
+
+/* LOGO */
+
+.login-logo{
+    width:95px;
+    margin-bottom:1rem;
+}
+
+/* TITULO */
+
+.login-container h1{
+    color:white;
+    font-size:2.2rem;
+    font-weight:700;
+}
+
+.subtitle{
+    color:rgba(255,255,255,.9);
+    margin-top:.5rem;
+    margin-bottom:2rem;
+    font-size:.95rem;
+}
+
+/* INPUTS */
+
+.input-group{
+    position:relative;
+    margin-bottom:1.2rem;
+}
+
+.input-group i{
+    position:absolute;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+
+    color:#4b5563;
+    font-size:1.2rem;
+}
+
+.input-group input{
+    width:100%;
+
+    padding:14px 14px 14px 45px;
+
+    border:none;
+    border-radius:12px;
+
+    background:rgba(255,255,255,.9);
+
+    font-size:15px;
+
+    transition:.3s;
+}
+
+.input-group input:focus{
+    outline:none;
+
+    box-shadow:
+        0 0 0 4px rgba(0,119,204,.2);
+}
+
+/* BOTON */
+
+.btn-login{
+    width:100%;
+
+    border:none;
+
+    border-radius:12px;
+
+    padding:14px;
+
+    margin-top:.5rem;
+
+    font-size:1rem;
+    font-weight:600;
+
+    color:white;
+
+    cursor:pointer;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--primary),
+            var(--secondary)
+        );
+
+    transition:.3s;
+}
+
+.btn-login:hover{
+    transform:translateY(-2px);
+
+    box-shadow:
+        0 10px 20px rgba(0,119,204,.35);
+}
+
+/* REGISTRO */
+
+.register-link{
+    margin-top:2rem;
+}
+
+.register-link p{
+    color:white;
+    margin-bottom:.7rem;
+}
+
+.register-link a{
+    color:#ffffff;
+    font-weight:600;
+    text-decoration:none;
+
+    border-bottom:2px solid transparent;
+
+    transition:.3s;
+}
+
+.register-link a:hover{
+    border-bottom:2px solid white;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:500px){
+
+    .login-container{
+        padding:2rem;
+    }
+
+    .login-container h1{
+        font-size:1.8rem;
+    }
+
+    .login-logo{
+        width:80px;
+    }
+}

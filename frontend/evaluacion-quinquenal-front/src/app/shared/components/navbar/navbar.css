@@ -1,0 +1,175 @@
+.barra-navegacion {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 3;
+
+    height: 75px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    left: 250px;
+    width: calc(100% - 250px);
+
+    padding: 0 2rem;
+
+    background: linear-gradient(
+        135deg,
+        #003366,
+        #0077cc
+    );
+
+    box-shadow: 0 4px 15px rgba(0, 0, 0, .15);
+    transition: var(--tran-04);
+}
+
+.barra-navegacion.close {
+    left: 88px;
+    width: calc(100% - 88px);
+}
+
+.barra-navegacion::after {
+    content: '';
+    position: absolute;
+
+    bottom: 0;
+    left: 0;
+
+    width: 100%;
+    height: 3px;
+
+    background: linear-gradient(
+        90deg,
+        #00c6ff,
+        #0072ff
+    );
+}
+
+/* ===========================
+   IZQUIERDA
+=========================== */
+
+.izquierda {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-uasd {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+}
+
+.info-sistema {
+    display: flex;
+    flex-direction: column;
+}
+
+.titulo {
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.subtitulo {
+    color: #dce8f7;
+    font-size: .85rem;
+    margin-top: 2px;
+}
+
+/* ===========================
+   DERECHA
+=========================== */
+
+.derecha {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.derecha a {
+    text-decoration: none;
+    transition: .3s ease;
+}
+
+/* LOGIN */
+
+.btn-login {
+    color: white;
+    border: 2px solid white;
+
+    padding: .7rem 1.2rem;
+    border-radius: 10px;
+
+    font-weight: 500;
+}
+
+.btn-login:hover {
+    background: white;
+    color: #003366;
+}
+
+/* REGISTRO */
+
+.btn-register {
+    background: white;
+    color: #003366;
+
+    padding: .7rem 1.2rem;
+    border-radius: 10px;
+
+    font-weight: 600;
+}
+
+.btn-register:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, .2);
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media (max-width: 768px) {
+
+    .barra-navegacion {
+        padding: 0 1rem;
+    }
+
+    .titulo {
+        font-size: 1rem;
+    }
+
+    .subtitulo {
+        display: none;
+    }
+
+    .logo-uasd {
+        width: 45px;
+        height: 45px;
+    }
+
+    .btn-login,
+    .btn-register {
+        padding: .55rem .9rem;
+        font-size: .85rem;
+    }
+}
+
+@media (max-width: 550px) {
+
+    .titulo {
+        display: none;
+    }
+
+    .barra-navegacion {
+        justify-content: space-between;
+    }
+
+    .derecha {
+        gap: .5rem;
+    }
+}
