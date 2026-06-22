@@ -9,9 +9,21 @@ class PeriodoSerializer(serializers.ModelSerializer):
 
 
 class CriterioSerializer(serializers.ModelSerializer):
+    periodo_nombre = serializers.CharField(
+        source='periodo.nombre',
+        read_only=True
+    )
+
     class Meta:
         model = Criterio
-        fields = '__all__'
+        fields = [
+            'id',
+            'nombre',
+            'descripcion',
+            'periodo',
+            'periodo_nombre',
+            'activo'
+        ]
 
 
 class IndicadorSerializer(serializers.ModelSerializer):
@@ -27,7 +39,9 @@ class IndicadorSerializer(serializers.ModelSerializer):
             'nombre',
             'descripcion',
             'criterio',
-            'criterio_nombre'
+            'criterio_nombre',
+            'obligatorio',
+            'activo'
         ]
 
 
@@ -44,6 +58,10 @@ class AsignacionSerializer(serializers.ModelSerializer):
         source='periodo.nombre',
         read_only=True
     )
+    estado_display = serializers.CharField(
+        source='get_estado_display',
+        read_only=True
+    )
 
     class Meta:
         model = Asignacion
@@ -54,5 +72,7 @@ class AsignacionSerializer(serializers.ModelSerializer):
             'departamento',
             'departamento_nombre',
             'periodo',
-            'periodo_nombre'
+            'periodo_nombre',
+            'estado',
+            'estado_display'
         ]
