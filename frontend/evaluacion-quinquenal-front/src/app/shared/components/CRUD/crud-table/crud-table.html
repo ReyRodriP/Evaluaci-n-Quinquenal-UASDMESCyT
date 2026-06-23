@@ -1,0 +1,33 @@
+ <!-- Tabla -->
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+                <tr>
+                     <th *ngFor="let columna of columnas">{{ columna }}</th>
+                     <th>Acciones</th>
+                 </tr>
+             </thead>
+
+             <tbody>
+
+                 <tr *ngFor="let item of datos">
+                     <td *ngFor="let columna of getDataColumns()">{{ item[getColumnKey(columna)] }}</td>
+
+                     <td class="actions">
+
+                        <button title="Editar" (click)="onEdit(item)">
+                            <i class="bx bx-edit"></i>
+                        </button>
+
+                         <button title="Ver">
+                             <i class="bx bx-lock-alt"></i>
+                         </button>
+
+                        <button title="Eliminar" (click)="onRemove(item)">
+                            <i class="bx bx-trash"></i>
+                        </button>
+
+                     </td>
+                 </tr>

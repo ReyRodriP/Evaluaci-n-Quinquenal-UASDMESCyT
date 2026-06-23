@@ -1,0 +1,46 @@
+<div class="modal-overlay" *ngIf="open">
+
+  <div class="crud-modal">
+
+    <div class="modal-header">
+      <h2>{{ data ? 'Editar Facultad' : 'Nueva Facultad' }}</h2>
+      <button class="close-btn" (click)="onCancel()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+
+    <form class="modal-form" (ngSubmit)="onSave()">
+
+      <div class="form-group">
+        <label>Nombre de la Facultad</label>
+        <input type="text" [(ngModel)]="model.nombre" name="nombre" placeholder="Ej. Facultad de Ciencias">
+      </div>
+
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea rows="4" [(ngModel)]="model.descripcion" name="descripcion" placeholder="Descripción de la facultad"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Estado</label>
+        <select [(ngModel)]="model.estado" name="estado">
+          <option>Activa</option>
+          <option>Inactiva</option>
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="onCancel()">
+          Cancelar
+        </button>
+
+        <button type="submit" class="btn-save">
+          Guardar
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>

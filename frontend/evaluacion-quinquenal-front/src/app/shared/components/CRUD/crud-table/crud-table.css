@@ -1,0 +1,80 @@
+/* TABLE */
+
+.table-wrapper{
+    background:white;
+    border-radius:15px;
+    overflow:hidden;
+    box-shadow:0 3px 10px rgba(0,0,0,.08);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout: fixed;
+}
+
+thead{
+    background:#003366;
+    color:white;
+}
+
+th,
+td{
+    padding:15px;
+    text-align:left;
+    word-break: break-word;
+}
+
+th:last-child,
+td.actions{
+    width: 120px;
+    text-align: center;
+}
+
+tbody tr{
+    border-bottom:1px solid #eee;
+}
+
+tbody tr:hover{
+    background:#f5f9ff;
+}
+
+/* BADGES */
+
+.badge{
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:.85rem;
+    font-weight:600;
+}
+
+.active{
+    background:#e8f7ee;
+    color:#1b8f4e;
+}
+
+.inactive{
+    background:#fdeaea;
+    color:#d32f2f;
+}
+
+/* ACTIONS */
+
+.actions{
+    display:flex;
+    gap:8px;
+}
+
+.actions button{
+    border:none;
+    background:#f1f5f9;
+    width:36px;
+    height:36px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.actions button:hover{
+    background:#dbeafe;
+}

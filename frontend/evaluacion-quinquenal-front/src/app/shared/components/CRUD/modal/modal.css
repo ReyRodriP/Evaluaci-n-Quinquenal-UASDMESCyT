@@ -1,0 +1,204 @@
+/* ===== OVERLAY ===== */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 1000;
+}
+
+/* ===== MODAL ===== */
+
+.crud-modal {
+    width: 100%;
+    max-width: 550px;
+
+    background: var(--sidebar-color);
+    border-radius: 20px;
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.15),
+        0 2px 8px rgba(0,0,0,0.08);
+
+    overflow: hidden;
+
+    animation: modalAppear .3s ease;
+}
+
+/* ===== HEADER ===== */
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 1.3rem 1.5rem;
+
+    background: linear-gradient(
+        135deg,
+        var(--primary-color),
+        #4cc2ff
+    );
+
+    color: white;
+}
+
+.modal-header h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.close-btn {
+    width: 38px;
+    height: 38px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.15);
+    color: white;
+
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,.3);
+    transform: rotate(90deg);
+}
+
+.close-btn i {
+    font-size: 1.3rem;
+}
+
+/* ===== FORM ===== */
+
+.modal-form {
+    padding: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    margin-bottom: .4rem;
+    font-weight: 600;
+    color: var(--text-title-color);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    padding: .9rem 1rem;
+
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+
+    background: #fff;
+
+    font-size: .95rem;
+
+    transition: .3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+
+    border-color: var(--primary-color);
+
+    box-shadow:
+        0 0 0 4px rgba(0,145,255,.15);
+}
+
+/* ===== BOTONES ===== */
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .8rem;
+
+    margin-top: 1.5rem;
+}
+
+.btn-cancel,
+.btn-save {
+    border: none;
+    padding: .9rem 1.4rem;
+    border-radius: 12px;
+
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-save {
+    background: linear-gradient(
+        135deg,
+        var(--primary-color),
+        #38bdf8
+    );
+
+    color: white;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 6px 18px rgba(0,145,255,.35);
+}
+
+/* ===== ANIMACIÓN ===== */
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 600px) {
+
+    .crud-modal {
+        width: 95%;
+        margin: 1rem;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .btn-save,
+    .btn-cancel {
+        width: 100%;
+    }
+}

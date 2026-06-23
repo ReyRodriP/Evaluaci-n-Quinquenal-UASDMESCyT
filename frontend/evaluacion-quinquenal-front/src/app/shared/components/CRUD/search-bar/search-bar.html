@@ -1,0 +1,34 @@
+<!-- Encabezado -->
+    <div class="crud-header">
+        <div>
+            <h2>Gestión de {{ titulo }}</h2>
+            <p>Administra los registros registrados en el sistema</p>
+        </div>
+
+        <button class="btn-primary" (click)="onCreate()">
+            + Nuevo Registro
+        </button>
+    </div>
+    
+    <!-- Herramientas -->
+    <div class="toolbar">
+
+        <input
+            type="text"
+            placeholder="Buscar..."
+            class="search-box"
+        >
+
+        <select>
+            <option>Todas</option>
+            <option>Activas</option>
+            <option>Inactivas</option>
+        </select>
+
+        <select>
+            <option>10 registros</option>
+            <option>25 registros</option>
+            <option>50 registros</option>
+        </select>
+
+    </div>
