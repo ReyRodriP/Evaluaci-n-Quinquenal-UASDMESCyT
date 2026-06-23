@@ -13,6 +13,7 @@ export class CrudTable {
   @Input() datos: any[] = [];
   @Output() edit = new EventEmitter<any>();
   @Output() remove = new EventEmitter<any>();
+  @Output() toggleEstado = new EventEmitter<any>();
 
   onEdit(item: any) {
     this.edit.emit(item);
@@ -20,6 +21,10 @@ export class CrudTable {
 
   onRemove(item: any) {
     this.remove.emit(item);
+  }
+
+  onToggleEstado(item: any) {
+    this.toggleEstado.emit(item);
   }
 
   getColumnKey(columnName: string): string {

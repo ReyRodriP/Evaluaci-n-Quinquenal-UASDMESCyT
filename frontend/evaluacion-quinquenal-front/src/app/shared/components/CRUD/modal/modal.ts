@@ -19,8 +19,12 @@ export class Modal implements OnChanges {
   model: any = { nombre: '', descripcion: '', estado: 'Activa' };
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['data'] && this.data) {
-      this.model = { ...this.data };
+    if (changes['data']) {
+      if (this.data) {
+        this.model = { ...this.data };
+      } else if (this.open) {
+        this.model = { nombre: '', descripcion: '', estado: 'Activa' };
+      }
     }
     if (changes['open'] && !this.open) {
       // reset model when modal closes

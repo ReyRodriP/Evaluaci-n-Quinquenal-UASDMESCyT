@@ -19,4 +19,21 @@ export class AuthService {
   login(user:any):Observable<any> {
     return this.http.post(`${this.baseUrl}login`,user/*, {withCredentials: true}*/);
   }
+
+  // Facultades CRUD operations
+  crearFacultades(facultad:any):Observable<any> {
+    return this.http.post(`${this.baseUrl}facultades/`, facultad);
+  }
+
+  listarFacultades(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}facultades/`);
+  }
+
+  actualizarFacultad(id:any, facultad:any): Observable<any> {
+    return this.http.patch(`${this.baseUrl}facultades/${id}/`, facultad);
+  }
+
+  eliminarFacultad(id:any): Observable<any> {
+    return this.http.delete(`${this.baseUrl}facultades/${id}/`);
+  }
 }
