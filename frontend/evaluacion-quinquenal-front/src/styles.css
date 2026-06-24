@@ -76,3 +76,9 @@ body.dark .menu-bar .mode i.sun {
 body.dark .menu-bar .mode i.moon {
     opacity: 0;
 }
+
+/*CRUD Container*/
+.crud-container{
+    padding:30px;
+}
+

@@ -31,6 +31,12 @@ export class Facultades implements OnInit {
     this.showModal = true;
   }
 
+  facultadFields = [
+    { label: 'Nombre', name: 'nombre', type: 'text', placeholder: 'Ej. Facultad de Ciencias', defaultValue: '' },
+    { label: 'Descripción', name: 'descripcion', type: 'textarea', placeholder: 'Descripción de la facultad', defaultValue: '' },
+    { label: 'Estado', name: 'estado', type: 'select', options: ['Activa', 'Inactiva'], defaultValue: 'Activa' }
+  ];
+
   ngOnInit() {
     this.loadFacultades();
   }

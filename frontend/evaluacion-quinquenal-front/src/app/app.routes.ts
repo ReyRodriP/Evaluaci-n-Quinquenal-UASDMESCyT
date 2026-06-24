@@ -6,6 +6,7 @@ import { Usuarios } from './features/usuarios/usuarios';
 import { Register } from './features/auth/pages/register/register';
 import { Login } from './features/auth/pages/login/login';
 import { Facultades } from './features/facultades/facultades';
+import { Departamentos } from './features/departamentos/departamentos';
 
 export const routes: Routes = [
     {
@@ -42,6 +43,10 @@ export const routes: Routes = [
             {
                 path: 'facultades',
                 component: Facultades
+            },
+            {
+                path: 'departamentos',
+                component: Departamentos
             }
             //Seguir insertando rutas hijas
         ]

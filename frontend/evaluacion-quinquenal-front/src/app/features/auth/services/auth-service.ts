@@ -36,4 +36,21 @@ export class AuthService {
   eliminarFacultad(id:any): Observable<any> {
     return this.http.delete(`${this.baseUrl}facultades/${id}/`);
   }
+
+  // Departamentos CRUD operations
+  crearDepartamento(departamento:any): Observable<any> {
+    return this.http.post(`${this.baseUrl}departamentos/`, departamento);
+  }
+
+  listarDepartamentos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}departamentos/`);
+  }
+
+  actualizarDepartamento(id:any, departamento:any): Observable<any> {
+    return this.http.patch(`${this.baseUrl}departamentos/${id}/`, departamento);
+  }
+
+  eliminarDepartamento(id:any): Observable<any> {
+    return this.http.delete(`${this.baseUrl}departamentos/${id}/`);
+  }
 }

@@ -12,24 +12,46 @@ import { FormsModule } from '@angular/forms';
 export class Modal implements OnChanges {
   @Input() open: boolean = false;
   @Input() data: any = null;
+  @Input() title: string = '';
+  @Input() newTitle: string = '';
+  @Input() editTitle: string = '';
+  @Input() fields: any[] = [];
 
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<any>();
 
-  model: any = { nombre: '', descripcion: '', estado: 'Activa' };
+  model: any = {};
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['data']) {
-      if (this.data) {
-        this.model = { ...this.data };
-      } else if (this.open) {
-        this.model = { nombre: '', descripcion: '', estado: 'Activa' };
-      }
+    if (changes['fields'] || changes['data'] || (changes['open'] && this.open)) {
+      this.model = this.buildModel();
     }
+
     if (changes['open'] && !this.open) {
-      // reset model when modal closes
-      this.model = { nombre: '', descripcion: '', estado: 'Activa' };
+      this.model = this.buildModel();
     }
+  }
+
+  buildModel(): any {
+    const baseModel: any = {};
+    if (Array.isArray(this.fields)) {
+      this.fields.forEach(field => {
+        baseModel[field.name] = field.defaultValue ?? '';
+      });
+    }
+
+    if (this.data) {
+      return { ...baseModel, ...this.data };
+    }
+
+    return baseModel;
+  }
+
+  getModalTitle(): string {
+    if (this.data) {
+      return this.editTitle || `Editar ${this.title}`;
+    }
+    return this.newTitle || `Nueva ${this.title}`;
   }
 
   onCancel() {
