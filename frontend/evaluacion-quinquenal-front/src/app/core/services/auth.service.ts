@@ -1,8 +1,97 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  
+  private apiUrl = 'http://localhost:8000/api';
+
+  constructor(private http: HttpClient) {}
+
+  // Periodos
+  listarPeriodos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/periodos/`);
+  }
+
+  crearPeriodo(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/periodos/`, payload);
+  }
+
+  actualizarPeriodo(id: number, payload: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/periodos/${id}/`, payload);
+  }
+
+  eliminarPeriodo(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/periodos/${id}/`);
+  }
+
+  patchPeriodo(id: number, payload: any): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/periodos/${id}/`, payload);
+  }
+
+  // Criterios
+  listarCriterios(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/criterios/`);
+  }
+
+  crearCriterio(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/criterios/`, payload);
+  }
+
+  actualizarCriterio(id: number, payload: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/criterios/${id}/`, payload);
+  }
+
+  patchCriterio(id: number, payload: any): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/criterios/${id}/`, payload);
+  }
+
+  eliminarCriterio(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/criterios/${id}/`);
+  }
+
+  // Indicadores
+  listarIndicadores(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/indicadores/`);
+  }
+
+  crearIndicador(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/indicadores/`, payload);
+  }
+
+  actualizarIndicador(id: number, payload: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/indicadores/${id}/`, payload);
+  }
+
+  patchIndicador(id: number, payload: any): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/indicadores/${id}/`, payload);
+  }
+
+  eliminarIndicador(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/indicadores/${id}/`);
+  }
+
+  // Departamentos
+  listarDepartamentos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/departamentos/`);
+  }
+
+  crearDepartamento(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/departamentos/`, payload);
+  }
+
+  actualizarDepartamento(id: number, payload: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/departamentos/${id}/`, payload);
+  }
+
+  eliminarDepartamento(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/departamentos/${id}/`);
+  }
+
+  // Facultades
+  listarFacultades(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/facultades/`);
+  }
 }

@@ -1,18 +1,17 @@
 <div class="crud-container">
     <div class="crud-header">
-        <app-search-bar [titulo]="'Facultades'" (create)="openNew()"></app-search-bar>
+        <app-search-bar [titulo]="'Períodos'" (create)="openNew()"></app-search-bar>
     <app-crud-table [columnas]="columnas" [datos]="datos" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
     <app-pagination></app-pagination>
 
     <app-modal
       [open]="showModal"
       [data]="selectedItem"
-      [title]="'Facultad'"
-      [newTitle]="'Nueva Facultad'"
-      [editTitle]="'Editar Facultad'"
-      [fields]="facultadFields"
+      [title]="'Período'"
+      [newTitle]="'Nuevo Período'"
+      [editTitle]="'Editar Período'"
+      [fields]="periodoFields"
       (close)="onModalClose()"
       (save)="onModalSave($event)"></app-modal>
 </div>
 </div>
-

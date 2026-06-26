@@ -7,6 +7,9 @@ import { Register } from './features/auth/pages/register/register';
 import { Login } from './features/auth/pages/login/login';
 import { Facultades } from './features/facultades/facultades';
 import { Departamentos } from './features/departamentos/departamentos';
+import { Periodos } from './features/periodos/periodos';
+import { Indicadores } from './features/indicadores/indicadores';
+import { Criterios } from './features/criterios/criterios';
 
 export const routes: Routes = [
     {
@@ -47,7 +50,19 @@ export const routes: Routes = [
             {
                 path: 'departamentos',
                 component: Departamentos
-            }
+            },
+            {
+                path: 'periodos',
+                component: Periodos
+            },
+            {
+                path: 'criterios',
+                component: Criterios
+            },
+            {
+                path: 'indicadores',
+                component: Indicadores
+            },
             //Seguir insertando rutas hijas
         ]
     },

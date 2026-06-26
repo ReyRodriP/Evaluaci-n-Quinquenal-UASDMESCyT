@@ -32,8 +32,14 @@ export class CrudTable {
       'nombre': 'nombre',
       'código': 'codigo',
       'descripción': 'descripcion',
+      'criterio': 'criterio_nombre',
+      'periodo': 'periodo_nombre',
+      'período': 'periodo_nombre',
+      'obligatorio': 'obligatorio',
       'estado': 'estado',
       'fecha de creación': 'fechaCreacion',
+      'fecha inicio': 'fecha_inicio',
+      'fecha fin': 'fecha_fin',
       'acciones': 'acciones'
     };
     return mapping[columnName.toLowerCase()] || columnName.toLowerCase();

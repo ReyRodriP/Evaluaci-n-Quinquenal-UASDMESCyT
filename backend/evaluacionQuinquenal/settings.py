@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', #Para la generacion del token al iniciar sesion 
     'organization',
     'corsheaders', #Para el uso de CORS y enlazar back con front
+    'evaluation',
 ]
 
 MIDDLEWARE = [
