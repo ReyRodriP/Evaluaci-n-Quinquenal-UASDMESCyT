@@ -7,17 +7,26 @@ from .serializers import (
 )
 
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+
 class FacultadViewSet(viewsets.ModelViewSet):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Facultad.objects.all().order_by('nombre')
     serializer_class = FacultadSerializer
 
 
 class DepartamentoViewSet(viewsets.ModelViewSet):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Departamento.objects.all().order_by('nombre')
     serializer_class = DepartamentoSerializer
 
 
 class PerfilUsuarioViewSet(viewsets.ModelViewSet):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = PerfilUsuario.objects.all()
     serializer_class = PerfilUsuarioSerializer
 

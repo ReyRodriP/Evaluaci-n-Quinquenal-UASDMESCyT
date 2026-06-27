@@ -4,13 +4,14 @@ from .serializers import UsuarioSerializer
 from rest_framework.authtoken.models import Token
 from rest_framework import status
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 
 from django.contrib.auth import get_user_model, authenticate #Para obtener el modelo
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
 
     user = authenticate(
@@ -37,6 +38,7 @@ def login(request):
     )
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     serializer = UsuarioSerializer(data=request.data)
 
@@ -49,7 +51,17 @@ def register(request):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['PUT'])
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    token = Token.objects.filter(user=request.user).first()
+    if token:
+        token.delete()
+    return Response({"detail": "Sesión cerrada correctamente."}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def profile(request): #Para la actualizacion de datos del usuario a excepcion de username y password

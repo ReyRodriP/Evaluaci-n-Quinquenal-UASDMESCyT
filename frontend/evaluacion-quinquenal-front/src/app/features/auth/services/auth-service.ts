@@ -20,6 +20,30 @@ export class AuthService {
     return this.http.post(`${this.baseUrl}login`,user/*, {withCredentials: true}*/);
   }
 
+  logoutApi(): Observable<any> {
+    return this.http.post(`${this.baseUrl}logout`, {});
+  }
+
+  saveToken(token:string): void {
+    localStorage.setItem('auth_token', token);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('auth_token');
+  }
+
+  removeToken(): void {
+    localStorage.removeItem('auth_token');
+  }
+
+  isLoggedIn(): boolean {
+    return !!this.getToken();
+  }
+
+  logout(): void {
+    this.removeToken();
+  }
+
   // Facultades CRUD operations
   crearFacultades(facultad:any):Observable<any> {
     return this.http.post(`${this.baseUrl}facultades/`, facultad);

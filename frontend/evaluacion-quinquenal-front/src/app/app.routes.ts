@@ -11,6 +11,7 @@ import { Periodos } from './features/periodos/periodos';
 import { Indicadores } from './features/indicadores/indicadores';
 import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
+import { AuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
     {
@@ -35,6 +36,7 @@ export const routes: Routes = [
     {
         path: '',
         component: AdminLayout,
+        canActivate: [AuthGuard],
         children: [
             {
                 path: 'dashboard',

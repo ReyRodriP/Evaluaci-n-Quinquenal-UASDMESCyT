@@ -29,6 +29,9 @@ export class Login {
       this.authService.login(this.loginForm.value).subscribe({
         next:(data)=> {
           this.toast.success('Login completado'); //Notificacion de exito
+          if (data?.token) {
+            this.authService.saveToken(data.token);
+          }
 
           setTimeout(()=> {
             this.router.navigate(['/dashboard']); //Redirecciona si el login es exitoso
