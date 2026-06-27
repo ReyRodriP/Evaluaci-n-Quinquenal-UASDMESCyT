@@ -13,7 +13,20 @@
              <tbody>
 
                  <tr *ngFor="let item of datos">
-                     <td *ngFor="let columna of getDataColumns()">{{ item[getColumnKey(columna)] }}</td>
+                     <td *ngFor="let columna of getDataColumns()">
+                         <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate">
+                             {{ item[getColumnKey(columna)] }}
+                         </span>
+                         <ng-template #indicadoresTemplate>
+                             <div class="indicadores-list">
+                                 <span *ngFor="let indicador of item.indicadores" class="indicador-badge">
+                                     <ul>
+                                        <li>{{ indicador.nombre }}</li>
+                                     </ul>
+                                 </span>
+                             </div>
+                         </ng-template>
+                     </td>
 
                      <td class="actions">
 

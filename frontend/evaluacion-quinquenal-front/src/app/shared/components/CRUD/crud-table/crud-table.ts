@@ -35,6 +35,7 @@ export class CrudTable {
       'criterio': 'criterio_nombre',
       'periodo': 'periodo_nombre',
       'período': 'periodo_nombre',
+      'indicadores': 'indicadores',
       'obligatorio': 'obligatorio',
       'estado': 'estado',
       'fecha de creación': 'fechaCreacion',

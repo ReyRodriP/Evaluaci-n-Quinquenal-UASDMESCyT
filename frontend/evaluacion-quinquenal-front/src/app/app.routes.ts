@@ -10,6 +10,7 @@ import { Departamentos } from './features/departamentos/departamentos';
 import { Periodos } from './features/periodos/periodos';
 import { Indicadores } from './features/indicadores/indicadores';
 import { Criterios } from './features/criterios/criterios';
+import { Asignaciones } from './features/asignaciones/asignaciones';
 
 export const routes: Routes = [
     {
@@ -62,6 +63,10 @@ export const routes: Routes = [
             {
                 path: 'indicadores',
                 component: Indicadores
+            },
+            {
+                path: 'asignaciones',
+                component: Asignaciones
             },
             //Seguir insertando rutas hijas
         ]

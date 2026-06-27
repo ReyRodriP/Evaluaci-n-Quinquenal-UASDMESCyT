@@ -13,7 +13,7 @@ import { ToastrService } from 'ngx-toastr';
   styleUrl: './criterios.css',
 })
 export class Criterios implements OnInit {
-  columnas: string[] = ['Nombre', 'Descripción', 'Período', 'Estado'];
+  columnas: string[] = ['Nombre', 'Descripción', 'Período', 'Estado', 'Indicadores'];
 
   datos: any[] = [];
   periodos: any[] = [];

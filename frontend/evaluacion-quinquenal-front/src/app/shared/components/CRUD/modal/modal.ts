@@ -58,6 +58,19 @@ export class Modal implements OnChanges {
     this.close.emit();
   }
 
+  toggleCheckbox(fieldName: string, value: any) {
+    if (!Array.isArray(this.model[fieldName])) {
+      this.model[fieldName] = [];
+    }
+
+    const index = this.model[fieldName].indexOf(value);
+    if (index === -1) {
+      this.model[fieldName].push(value);
+    } else {
+      this.model[fieldName].splice(index, 1);
+    }
+  }
+
   onSave() {
     this.save.emit(this.model);
   }

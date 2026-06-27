@@ -30,6 +30,19 @@
             [name]="field.name">
             <option *ngFor="let option of field.options" [ngValue]="option?.value ?? option">{{ option?.label ?? option }}</option>
           </select>
+
+          <div *ngIf="field.type === 'checkboxgroup'" class="checkbox-group">
+            <div *ngFor="let option of field.options" class="checkbox-option">
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="model[field.name]?.includes(option?.value ?? option)"
+                  (change)="toggleCheckbox(field.name, option?.value ?? option)"
+                />
+                {{ option?.label ?? option }}
+              </label>
+            </div>
+          </div>
         </div>
       </ng-container>
 

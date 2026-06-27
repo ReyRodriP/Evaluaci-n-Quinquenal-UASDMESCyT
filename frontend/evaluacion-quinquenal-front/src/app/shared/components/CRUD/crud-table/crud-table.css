@@ -78,3 +78,21 @@ tbody tr:hover{
 .actions button:hover{
     background:#dbeafe;
 }
+
+/* INDICADORES */
+
+.indicadores-list{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.indicador-badge{
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
