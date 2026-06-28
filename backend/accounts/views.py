@@ -1,14 +1,31 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .serializers import UsuarioSerializer
+from .serializers import UsuarioSerializer, GroupSerializer, PermissionSerializer
 from rest_framework.authtoken.models import Token
 from rest_framework import status
-from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
+from rest_framework import viewsets
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth.models import Group, Permission
+from .permissions import IsAdminGroup
 
-from django.contrib.auth import get_user_model, authenticate #Para obtener el modelo
+from django.contrib.auth import get_user_model, authenticate
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminGroup]
+
+
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminGroup]
+
 
 @api_view(['POST'])
 def login(request):

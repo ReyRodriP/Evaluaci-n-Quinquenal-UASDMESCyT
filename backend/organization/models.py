@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 
 class Facultad(models.Model):
@@ -31,7 +31,7 @@ class Departamento(models.Model):
 
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
 

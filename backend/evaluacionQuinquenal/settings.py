@@ -110,6 +110,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
 ] #Aqui le damos acceso a la ruta del front, cambialo si usas otro puerto
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
