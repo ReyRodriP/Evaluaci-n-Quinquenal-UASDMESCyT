@@ -1,0 +1,54 @@
+<div class="register-container">
+
+    <section class="register-info">
+        <img src="/img/UASD-Logo.png">
+        <h2>Universidad Autónoma de Santo Domingo</h2>
+
+        <img src="/img/Logo_MESCyT_(RD).png" style="width: 200px; margin: 0;">
+        <h3>MESCyT</h3>
+
+        <p>
+            Sistema de seguimiento académico
+            para estudiantes universitarios.
+        </p>
+    </section>
+
+    <section class="register-form">
+
+        <h1>Registro</h1>
+
+        <form action="POST" [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+
+            <input type="text" placeholder="Nombre de usuario" id="username" formControlName="username" required />
+            <!-- <small *ngIf="registerForm.get('username')?.touched && registerForm.get('username')?.hasError('required')">Nombre de usuario requerido</small> -->
+
+            <input type="email" placeholder="Correo electrónico" id="email" formControlName="email" required />
+            <!-- <small>Correo requerido</small> -->
+
+            <div class="form-row">
+                <input type="text" placeholder="Nombre" id="first_name" formControlName="first_name" required />
+                <!-- <small>Nombre requerido</small> -->
+
+                <input type="text" placeholder="Apellido" id="last_name" formControlName="last_name" required />
+                <!-- <small>Apellido requerido</small> -->
+            </div>
+
+            <input type="tel" placeholder="Teléfono" id="telefono" formControlName="telefono" required />
+
+            <input type="password" placeholder="Contraseña" id="password" formControlName="password" required />
+
+            <input type="password" placeholder="Confirmar contraseña" id="passwordConfirmation" formControlName="passwordConfirmation" required />
+
+            <button type="submit" class="btn-register" [disabled]="registerForm.invalid">Registrarse</button>
+
+        </form>
+
+        <div class="login-link">
+            <p>¿Tienes un usuario creado?</p>
+            <a routerLink="/auth/login">
+                Iniciar Sesión
+            </a>
+        </div>
+    </section>
+
+</div>

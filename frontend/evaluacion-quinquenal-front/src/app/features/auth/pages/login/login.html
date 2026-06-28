@@ -1,0 +1,38 @@
+
+<div class="login-container">
+
+    <img src="img/UASD-Logo.png" alt="Logo UASD" class="login-logo">
+
+    <h1>Inicio de Sesión</h1>
+
+    <p class="subtitle">
+        Accede a tu seguimiento académico
+    </p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+
+        <div class="input-group">
+            <i class='bx bx-user'></i>
+            <input type="text" placeholder="Nombre de usuario" formControlName="username">
+        </div>
+
+        <div class="input-group">
+            <i class='bx bx-lock-alt'></i>
+            <input type="password" placeholder="Contraseña" formControlName="password" required minlength="6">
+        </div>
+
+        <button type="submit" class="btn-login">
+            Ingresar
+        </button>
+
+    </form>
+
+    <div class="register-link">
+        <p>¿No estás registrado?</p>
+
+        <a routerLink="/auth/register"> <!--Pendiente de arreglo-->
+            Registrarse
+        </a>
+    </div>
+
+</div>

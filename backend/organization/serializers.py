@@ -21,9 +21,10 @@ class DepartamentoSerializer(serializers.ModelSerializer):
             'nombre',
             'descripcion',
             'facultad',
-            'facultad_nombre'
+            'facultad_nombre',
+            'activo',
+            'fecha_creacion'
         ]
-
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(

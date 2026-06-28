@@ -1,0 +1,283 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary: #003366;
+    --secondary: #0077cc;
+    --light-blue: #eaf4ff;
+    --background: #f4f6f9;
+    --white: #ffffff;
+    --gray: #6b7280;
+    --border: #d1d5db;
+    --success: #22c55e;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+/* CONTENEDOR PRINCIPAL */
+
+.register-container{
+    width:100%;
+    max-width:1100px;
+    min-height:700px;
+
+    display:grid;
+    grid-template-columns: 40% 60%;
+
+    background:white;
+    border-radius:30px;
+
+    overflow:hidden;
+
+    box-shadow:
+    0 10px 30px rgba(0,0,0,.08);
+}
+
+/* PANEL IZQUIERDO */
+
+.register-info{
+    background:linear-gradient(
+        180deg,
+        #0077cc 0%,
+        #003366 100%
+    );
+
+    color:white;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    padding:3rem;
+
+    text-align:center;
+}
+
+.register-info img{
+    width:140px;
+    margin-bottom:1.5rem;
+}
+
+.register-info h2{
+    font-size:2rem;
+    font-weight:700;
+    margin-bottom:2rem;
+    line-height:1.3;
+}
+
+.register-info h3{
+    font-size:1.8rem;
+    margin-top:1rem;
+    margin-bottom:1rem;
+}
+
+.register-info p{
+    font-size:1rem;
+    line-height:1.8;
+    opacity:.95;
+    max-width:300px;
+}
+
+/* PANEL DERECHO */
+
+.register-form{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:3rem 4rem;
+}
+
+.register-form h1{
+    text-align:center;
+    font-size:3rem;
+    color:var(--primary);
+    margin-bottom:2rem;
+}
+
+/* FORMULARIO */
+
+form{
+    display:flex;
+    flex-direction:column;
+    gap:1.2rem;
+}
+
+/* LABELS */
+
+form label{
+    display:block;
+    margin-bottom:.4rem;
+    font-weight:500;
+    color:#374151;
+}
+
+/* INPUTS */
+
+input{
+    width:100%;
+    padding:14px 16px;
+
+    border:1px solid rgb(181, 181, 181);
+    border-radius:12px;
+
+    font-size:15px;
+    font-family:'Poppins',sans-serif;
+
+    transition:.3s;
+}
+
+input:focus{
+    outline:none;
+    border-color:var(--secondary);
+
+    box-shadow:
+    0 0 0 4px rgba(0,119,204,.15);
+}
+
+/* FILAS DOBLES */
+
+.form-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1rem;
+}
+
+/* BOTÓN */
+
+.btn-register{
+    margin-top:1rem;
+
+    border: 2px solid gray;
+    border-radius:12px;
+
+    padding:14px;
+
+    background:linear-gradient(
+        90deg,
+        var(--primary),
+        var(--secondary)
+    );
+
+    color:rgb(9, 9, 9);
+
+    font-size:1rem;
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.3s;
+}
+
+.btn-register:hover{
+    transform:translateY(-2px);
+
+    box-shadow:
+    0 10px 20px rgba(0,119,204,.25);
+}
+
+/* ENLACE LOGIN */
+
+.login-link{
+    text-align:center;
+    margin-top:1.5rem;
+    color:var(--gray);
+}
+
+.login-link a{
+    color:var(--secondary);
+    text-decoration:none;
+    font-weight:600;
+}
+
+.login-link a:hover{
+    text-decoration:underline;
+}
+
+.login-link p {
+    margin-bottom: 10px;
+}
+
+/* BARRA DE CONTRASEÑA */
+
+.password-strength{
+    width:100%;
+    height:8px;
+
+    background:#e5e7eb;
+
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.password-strength span{
+    display:block;
+    height:100%;
+    width:60%;
+
+    background:linear-gradient(
+        90deg,
+        #f59e0b,
+        var(--success)
+    );
+}
+
+/* RESPONSIVE */
+
+@media(max-width:900px){
+
+    .register-container{
+        grid-template-columns:1fr;
+        max-width:650px;
+    }
+
+    .register-info{
+        padding:2rem;
+    }
+
+    .register-info img{
+        width:100px;
+    }
+
+    .register-info h2{
+        font-size:1.5rem;
+    }
+
+    .register-info h3{
+        font-size:1.3rem;
+    }
+
+    .register-form{
+        padding:2rem;
+    }
+
+    .register-form h1{
+        font-size:2.2rem;
+    }
+}
+
+@media(max-width:600px){
+
+    .form-row{
+        grid-template-columns:1fr;
+    }
+
+    .register-form{
+        padding:1.5rem;
+    }
+
+    .register-form h1{
+        font-size:2rem;
+    }
+
+    input{
+        padding:12px;
+    }
+
+    .btn-register{
+        padding:12px;
+    }
+}
