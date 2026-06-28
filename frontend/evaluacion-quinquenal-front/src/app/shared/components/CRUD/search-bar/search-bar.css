@@ -5,53 +5,65 @@
     justify-content:space-between;
     align-items:center;
     margin-bottom:25px;
+    color: var(--text-color);
 }
 
 .crud-header h2{
-    color:#003366;
+    color: var(--text-title-color);
 }
 
 .crud-header p{
-    color:#666;
+    color: var(--text-color);
     margin-top:5px;
 }
 
 .btn-primary{
-    background:#0077cc;
-    color:white;
+    background: var(--primary-color);
+    color: var(--sidebar-color);
     border:none;
     padding:12px 20px;
     border-radius:10px;
     cursor:pointer;
     font-weight:600;
-    transition:.3s;
+    transition: var(--tran-03);
 }
 
 .btn-primary:hover{
-    background:#005fa3;
+    background: var(--button-hover-bg);
 }
 
 /* TOOLBAR */
 
 .toolbar{
-    background:white;
+    background: var(--table-bg);
     padding:15px;
     border-radius:15px;
     display:flex;
     gap:15px;
     flex-wrap:wrap;
     margin-bottom:20px;
-    box-shadow:0 3px 10px rgba(0,0,0,.08);
+    box-shadow: var(--table-shadow);
+    color: var(--text-color);
 }
 
 .search-box{
     flex:1;
     min-width:250px;
+    background: var(--body-color);
+    color: var(--text-color);
+    border:1px solid var(--border-color);
+    border-radius:8px;
 }
 
 .toolbar input,
 .toolbar select{
     padding:10px;
-    border:1px solid #ddd;
+    border:1px solid var(--border-color);
     border-radius:8px;
+    background: var(--body-color);
+    color: var(--text-color);
+}
+
+.toolbar select{
+    min-width: 140px;
 }

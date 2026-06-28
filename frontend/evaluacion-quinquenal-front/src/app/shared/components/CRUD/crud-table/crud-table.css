@@ -1,21 +1,22 @@
 /* TABLE */
 
 .table-wrapper{
-    background:white;
+    background: var(--table-bg);
     border-radius:15px;
     overflow:hidden;
-    box-shadow:0 3px 10px rgba(0,0,0,.08);
+    box-shadow: var(--table-shadow);
 }
 
 table{
     width:100%;
     border-collapse:collapse;
     table-layout: fixed;
+    color: var(--text-color);
 }
 
 thead{
-    background:#003366;
-    color:white;
+    background: var(--table-head-bg);
+    color: var(--table-head-text);
 }
 
 th,
@@ -23,6 +24,7 @@ td{
     padding:15px;
     text-align:left;
     word-break: break-word;
+    border-bottom: 1px solid var(--border-color);
 }
 
 th:last-child,
@@ -32,11 +34,11 @@ td.actions{
 }
 
 tbody tr{
-    border-bottom:1px solid #eee;
+    border-bottom:1px solid var(--border-color);
 }
 
 tbody tr:hover{
-    background:#f5f9ff;
+    background: var(--background-hover);
 }
 
 /* BADGES */
@@ -49,13 +51,13 @@ tbody tr:hover{
 }
 
 .active{
-    background:#e8f7ee;
-    color:#1b8f4e;
+    background: var(--badge-active-bg);
+    color: var(--badge-active-text);
 }
 
 .inactive{
-    background:#fdeaea;
-    color:#d32f2f;
+    background: var(--badge-inactive-bg);
+    color: var(--badge-inactive-text);
 }
 
 /* ACTIONS */
@@ -67,16 +69,17 @@ tbody tr:hover{
 
 .actions button{
     border:none;
-    background:#f1f5f9;
+    background: var(--button-bg);
     width:36px;
     height:36px;
     border-radius:8px;
     cursor:pointer;
     transition:.3s;
+    color: var(--text-color);
 }
 
 .actions button:hover{
-    background:#dbeafe;
+    background: var(--button-hover-bg);
 }
 
 /* INDICADORES */
@@ -89,8 +92,8 @@ tbody tr:hover{
 
 .indicador-badge{
     display: inline-block;
-    background: #e3f2fd;
-    color: #1976d2;
+    background: var(--indicator-badge-bg);
+    color: var(--indicator-badge-text);
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 0.75rem;

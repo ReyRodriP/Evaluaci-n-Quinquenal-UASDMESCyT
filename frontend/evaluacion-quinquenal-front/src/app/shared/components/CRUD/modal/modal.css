@@ -19,7 +19,7 @@
     width: 100%;
     max-width: 550px;
 
-    background: var(--sidebar-color);
+    background: var(--modal-body-bg);
     border-radius: 20px;
 
     box-shadow:
@@ -40,13 +40,8 @@
 
     padding: 1.3rem 1.5rem;
 
-    background: linear-gradient(
-        135deg,
-        var(--primary-color),
-        #4cc2ff
-    );
-
-    color: white;
+    background: var(--modal-header-bg);
+    color: var(--modal-header-color);
 }
 
 .modal-header h2 {
@@ -62,7 +57,7 @@
     border-radius: 50%;
 
     background: rgba(255,255,255,.15);
-    color: white;
+    color: var(--modal-header-color);
 
     cursor: pointer;
 
@@ -93,7 +88,7 @@
 .form-group label {
     margin-bottom: .4rem;
     font-weight: 600;
-    color: var(--text-title-color);
+    color: var(--modal-label-color);
 }
 
 .form-group input,
@@ -101,14 +96,13 @@
 .form-group select {
     padding: .9rem 1rem;
 
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--modal-input-border);
     border-radius: 12px;
 
-    background: #fff;
+    background: var(--modal-input-bg);
+    color: var(--modal-input-text);
 
     font-size: .95rem;
-
-    transition: .3s;
 }
 
 .checkbox-group {
@@ -117,9 +111,9 @@
     max-height: 220px;
     overflow-y: auto;
     padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--modal-input-border);
     border-radius: 12px;
-    background: #fff;
+    background: var(--modal-checkbox-bg);
 }
 
 .checkbox-option {
@@ -173,28 +167,22 @@
 
 .btn-cancel {
     background: #f1f5f9;
-    color: #475569;
+    color: var(--modal-btn-cancel-text);
 }
 
 .btn-cancel:hover {
-    background: #e2e8f0;
+    background: var(--modal-btn-cancel-hover);
 }
 
 .btn-save {
-    background: linear-gradient(
-        135deg,
-        var(--primary-color),
-        #38bdf8
-    );
-
-    color: white;
+    background: var(--modal-btn-save-bg);
+    color: var(--modal-btn-save-text);
 }
 
 .btn-save:hover {
     transform: translateY(-2px);
 
-    box-shadow:
-        0 6px 18px rgba(0,145,255,.35);
+    box-shadow: var(--modal-btn-save-shadow);
 }
 
 /* ===== ANIMACIÓN ===== */
