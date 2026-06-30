@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'roles', views.GroupViewSet)
 router.register(r'permisos', views.PermissionViewSet)
+router.register(r'usuarios', views.UserViewSet)
 
 urlpatterns = [
     re_path('login', views.login),

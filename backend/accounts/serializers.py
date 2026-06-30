@@ -30,6 +30,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         source='groups',
         required=False
     )
+    rol = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,12 +42,18 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'first_name', 
             'last_name', 
             'telefono',
+            'is_active',
+            'rol',
             'groups',
             'group_ids']
-        
+
         extra_kwargs = {
             'password': {'write_only': True}
         }
+
+    def get_rol(self, obj):
+        groups = obj.groups.all()
+        return groups.first().name if groups else None
 
     def create(self, validated_data):
         groups_data = validated_data.pop('groups', [])
@@ -61,3 +68,17 @@ class UsuarioSerializer(serializers.ModelSerializer):
         if groups_data:
             user.groups.set(groups_data)
         return user
+
+class UsuarioListSerializer(serializers.ModelSerializer):
+    rol = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'telefono', 'is_active', 'rol'
+        ]
+
+    def get_rol(self, obj):
+        groups = obj.groups.all()
+        return groups.first().name if groups else None

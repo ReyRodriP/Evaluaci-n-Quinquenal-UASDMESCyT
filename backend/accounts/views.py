@@ -1,9 +1,12 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
-from .serializers import UsuarioSerializer, GroupSerializer, PermissionSerializer
+from .serializers import (
+    UsuarioSerializer, UsuarioListSerializer,
+    GroupSerializer, PermissionSerializer
+)
 from rest_framework.authtoken.models import Token
 from rest_framework import status
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes, authentication_classes
@@ -12,6 +15,8 @@ from django.contrib.auth.models import Group, Permission
 from .permissions import IsAdminGroup
 
 from django.contrib.auth import get_user_model, authenticate
+
+User = get_user_model()
 
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
@@ -25,6 +30,20 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PermissionSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminGroup]
+
+
+class UserViewSet(mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
+                  mixins.UpdateModelMixin,
+                  viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminGroup]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return UsuarioListSerializer
+        return UsuarioSerializer
 
 
 @api_view(['POST'])
