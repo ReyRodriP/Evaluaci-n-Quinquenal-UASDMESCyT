@@ -1,7 +1,7 @@
 <div class="crud-container">
     <div class="crud-header">
-        <app-search-bar [titulo]="'Departamentos'" (create)="openNew()"></app-search-bar>
-    <app-crud-table [columnas]="columnas" [datos]="datos" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
+        <app-search-bar [titulo]="'Departamentos'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todas', 'Activas', 'Inactivas']" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)"></app-search-bar>
+    <app-crud-table [columnas]="columnas" [datos]="datosFiltrados" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
     <app-pagination></app-pagination>
 
     <app-modal

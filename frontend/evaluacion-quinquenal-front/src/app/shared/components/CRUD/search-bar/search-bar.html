@@ -15,14 +15,14 @@
 
         <input
             type="text"
-            placeholder="Buscar..."
+            [placeholder]="placeholder"
             class="search-box"
+            [value]="value"
+            (input)="onSearch($event)"
         >
 
-        <select>
-            <option>Todas</option>
-            <option>Activas</option>
-            <option>Inactivas</option>
+        <select [attr.aria-label]="stateLabel" (change)="onStateChange($event)">
+            <option *ngFor="let option of stateOptions" [value]="option">{{ option }}</option>
         </select>
 
         <select>

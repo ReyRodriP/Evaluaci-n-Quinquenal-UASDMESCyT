@@ -16,7 +16,10 @@ export class Departamentos implements OnInit {
   columnas: string[] = ['Nombre', 'Descripción', 'Facultad', 'Estado', 'Fecha de Creación'];
 
   datos: any[] = [];
+  datosFiltrados: any[] = [];
   facultades: any[] = [];
+  searchTerm = '';
+  selectedState = 'Todas';
 
   showModal: boolean = false;
   selectedItem: any = null;
@@ -83,11 +86,36 @@ export class Departamentos implements OnInit {
           facultad: item.facultad_nombre || '',
           facultadId: item.facultad
         }));
+        this.applySearch();
       },
       error: (err) => {
         console.error('Error cargando departamentos', err);
         this.toast.error('No se pudieron cargar los departamentos');
       }
+    });
+  }
+
+  onSearch(term: string) {
+    this.searchTerm = term;
+    this.applySearch();
+  }
+
+  onStateChange(state: string) {
+    this.selectedState = state;
+    this.applySearch();
+  }
+
+  private applySearch() {
+    const normalizedTerm = this.searchTerm.toLowerCase().trim();
+
+    this.datosFiltrados = this.datos.filter((item: any) => {
+      const nombre = `${item.nombre ?? ''}`.toLowerCase();
+      const matchesSearch = !normalizedTerm || nombre.includes(normalizedTerm);
+      const matchesState = this.selectedState === 'Todas'
+        || (this.selectedState === 'Activas' && item.activo)
+        || (this.selectedState === 'Inactivas' && !item.activo);
+
+      return matchesSearch && matchesState;
     });
   }
 

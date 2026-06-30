@@ -17,8 +17,11 @@
         </div>
 
         <div class="input-group">
-            <i class='bx bx-lock-alt'></i>
-            <input type="password" placeholder="Contraseña" formControlName="password" required minlength="6">
+            <i class="bx bx-lock"></i>
+            <input [type]="showPassword ? 'text' : 'password'" placeholder="Contraseña" formControlName="password" required minlength="6">
+            <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" aria-label="Mostrar u ocultar contraseña">
+                <i class="bx" [ngClass]="showPassword ? 'bx bx-eye' : 'bx bx-eye-closed'"></i>
+            </button>
         </div>
 
         <button type="submit" class="btn-login">

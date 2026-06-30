@@ -16,7 +16,10 @@ export class Indicadores implements OnInit {
   columnas: string[] = ['Nombre', 'Descripción', 'Criterio', 'Obligatorio', 'Estado'];
 
   datos: any[] = [];
+  datosFiltrados: any[] = [];
   criterios: any[] = [];
+  searchTerm = '';
+  selectedState = 'Todas';
 
   showModal: boolean = false;
   selectedItem: any = null;
@@ -86,11 +89,34 @@ export class Indicadores implements OnInit {
           criterioId: item.criterio,
           obligatorio: item.obligatorio ? 'Si' : 'No'
         }));
+        this.applySearch();
       },
       error: (err) => {
         console.error('Error cargando indicadores', err);
         this.toast.error('No se pudieron cargar los indicadores');
       }
+    });
+  }
+
+  onSearch(term: string) {
+    this.searchTerm = term;
+    this.applySearch();
+  }
+
+  onStateChange(state: string) {
+    this.selectedState = state;
+    this.applySearch();
+  }
+
+  private applySearch() {
+    const normalizedTerm = this.searchTerm.toLowerCase().trim();
+    this.datosFiltrados = this.datos.filter((item: any) => {
+      const nombre = `${item.nombre ?? ''}`.toLowerCase();
+      const matchesSearch = !normalizedTerm || nombre.includes(normalizedTerm);
+      const matchesState = this.selectedState === 'Todas'
+        || (this.selectedState === 'Activos' && item.activo)
+        || (this.selectedState === 'Inactivos' && !item.activo);
+      return matchesSearch && matchesState;
     });
   }
 

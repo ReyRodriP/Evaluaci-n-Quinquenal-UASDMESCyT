@@ -17,7 +17,10 @@ export class Asignaciones implements OnInit {
   columnas: string[] = ['Departamento', 'Indicadores', 'Período', 'Estado'];
 
   datos: any[] = [];
+  datosFiltrados: any[] = [];
   indicadores: any[] = [];
+  searchTerm = '';
+  selectedState = 'Todos';
   departamentos: any[] = [];
   periodos: any[] = [];
 
@@ -167,11 +170,36 @@ export class Asignaciones implements OnInit {
         }, {} as Record<string, any>);
 
         this.datos = Object.values(grouped);
+        this.applySearch();
       },
       error: (err) => {
         console.error('Error cargando asignaciones', err);
         this.toast.error('No se pudieron cargar las asignaciones');
       }
+    });
+  }
+
+  onSearch(term: string) {
+    this.searchTerm = term;
+    this.applySearch();
+  }
+
+  onStateChange(state: string) {
+    this.selectedState = state;
+    this.applySearch();
+  }
+
+  private applySearch() {
+    const normalizedTerm = this.searchTerm.toLowerCase().trim();
+    this.datosFiltrados = this.datos.filter((item: any) => {
+      const hayCoincidencia = (item.departamento ?? '').toLowerCase().includes(normalizedTerm)
+        || (item.periodo ?? '').toLowerCase().includes(normalizedTerm)
+        || (item.indicadores ?? []).some((indicador: any) => `${indicador.nombre ?? ''}`.toLowerCase().includes(normalizedTerm));
+      const matchesSearch = !normalizedTerm || hayCoincidencia;
+      const matchesState = this.selectedState === 'Todos'
+        || (this.selectedState === item.estadoRaw)
+        || (this.selectedState === item.estado);
+      return matchesSearch && matchesState;
     });
   }
 

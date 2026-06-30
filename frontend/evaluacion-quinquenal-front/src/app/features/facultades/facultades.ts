@@ -17,6 +17,9 @@ export class Facultades implements OnInit {
   columnas: string[] = ['Nombre', 'Descripción', 'Estado', 'Fecha de Creación'];
 
   datos: any[] = [];
+  datosFiltrados: any[] = [];
+  searchTerm = '';
+  selectedState = 'Todas';
 
   showModal: boolean = false;
   selectedItem: any = null;
@@ -49,11 +52,34 @@ export class Facultades implements OnInit {
           estado: item.activo ? 'Activa' : 'Inactiva',
           fechaCreacion: item.fecha_creacion ? item.fecha_creacion.split('T')[0] : '',
         }));
+        this.applySearch();
       },
       error: (err) => {
         console.error('Error cargando facultades', err);
         this.toast.error('No se pudieron cargar las facultades');
       }
+    });
+  }
+
+  onSearch(term: string) {
+    this.searchTerm = term;
+    this.applySearch();
+  }
+
+  onStateChange(state: string) {
+    this.selectedState = state;
+    this.applySearch();
+  }
+
+  private applySearch() {
+    const normalizedTerm = this.searchTerm.toLowerCase().trim();
+    this.datosFiltrados = this.datos.filter((item: any) => {
+      const nombre = `${item.nombre ?? ''}`.toLowerCase();
+      const matchesSearch = !normalizedTerm || nombre.includes(normalizedTerm);
+      const matchesState = this.selectedState === 'Todas'
+        || (this.selectedState === 'Activas' && item.activo)
+        || (this.selectedState === 'Inactivas' && !item.activo);
+      return matchesSearch && matchesState;
     });
   }
 
