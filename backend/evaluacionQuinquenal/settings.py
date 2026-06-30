@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', #Para la generacion del token al iniciar sesion 
     'organization',
     'evidence',
+    'evaluation',
     'corsheaders',
 ]
 

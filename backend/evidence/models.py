@@ -1,6 +1,5 @@
 from django.db import models
-
-from django.db import models
+from evaluation.models import Asignacion
 
 class Evidencia(models.Model):
     id_evidencia = models.AutoField(primary_key=True)
@@ -10,7 +9,11 @@ class Evidencia(models.Model):
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
-    asignacion = models.CharField(max_length=255)
+    asignacion = models.OneToOneField(
+        Asignacion,
+        on_delete=models.CASCADE,
+        related_name='evidencia'
+    )
 
     def __str__(self):
         return self.titulo
