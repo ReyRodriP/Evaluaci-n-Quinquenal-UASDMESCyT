@@ -20,6 +20,14 @@ export class AuthService {
     return this.http.post(`${this.baseUrl}login`,user/*, {withCredentials: true}*/);
   }
 
+  forgotPassword(payload:any): Observable<any> {
+    return this.http.post(`${this.baseUrl}forgot_password`, payload);
+  }
+
+  resetPassword(payload:any): Observable<any> {
+    return this.http.post(`${this.baseUrl}reset_password`, payload);
+  }
+
   logoutApi(): Observable<any> {
     return this.http.post(`${this.baseUrl}logout`, {});
   }

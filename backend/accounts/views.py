@@ -9,6 +9,11 @@ from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 
 from django.contrib.auth import get_user_model, authenticate #Para obtener el modelo
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -123,3 +128,75 @@ def change_password(request): #Para cambiar contraseña de usuario
         {"message": "Contraseña actualizada correctamente"},
         status=status.HTTP_200_OK
     )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    email = (request.data.get('email') or '').strip()
+
+    if email:
+        user_model = get_user_model()
+        user = user_model.objects.filter(email__iexact=email).first()
+
+        if user and user.email:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = request.build_absolute_uri(
+                f"/reset-password?uid={uid}&token={token}"
+            )
+
+            try:
+                send_mail(
+                    subject='Restablecimiento de contraseña',
+                    message=(
+                        f'Hola {user.first_name or user.username},\n\n'
+                        'Recibimos una solicitud para restablecer tu contraseña. '
+                        f'Puedes hacerlo usando este enlace:\n{reset_url}\n\n'
+                        'Si no solicitaste este cambio, puedes ignorar este correo.'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception:
+                # Evitar que un fallo de SMTP haga explotar la petición de recuperación.
+                pass
+
+    return Response(
+        {"message": "Si el correo existe, recibirás instrucciones para recuperar tu contraseña."},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    uid = request.data.get('uid')
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+
+    if not uid or not token or not new_password:
+        return Response(
+            {"error": "Debe proporcionar uid, token y nueva contraseña"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user_id = force_str(urlsafe_base64_decode(uid))
+    except (TypeError, ValueError, OverflowError):
+        return Response({"error": "Enlace inválido"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user_model = get_user_model()
+    try:
+        user = user_model.objects.get(pk=user_id)
+    except user_model.DoesNotExist:
+        return Response({"error": "Enlace inválido"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not default_token_generator.check_token(user, token):
+        return Response({"error": "El enlace de recuperación ya no es válido"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+
+    return Response({"message": "Contraseña restablecida correctamente"}, status=status.HTTP_200_OK)

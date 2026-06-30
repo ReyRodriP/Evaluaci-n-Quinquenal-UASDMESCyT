@@ -5,6 +5,8 @@ import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
 import { Usuarios } from './features/usuarios/usuarios';
 import { Register } from './features/auth/pages/register/register';
 import { Login } from './features/auth/pages/login/login';
+import { ForgotPassword } from './features/auth/pages/forgot-password/forgot-password';
+import { ResetPassword } from './features/auth/pages/reset-password/reset-password';
 import { Facultades } from './features/facultades/facultades';
 import { Departamentos } from './features/departamentos/departamentos';
 import { Periodos } from './features/periodos/periodos';
@@ -30,6 +32,14 @@ export const routes: Routes = [
             {
                 path: 'login',
                 component: Login
+            },
+            {
+                path: 'forgot-password',
+                component: ForgotPassword
+            },
+            {
+                path: 'reset-password',
+                component: ResetPassword
             }
         ]
     },

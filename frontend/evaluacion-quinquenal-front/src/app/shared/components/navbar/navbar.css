@@ -95,6 +95,124 @@
     transition: .3s ease;
 }
 
+/*============================
+    BOTÓN NOTIFICACIONES
+=============================*/
+
+.btn-notification{
+
+    position: relative;
+
+    width: 48px;
+    height: 48px;
+
+    border: none;
+    outline: none;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.12);
+
+    color: #fff;
+
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    transition: .3s ease;
+}
+
+.btn-notification i{
+
+    font-size: 1.45rem;
+
+    transition: .3s;
+}
+
+.btn-notification:hover{
+
+    background: rgba(255,255,255,.22);
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 8px 18px rgba(0,0,0,.18);
+}
+
+.btn-notification:hover i{
+
+    transform: rotate(-15deg);
+}
+
+/* Click */
+
+.btn-notification:active{
+
+    transform: scale(.92);
+}
+
+/*============================
+        BADGE
+=============================*/
+
+.notification-badge{
+
+    position: absolute;
+
+    top: 4px;
+    right: 3px;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
+    border-radius: 999px;
+
+    background: #ff3b30;
+    color: white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: .65rem;
+    font-weight: 700;
+
+    border: 2px solid #0077cc;
+
+    animation: pulse 2s infinite;
+}
+
+/*============================
+        ANIMACIÓN
+=============================*/
+
+@keyframes pulse{
+
+    0%{
+
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255,59,48,.6);
+
+    }
+
+    70%{
+
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(255,59,48,0);
+
+    }
+
+    100%{
+
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255,59,48,0);
+
+    }
+
+}
 /* LOGIN
 
 .btn-login {
