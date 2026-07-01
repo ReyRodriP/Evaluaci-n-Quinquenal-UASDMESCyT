@@ -4,16 +4,12 @@ from .serializers import UsuarioSerializer
 from rest_framework.authtoken.models import Token
 from rest_framework import status
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
-<<<<<<< HEAD
 from rest_framework.permissions import IsAuthenticated, AllowAny
-=======
 from rest_framework.permissions import IsAuthenticated
->>>>>>> Jose-Manuel
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 
 from django.contrib.auth import get_user_model, authenticate #Para obtener el modelo
-<<<<<<< HEAD
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
@@ -22,10 +18,6 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-=======
-
-@api_view(['POST'])
->>>>>>> Jose-Manuel
 def login(request):
 
     user = authenticate(
@@ -52,10 +44,7 @@ def login(request):
     )
 
 @api_view(['POST'])
-<<<<<<< HEAD
 @permission_classes([AllowAny])
-=======
->>>>>>> Jose-Manuel
 def register(request):
     serializer = UsuarioSerializer(data=request.data)
 
@@ -68,7 +57,6 @@ def register(request):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-<<<<<<< HEAD
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -80,9 +68,7 @@ def logout(request):
 
 
 @api_view(['POST'])
-=======
 @api_view(['PUT'])
->>>>>>> Jose-Manuel
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def profile(request): #Para la actualizacion de datos del usuario a excepcion de username y password
@@ -143,7 +129,6 @@ def change_password(request): #Para cambiar contraseña de usuario
     return Response(
         {"message": "Contraseña actualizada correctamente"},
         status=status.HTTP_200_OK
-<<<<<<< HEAD
     )
 
 
@@ -217,6 +202,4 @@ def reset_password(request):
     user.save()
 
     return Response({"message": "Contraseña restablecida correctamente"}, status=status.HTTP_200_OK)
-=======
-    )
->>>>>>> Jose-Manuel
+    
