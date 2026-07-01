@@ -29,11 +29,13 @@ class Departamento(models.Model):
     def __str__(self):
         return self.nombre
 
+
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(
     settings.AUTH_USER_MODEL,
     on_delete=models.CASCADE
 )
+
 
     departamento = models.ForeignKey(
         Departamento,

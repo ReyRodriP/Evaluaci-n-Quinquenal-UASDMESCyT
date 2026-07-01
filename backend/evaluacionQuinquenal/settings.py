@@ -60,7 +60,12 @@ INSTALLED_APPS = [
     'evaluation',
 ]
 
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'evidence',
+    'evaluation',
+    'corsheaders',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -162,3 +167,8 @@ REST_FRAMEWORK = {
     ],
 }
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",
+]

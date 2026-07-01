@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -81,3 +82,8 @@ class PasswordRecoveryTests(TestCase):
         self.assertEqual(response.status_code, 200)
         user.refresh_from_db()
         self.assertTrue(user.check_password('newpassword123!'))
+=======
+from django.test import TestCase
+
+# Create your tests here.
+>>>>>>> Jose-Manuel
