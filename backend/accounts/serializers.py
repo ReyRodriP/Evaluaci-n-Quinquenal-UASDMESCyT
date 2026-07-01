@@ -24,12 +24,6 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class UsuarioSerializer(serializers.ModelSerializer):
     groups = GroupSerializer(many=True, read_only=True)
-    group_ids = serializers.PrimaryKeyRelatedField(
-        many=True, write_only=True,
-        queryset=Group.objects.all(),
-        source='groups',
-        required=False
-    )
     rol = serializers.SerializerMethodField()
 
     class Meta:
@@ -44,8 +38,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'telefono',
             'is_active',
             'rol',
-            'groups',
-            'group_ids']
+            'groups']
 
         extra_kwargs = {
             'password': {'write_only': True}
@@ -56,7 +49,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return groups.first().name if groups else None
 
     def create(self, validated_data):
-        groups_data = validated_data.pop('groups', [])
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -65,9 +57,44 @@ class UsuarioSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', ''),
             telefono=validated_data.get('telefono','')
         )
-        if groups_data:
-            user.groups.set(groups_data)
         return user
+
+
+class UsuarioPermisosSerializer(serializers.ModelSerializer):
+    rol = serializers.SerializerMethodField()
+    permisos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'rol', 'permisos']
+
+    def get_rol(self, obj):
+        groups = obj.groups.all()
+        return groups.first().name if groups else None
+
+    def get_permisos(self, obj):
+        return sorted(obj.get_all_permissions())
+
+
+class AdminUsuarioSerializer(UsuarioSerializer):
+    group_ids = serializers.PrimaryKeyRelatedField(
+        many=True, write_only=True,
+        queryset=Group.objects.all(),
+        source='groups',
+        required=False
+    )
+
+    class Meta(UsuarioSerializer.Meta):
+        fields = UsuarioSerializer.Meta.fields + ['group_ids']
+
+    def update(self, instance, validated_data):
+        groups = validated_data.pop('groups', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if groups is not None:
+            instance.groups.set(groups)
+        return instance
 
 class UsuarioListSerializer(serializers.ModelSerializer):
     rol = serializers.SerializerMethodField()

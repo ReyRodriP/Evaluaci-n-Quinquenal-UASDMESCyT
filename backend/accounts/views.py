@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from .serializers import (
-    UsuarioSerializer, UsuarioListSerializer,
-    GroupSerializer, PermissionSerializer
+    UsuarioSerializer, UsuarioListSerializer, UsuarioPermisosSerializer,
+    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer
 )
 from rest_framework.authtoken.models import Token
 from rest_framework import status
@@ -43,7 +43,17 @@ class UserViewSet(mixins.ListModelMixin,
     def get_serializer_class(self):
         if self.action == 'list':
             return UsuarioListSerializer
+        if self.action == 'permisos':
+            return UsuarioPermisosSerializer
+        if self.action in ['update', 'partial_update']:
+            return AdminUsuarioSerializer
         return UsuarioSerializer
+
+    @action(detail=True, methods=['get'])
+    def permisos(self, request, pk=None):
+        user = self.get_object()
+        serializer = UsuarioPermisosSerializer(user)
+        return Response(serializer.data)
 
 
 @api_view(['POST'])
