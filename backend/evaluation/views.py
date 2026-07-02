@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from .models import Periodo, Criterio, Indicador, Asignacion
 from .serializers import (
     PeriodoSerializer,
@@ -6,6 +7,7 @@ from .serializers import (
     IndicadorSerializer,
     AsignacionSerializer
 )
+from accounts.permissions import CustomModelPermissions
 
 
 from rest_framework.permissions import IsAuthenticated
@@ -16,6 +18,7 @@ class PeriodoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Periodo.objects.all().order_by('-fecha_inicio')
     serializer_class = PeriodoSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
 
 class CriterioViewSet(viewsets.ModelViewSet):
@@ -23,6 +26,7 @@ class CriterioViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Criterio.objects.all().order_by('nombre')
     serializer_class = CriterioSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
 
 class IndicadorViewSet(viewsets.ModelViewSet):
@@ -30,6 +34,7 @@ class IndicadorViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Indicador.objects.all().order_by('nombre')
     serializer_class = IndicadorSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
 
 class AsignacionViewSet(viewsets.ModelViewSet):
@@ -37,3 +42,4 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Asignacion.objects.all().order_by('periodo', 'departamento')
     serializer_class = AsignacionSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]

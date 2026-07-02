@@ -32,10 +32,9 @@ class Departamento(models.Model):
 
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(
-    settings.AUTH_USER_MODEL,
-    on_delete=models.CASCADE
-)
-
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
 
     departamento = models.ForeignKey(
         Departamento,

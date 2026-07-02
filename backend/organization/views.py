@@ -1,10 +1,12 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from .models import Facultad, Departamento, PerfilUsuario
 from .serializers import (
     FacultadSerializer,
     DepartamentoSerializer,
     PerfilUsuarioSerializer
 )
+from accounts.permissions import CustomModelPermissions
 
 
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +17,7 @@ class FacultadViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Facultad.objects.all().order_by('nombre')
     serializer_class = FacultadSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
 
 class DepartamentoViewSet(viewsets.ModelViewSet):
@@ -22,6 +25,7 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Departamento.objects.all().order_by('nombre')
     serializer_class = DepartamentoSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
 
 class PerfilUsuarioViewSet(viewsets.ModelViewSet):
@@ -29,6 +33,7 @@ class PerfilUsuarioViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = PerfilUsuario.objects.all()
     serializer_class = PerfilUsuarioSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_queryset(self):
         queryset = PerfilUsuario.objects.all().order_by('usuario__username')

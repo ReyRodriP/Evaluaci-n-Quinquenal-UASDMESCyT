@@ -1,13 +1,22 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
-from .serializers import UsuarioSerializer
+from .serializers import (
+    UsuarioSerializer, UsuarioListSerializer, UsuarioPermisosSerializer,
+    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer
+)
 from rest_framework.authtoken.models import Token
 from rest_framework import status
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import viewsets, mixins
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth.models import Group, Permission
+from .permissions import IsAdminGroup
+
+from django.contrib.auth import get_user_model, authenticate
 
 from django.contrib.auth import get_user_model, authenticate #Para obtener el modelo
 from django.contrib.auth.tokens import default_token_generator
@@ -15,6 +24,45 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+
+User = get_user_model()
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminGroup]
+
+
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminGroup]
+
+
+class UserViewSet(mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
+                  mixins.UpdateModelMixin,
+                  viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminGroup]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return UsuarioListSerializer
+        if self.action == 'permisos':
+            return UsuarioPermisosSerializer
+        if self.action in ['update', 'partial_update']:
+            return AdminUsuarioSerializer
+        return UsuarioSerializer
+
+    @action(detail=True, methods=['get'])
+    def permisos(self, request, pk=None):
+        user = self.get_object()
+        serializer = UsuarioPermisosSerializer(user)
+        return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
