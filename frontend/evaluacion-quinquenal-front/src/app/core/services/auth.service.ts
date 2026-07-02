@@ -73,6 +73,27 @@ export class AuthService {
     return this.http.delete(`${this.apiUrl}/asignaciones/${id}/`);
   }
 
+  // Evidencias
+  listarEvidencias(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/evidencias/`);
+  }
+
+  crearEvidencia(payload: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/evidencias/`, payload);
+  }
+
+  actualizarEvidencia(id: number, payload: any): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/evidencias/${id}/`, payload);
+  }
+
+  eliminarEvidencia(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/evidencias/${id}/`);
+  }
+
+  subirVersionEvidencia(id: number, payload: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/evidencias/${id}/subir_version/`, payload);
+  }
+
   // Indicadores
   listarIndicadores(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/indicadores/`);

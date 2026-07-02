@@ -9,7 +9,6 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
 
 
 class EvidenciaSerializer(serializers.ModelSerializer):
-    # 👇 aquí se agregan las versiones automáticamente
     versiones = VersionEvidenciaSerializer(many=True, read_only=True)
 
     class Meta:

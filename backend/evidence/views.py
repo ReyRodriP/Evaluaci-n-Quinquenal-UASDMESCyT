@@ -14,6 +14,16 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
     queryset = Evidencia.objects.all()
     serializer_class = EvidenciaSerializer
 
+    def create(self, request, *args, **kwargs):
+        asignacion_id = request.data.get('asignacion')
+        if asignacion_id:
+            existing = Evidencia.objects.filter(asignacion_id=asignacion_id).first()
+            if existing:
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return super().create(request, *args, **kwargs)
+
     # 📌 Subir nueva versión de archivo
     @action(detail=True, methods=['post'])
     def subir_version(self, request, pk=None):

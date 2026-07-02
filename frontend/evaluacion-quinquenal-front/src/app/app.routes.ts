@@ -13,6 +13,7 @@ import { Periodos } from './features/periodos/periodos';
 import { Indicadores } from './features/indicadores/indicadores';
 import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
+import { Evidencias } from './features/evidencias/evidencias';
 import { AuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -79,6 +80,10 @@ export const routes: Routes = [
             {
                 path: 'asignaciones',
                 component: Asignaciones
+            },
+            {
+                path: 'evidencias',
+                component: Evidencias
             },
             //Seguir insertando rutas hijas
         ]

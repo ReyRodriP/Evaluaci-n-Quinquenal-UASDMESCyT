@@ -1,11 +1,22 @@
 from django.db import models
 from evaluation.models import Asignacion
 
+
+class EstadoEvidencia(models.TextChoices):
+    ACTIVA = 'activa', 'Activa'
+    CANCELADA = 'cancelada', 'Cancelada'
+
+
 class Evidencia(models.Model):
     id_evidencia = models.AutoField(primary_key=True)
 
     titulo = models.CharField(max_length=255)
     descripcion = models.TextField()
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoEvidencia.choices,
+        default=EstadoEvidencia.ACTIVA
+    )
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 

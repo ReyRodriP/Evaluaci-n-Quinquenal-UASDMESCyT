@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'organization',
     'corsheaders', #Para el uso de CORS y enlazar back con front
     'evaluation',
+    'evidence',
 ]
 
 
