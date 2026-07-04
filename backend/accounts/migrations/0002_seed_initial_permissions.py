@@ -17,10 +17,10 @@ def seed_initial_permissions(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0001_initial'),
-        ('organization', '0003_departamento_activo_departamento_fecha_creacion_and_more'),
-        ('evaluation', '0003_asignacion_estado'),
-    ]
+    ('accounts', '0001_initial'),
+    ('organization', '0001_initial'),
+    ('evaluation', '0001_initial'),
+]
 
     operations = [
         migrations.RunPython(seed_initial_permissions),

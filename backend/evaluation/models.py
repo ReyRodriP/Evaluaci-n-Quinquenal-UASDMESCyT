@@ -42,13 +42,16 @@ class Indicador(models.Model):
         return self.nombre
 
 
+from django.db import models
+
+
 class EstadoAsignacion(models.TextChoices):
     PENDIENTE = 'pendiente', 'Pendiente'
     EN_PROGRESO = 'en_progreso', 'En progreso'
     COMPLETADO = 'completado', 'Completado'
     APROBADO = 'aprobado', 'Aprobado'
     RECHAZADO = 'rechazado', 'Rechazado'
-
+    OBSERVADA = 'observada', 'Observada' 
 
 class Asignacion(models.Model):
     indicador = models.ForeignKey(

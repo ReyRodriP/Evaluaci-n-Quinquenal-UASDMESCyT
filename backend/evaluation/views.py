@@ -1,11 +1,13 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from evaluation.models import Asignacion, EstadoAsignacion
 from .models import Periodo, Criterio, Indicador, Asignacion
 from .serializers import (
     PeriodoSerializer,
     CriterioSerializer,
     IndicadorSerializer,
     AsignacionSerializer
+    
 )
 from accounts.permissions import CustomModelPermissions
 

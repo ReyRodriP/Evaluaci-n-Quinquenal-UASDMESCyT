@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/', include('evaluation.urls')),
     path('api/', include('accounts.urls')),
     path('api/', include('evidence.urls')),
+    path('api-auth/', include('rest_framework.urls')),
 ]
 
 # Archivos multimedia (Evidencias, PDFs, imágenes)
