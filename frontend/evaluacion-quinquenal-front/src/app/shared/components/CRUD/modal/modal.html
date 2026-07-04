@@ -14,7 +14,7 @@
         <div class="form-group" *ngIf="field.type !== 'hidden'">
           <label>{{ field.label }}</label>
 
-          <input *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'date'"
+          <input *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'date' || field.type === 'password'"
             [type]="field.type"
             [(ngModel)]="model[field.name]"
             [name]="field.name"
@@ -32,6 +32,10 @@
           </select>
 
           <div *ngIf="field.type === 'checkboxgroup'" class="checkbox-group">
+            <div class="checkbox-controls">
+              <button type="button" class="btn-secondary" (click)="selectAll(field.name, field.options)">Seleccionar todos</button>
+              <button type="button" class="btn-secondary" (click)="clearAll(field.name)">Limpiar selección</button>
+            </div>
             <div *ngFor="let option of field.options" class="checkbox-option">
               <label>
                 <input

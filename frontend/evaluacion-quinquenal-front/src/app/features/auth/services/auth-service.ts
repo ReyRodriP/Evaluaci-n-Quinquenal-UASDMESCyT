@@ -85,4 +85,51 @@ export class AuthService {
   eliminarDepartamento(id:any): Observable<any> {
     return this.http.delete(`${this.baseUrl}departamentos/${id}/`);
   }
+
+  // Usuarios CRUD operations
+  listarUsuarios(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}usuarios/`);
+  }
+
+  crearUsuario(usuario:any): Observable<any> {
+    return this.http.post(`${this.baseUrl}usuarios/`, usuario);
+  }
+
+  actualizarUsuario(id:any, usuario:any): Observable<any> {
+    return this.http.patch(`${this.baseUrl}usuarios/${id}/`, usuario);
+  }
+
+  eliminarUsuario(id:any): Observable<any> {
+    return this.http.delete(`${this.baseUrl}usuarios/${id}/`);
+  }
+
+  // Roles CRUD operations
+  listarRoles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}roles/`);
+  }
+
+  listarPermisos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}permisos/`);
+  }
+
+  crearRol(rol:any): Observable<any> {
+    return this.http.post(`${this.baseUrl}roles/`, rol);
+  }
+
+  actualizarRol(id:any, rol:any): Observable<any> {
+    return this.http.patch(`${this.baseUrl}roles/${id}/`, rol);
+  }
+
+  // Perfiles CRUD operations
+  listarPerfiles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}perfiles/`);
+  }
+
+  crearPerfil(perfil:any): Observable<any> {
+    return this.http.post(`${this.baseUrl}perfiles/`, perfil);
+  }
+
+  actualizarPerfil(id:any, perfil:any): Observable<any> {
+    return this.http.patch(`${this.baseUrl}perfiles/${id}/`, perfil);
+  }
 }

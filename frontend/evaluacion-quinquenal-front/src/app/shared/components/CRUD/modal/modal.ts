@@ -71,6 +71,14 @@ export class Modal implements OnChanges {
     }
   }
 
+  selectAll(fieldName: string, options: any[]) {
+    this.model[fieldName] = options.map(option => option?.value ?? option);
+  }
+
+  clearAll(fieldName: string) {
+    this.model[fieldName] = [];
+  }
+
   onSave() {
     this.save.emit(this.model);
   }

@@ -29,6 +29,7 @@ export class CrudTable {
 
   getColumnKey(columnName: string): string {
     const mapping: { [key: string]: string } = {
+      'nombre de usuario': 'username',
       'nombre': 'nombre',
       'código': 'codigo',
       'descripción': 'descripcion',
@@ -44,6 +45,44 @@ export class CrudTable {
       'acciones': 'acciones'
     };
     return mapping[columnName.toLowerCase()] || columnName.toLowerCase();
+  }
+
+  getCellValue(item: any, columnName: string): any {
+    const key = this.getColumnKey(columnName);
+    const directValue = item?.[key];
+
+    if (directValue !== undefined && directValue !== null && directValue !== '') {
+      return directValue;
+    }
+
+    const aliases = this.getColumnAliases(columnName);
+    for (const alias of aliases) {
+      const aliasValue = item?.[alias];
+      if (aliasValue !== undefined && aliasValue !== null && aliasValue !== '') {
+        return aliasValue;
+      }
+    }
+
+    return '';
+  }
+
+  private getColumnAliases(columnName: string): string[] {
+    const normalized = columnName.toLowerCase();
+
+    switch (normalized) {
+      case 'nombre':
+        return ['first_name', 'name', 'username', 'nombre'];
+      case 'correo':
+        return ['email', 'correo'];
+      case 'departamento':
+        return ['departamento_nombre', 'nombre_departamento', 'departamento', 'nombre'];
+      case 'rol':
+        return ['rol', 'role', 'nombre_rol'];
+      case 'estado':
+        return ['estado', 'is_active'];
+      default:
+        return [];
+    }
   }
 
   getDataColumns(): string[] {

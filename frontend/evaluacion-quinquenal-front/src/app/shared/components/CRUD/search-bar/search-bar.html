@@ -5,7 +5,7 @@
             <p>Administrador de {{ titulo }} en el sistema</p>
         </div>
 
-        <button class="btn-primary" (click)="onCreate()">
+        <button *ngIf="showCreate" class="btn-primary" (click)="onCreate()">
             + Nuevo Registro
         </button>
     </div>
@@ -21,7 +21,7 @@
             (input)="onSearch($event)"
         >
 
-        <select [attr.aria-label]="stateLabel" (change)="onStateChange($event)">
+        <select *ngIf="showState && stateOptions?.length" [attr.aria-label]="stateLabel" (change)="onStateChange($event)">
             <option *ngFor="let option of stateOptions" [value]="option">{{ option }}</option>
         </select>
 

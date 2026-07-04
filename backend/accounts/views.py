@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth.models import Group, Permission
-from .permissions import IsAdminGroup
+from .permissions import CustomModelPermissions, IsAdminGroup, IsAdminOrReadOnly
 
 from django.contrib.auth import get_user_model, authenticate
 
@@ -31,14 +31,28 @@ class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminGroup]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+
+    def list(self, request, *args, **kwargs):
+        if not Group.objects.exists():
+            default_roles = [
+                'Administrador General',
+                'Consulta',
+                'Responsable Departamental',
+                'Revisor Institucional',
+                'Coordinador Quinquenal',
+                'Evaluador Externo'
+            ]
+            for role_name in default_roles:
+                Group.objects.get_or_create(name=role_name)
+        return super().list(request, *args, **kwargs)
 
 
 class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminGroup]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
 
 class UserViewSet(mixins.ListModelMixin,
@@ -47,7 +61,7 @@ class UserViewSet(mixins.ListModelMixin,
                   viewsets.GenericViewSet):
     queryset = User.objects.all()
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminGroup]
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_serializer_class(self):
         if self.action == 'list':

@@ -1,2 +1,33 @@
-<p>usuarios works!</p>
-<p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ullam, aspernatur saepe accusamus praesentium nesciunt harum totam possimus quibusdam voluptatum quam, officia quas libero doloribus? Soluta fugit ab rerum totam nostrum.</p>
+<div class="crud-container">
+  <div class="crud-header">
+    <app-search-bar
+      [titulo]="'Usuarios'"
+      [placeholder]="'Buscar por nombre, correo o rol'"
+      [stateOptions]="['Todos', 'Activos', 'Inactivos']"
+      (create)="openNew()"
+      (search)="onSearch($event)"
+      (stateChange)="onStateChange($event)">
+    </app-search-bar>
+  </div>
+
+  <app-crud-table
+    [columnas]="columnas"
+    [datos]="datosFiltrados"
+    (edit)="openEdit($event)"
+    (remove)="onRemove($event)"
+    (toggleEstado)="onToggleEstado($event)">
+  </app-crud-table>
+
+  <app-pagination></app-pagination>
+
+  <app-modal
+    [open]="showModal"
+    [data]="selectedItem"
+    [title]="'Usuario'"
+    [newTitle]="'Nuevo Usuario'"
+    [editTitle]="'Editar Usuario'"
+    [fields]="usuarioFields"
+    (close)="onModalClose()"
+    (save)="onModalSave($event)">
+  </app-modal>
+</div>

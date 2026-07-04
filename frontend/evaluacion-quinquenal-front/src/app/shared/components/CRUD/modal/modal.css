@@ -107,13 +107,35 @@
 
 .checkbox-group {
     display: grid;
-    gap: 0.5rem;
-    max-height: 220px;
+    gap: 0.75rem;
+    max-height: 260px;
     overflow-y: auto;
     padding: 0.75rem 1rem;
     border: 1px solid var(--modal-input-border);
     border-radius: 12px;
     background: var(--modal-checkbox-bg);
+}
+
+.checkbox-controls {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.btn-secondary {
+    background: var(--button-secondary-bg, #eef2f7);
+    color: var(--button-secondary-text, #1f2937);
+    border: 1px solid var(--button-secondary-border, #cbd5e1);
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: .2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--button-secondary-hover-bg, #e2e8f0);
 }
 
 .checkbox-option {

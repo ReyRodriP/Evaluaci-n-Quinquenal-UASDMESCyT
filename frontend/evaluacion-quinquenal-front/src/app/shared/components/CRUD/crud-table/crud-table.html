@@ -15,7 +15,7 @@
                  <tr *ngFor="let item of datos">
                      <td *ngFor="let columna of getDataColumns()">
                          <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate">
-                             {{ item[getColumnKey(columna)] }}
+                             {{ getCellValue(item, columna) }}
                          </span>
                          <ng-template #indicadoresTemplate>
                              <div class="indicadores-list">

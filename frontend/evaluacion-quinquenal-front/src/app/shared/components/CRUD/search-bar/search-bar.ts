@@ -13,6 +13,8 @@ export class SearchBar {
   @Input() value: string = '';
   @Input() stateOptions: string[] = ['Todas', 'Activas', 'Inactivas'];
   @Input() stateLabel: string = 'Estado';
+  @Input() showCreate: boolean = true;
+  @Input() showState: boolean = true;
 
   @Output() create = new EventEmitter<void>();
   @Output() search = new EventEmitter<string>();

@@ -3,6 +3,7 @@ import { AdminLayout } from './layouts/admin-layout/admin-layout/admin-layout';
 import { AuthLayout } from './layouts/auth-layout/auth-layout/auth-layout';
 import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
 import { Usuarios } from './features/usuarios/usuarios';
+import { Roles } from './features/roles/roles';
 import { Register } from './features/auth/pages/register/register';
 import { Login } from './features/auth/pages/login/login';
 import { ForgotPassword } from './features/auth/pages/forgot-password/forgot-password';
@@ -84,6 +85,10 @@ export const routes: Routes = [
             {
                 path: 'evidencias',
                 component: Evidencias
+            },
+            {
+                path: 'roles',
+                component: Roles
             },
             //Seguir insertando rutas hijas
         ]
