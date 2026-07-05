@@ -16,6 +16,7 @@ import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
 import { Evidencias } from './features/evidencias/evidencias';
 import { AuthGuard } from './core/guards/auth.guard';
+import { Perfil } from './features/perfil/perfil';
 
 export const routes: Routes = [
     {
@@ -90,6 +91,10 @@ export const routes: Routes = [
                 path: 'roles',
                 component: Roles
             },
+            {
+                path: 'perfil',
+                component: Perfil
+            }
             //Seguir insertando rutas hijas
         ]
     },

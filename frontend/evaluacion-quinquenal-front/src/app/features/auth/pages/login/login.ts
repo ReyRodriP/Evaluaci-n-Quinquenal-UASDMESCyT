@@ -38,6 +38,10 @@ export class Login {
             this.authService.saveToken(data.token);
           }
 
+          if (data?.user) {
+            this.authService.saveUser(data.user);
+          }
+
           setTimeout(()=> {
             this.router.navigate(['/dashboard']); //Redirecciona si el login es exitoso
           }, 1500)

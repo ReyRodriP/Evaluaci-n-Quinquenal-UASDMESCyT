@@ -2,7 +2,8 @@ from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from .serializers import (
     UsuarioSerializer, UsuarioListSerializer, UsuarioPermisosSerializer,
-    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer
+    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer,
+    UsuarioProfileSerializer
 )
 from rest_framework.authtoken.models import Token
 from rest_framework import status
@@ -129,38 +130,32 @@ def logout(request):
     return Response({"detail": "Sesión cerrada correctamente."}, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
-@api_view(['PUT'])
+@api_view(['GET', 'PUT', 'PATCH'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def profile(request): #Para la actualizacion de datos del usuario a excepcion de username y password
+def profile(request):
+    if request.method == 'GET':
+        serializer = UsuarioProfileSerializer(request.user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    serializer = UsuarioSerializer(
+    serializer = UsuarioProfileSerializer(
         request.user,
         data=request.data,
-        partial=True #permite actualizar solo los campos enviados
+        partial=True,
+        context={'request': request}
     )
 
     if serializer.is_valid():
         serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
-
-    return Response(
-        serializer.errors,
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@authentication_classes([TokenAuthentication])#Confirma si tiene token
-@permission_classes([IsAuthenticated]) #Confirma si esta logeado
-def me(request):#Funcion para devolver datos de un usuario autenticado
-
-    serializer = UsuarioSerializer(request.user)
-
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def me(request):
+    serializer = UsuarioProfileSerializer(request.user, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])

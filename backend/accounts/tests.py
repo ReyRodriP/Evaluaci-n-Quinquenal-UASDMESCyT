@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -192,6 +193,47 @@ class ObjectivesTest(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.consulta_token.key)
         response = self.client.post('/api/facultades/', {'nombre': 'Test', 'descripcion': 'test'})
         self.assertEqual(response.status_code, 403)
+
+    def test_profile_endpoint_updates_user_data(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)
+        response = self.client.patch('/api/profile', {
+            'first_name': 'Ana',
+            'last_name': 'Pérez',
+            'telefono': '8095551234'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.admin_user.refresh_from_db()
+        self.assertEqual(self.admin_user.first_name, 'Ana')
+        self.assertEqual(self.admin_user.last_name, 'Pérez')
+        self.assertEqual(self.admin_user.telefono, '8095551234')
+
+    def test_change_password_endpoint_updates_password(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)
+        response = self.client.post('/api/change_password', {
+            'old_password': 'admin123',
+            'new_password': 'newpassword123!'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.admin_user.refresh_from_db()
+        self.assertTrue(self.admin_user.check_password('newpassword123!'))
+
+    def test_profile_endpoint_accepts_profile_image(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)
+        image = SimpleUploadedFile(
+            'avatar.jpg',
+            b'fake-image-bytes',
+            content_type='image/jpeg'
+        )
+
+        response = self.client.patch('/api/profile', {
+            'foto_perfil': image
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, 200)
+        self.admin_user.refresh_from_db()
+        self.assertTrue(self.admin_user.foto_perfil)
 
     def test_unauthenticated_user_blocked(self):
         response = self.client.get('/api/facultades/')

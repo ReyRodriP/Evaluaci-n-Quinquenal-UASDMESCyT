@@ -11,6 +11,7 @@ import { AuthService } from '../../../features/auth/services/auth-service';
 export class Sidebar {
   darkMode: boolean = false
   open: boolean = false
+  currentUser: any = null
 
   @Output() openChange = new EventEmitter<boolean>()
 
@@ -19,7 +20,27 @@ export class Sidebar {
     private el: ElementRef,
     private authService: AuthService,
     private router: Router
-  ){}
+  ){
+    this.loadUser();
+  }
+
+  private loadUser(): void {
+    const storedUser = this.authService.getUser();
+    if (storedUser) {
+      this.currentUser = storedUser;
+      return;
+    }
+
+    this.authService.me().subscribe({
+      next: (user) => {
+        this.currentUser = user;
+        this.authService.saveUser(user);
+      },
+      error: () => {
+        this.currentUser = null;
+      }
+    });
+  }
 
   public toggleTheme(): void {
     const texto = this.el.nativeElement.querySelector('.mode-text')

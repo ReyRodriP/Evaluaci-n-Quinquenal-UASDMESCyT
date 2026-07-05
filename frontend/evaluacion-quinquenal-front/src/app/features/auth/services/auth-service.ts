@@ -7,6 +7,7 @@ import { Observable } from 'rxjs';
 })
 export class AuthService {
   baseUrl="http://127.0.0.1:8000/api/";
+  private readonly userStorageKey = 'auth_user';
 
   constructor(private http:HttpClient) {
 
@@ -36,6 +37,31 @@ export class AuthService {
     localStorage.setItem('auth_token', token);
   }
 
+  saveUser(user: any): void {
+    if (!user) {
+      this.removeUser();
+      return;
+    }
+    localStorage.setItem(this.userStorageKey, JSON.stringify(user));
+  }
+
+  getUser(): any {
+    const storedUser = localStorage.getItem(this.userStorageKey);
+    if (!storedUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(storedUser);
+    } catch {
+      return null;
+    }
+  }
+
+  removeUser(): void {
+    localStorage.removeItem(this.userStorageKey);
+  }
+
   getToken(): string | null {
     return localStorage.getItem('auth_token');
   }
@@ -50,6 +76,19 @@ export class AuthService {
 
   logout(): void {
     this.removeToken();
+    this.removeUser();
+  }
+
+  me(): Observable<any> {
+    return this.http.get(`${this.baseUrl}me`);
+  }
+
+  updateProfile(profile: any): Observable<any> {
+    return this.http.patch(`${this.baseUrl}profile`, profile);
+  }
+
+  changePassword(payload: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}change_password`, payload);
   }
 
   // Facultades CRUD operations

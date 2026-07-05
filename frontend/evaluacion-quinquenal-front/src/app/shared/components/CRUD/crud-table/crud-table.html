@@ -14,9 +14,13 @@
 
                  <tr *ngFor="let item of datos">
                      <td *ngFor="let columna of getDataColumns()">
-                         <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate">
+                         <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate" 
+                            class="cell-content"
+                            [title]="getCellValue(item, columna)">
+                            
                              {{ getCellValue(item, columna) }}
                          </span>
+                         
                          <ng-template #indicadoresTemplate>
                              <div class="indicadores-list">
                                  <span *ngFor="let indicador of item.indicadores" class="indicador-badge">

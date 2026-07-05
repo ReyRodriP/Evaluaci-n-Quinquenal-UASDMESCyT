@@ -3,13 +3,15 @@
   <nav class="sidebar" [class.close]="!open">
     <div class="image-text">
         <span class="image">
-            <img src="img\noUser.png" alt="Foto de perfil">
+            <a routerLink="/perfil">
+                <img [src]="currentUser?.foto_perfil || 'img/noUser.png'" alt="Foto de perfil">
+            </a>
         </span>
     </div>
 
     <div class="text sidebar-text">
-        <span class="name">Hola!</span>
-        <span class="slogan">*Nombre de usuario*</span>
+        <span class="name">Hola</span>
+        <span class="slogan">{{ currentUser?.username || 'Usuario' }}</span>
     </div>
 
     <i class='bx bx-caret-right toggle' (click)="toggleSidebar()"></i>

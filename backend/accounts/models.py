@@ -7,6 +7,11 @@ class Usuario(AbstractUser):
         blank=True,
         null=True
     )
+    foto_perfil = models.ImageField(
+        upload_to='profile_pictures',
+        blank=True,
+        null=True
+    )
 
     fecha_registro = models.DateTimeField(
         auto_now_add=True

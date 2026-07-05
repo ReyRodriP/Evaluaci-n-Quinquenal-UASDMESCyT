@@ -25,6 +25,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class UsuarioSerializer(serializers.ModelSerializer):
     groups = GroupSerializer(many=True, read_only=True)
     rol = serializers.SerializerMethodField()
+    foto_perfil = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -36,6 +37,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'first_name', 
             'last_name', 
             'telefono',
+            'foto_perfil',
             'is_active',
             'rol',
             'groups']
@@ -55,9 +57,35 @@ class UsuarioSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            telefono=validated_data.get('telefono','')
+            telefono=validated_data.get('telefono',''),
+            foto_perfil=validated_data.get('foto_perfil')
         )
         return user
+
+
+class UsuarioProfileSerializer(serializers.ModelSerializer):
+    foto_perfil = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'telefono',
+            'foto_perfil',
+        ]
+
+    def get_foto_perfil(self, obj):
+        if not obj.foto_perfil:
+            return None
+
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(obj.foto_perfil.url)
+        return obj.foto_perfil.url
 
 
 class UsuarioPermisosSerializer(serializers.ModelSerializer):
@@ -103,7 +131,7 @@ class UsuarioListSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'telefono', 'is_active', 'rol'
+            'telefono', 'foto_perfil', 'is_active', 'rol'
         ]
 
     def get_rol(self, obj):
