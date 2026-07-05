@@ -20,14 +20,30 @@ class ObservacionSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             'usuario',
-            'fecha_creacion'
+            'fecha_creacion',
+            'activo'
         ]
 
+    def validate_comentario(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError(
+                "El comentario no puede estar vacío."
+            )
+        return value
 class VersionEvidenciaSerializer(serializers.ModelSerializer):
+    observaciones = ObservacionSerializer(many=True, read_only=True)
+
     class Meta:
         model = VersionEvidencia
-        fields = '__all__'
-
+        fields = [
+            'id_version',
+            'evidencia',
+            'archivo',
+            'version',
+            'comentario',
+            'fecha_subida',
+            'observaciones'
+        ]
 
 class EvidenciaSerializer(serializers.ModelSerializer):
     versiones = VersionEvidenciaSerializer(many=True, read_only=True)
