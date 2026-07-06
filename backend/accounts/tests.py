@@ -1,4 +1,7 @@
+import io
 from unittest.mock import patch
+
+from PIL import Image
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
@@ -221,9 +224,14 @@ class ObjectivesTest(TestCase):
 
     def test_profile_endpoint_accepts_profile_image(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)
+        img_buffer = io.BytesIO()
+        img = Image.new('RGB', (1, 1), color='red')
+        img.save(img_buffer, format='JPEG')
+        img_buffer.seek(0)
+
         image = SimpleUploadedFile(
             'avatar.jpg',
-            b'fake-image-bytes',
+            img_buffer.read(),
             content_type='image/jpeg'
         )
 

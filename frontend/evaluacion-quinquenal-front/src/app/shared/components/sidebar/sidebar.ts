@@ -1,6 +1,7 @@
-import { Component, Renderer2, ElementRef, Output, EventEmitter } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, Renderer2, ElementRef, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../features/auth/services/auth-service';
+import { filter, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-sidebar',
@@ -8,10 +9,11 @@ import { AuthService } from '../../../features/auth/services/auth-service';
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.css', '../navbar/navbar.css'],
 })
-export class Sidebar {
+export class Sidebar implements OnInit, OnDestroy {
   darkMode: boolean = false
   open: boolean = false
   currentUser: any = null
+  private routerSubscription?: Subscription
 
   @Output() openChange = new EventEmitter<boolean>()
 
@@ -20,26 +22,21 @@ export class Sidebar {
     private el: ElementRef,
     private authService: AuthService,
     private router: Router
-  ){
+  ){}
+
+  ngOnInit(): void {
     this.loadUser();
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => this.loadUser());
+  }
+
+  ngOnDestroy(): void {
+    this.routerSubscription?.unsubscribe();
   }
 
   private loadUser(): void {
-    const storedUser = this.authService.getUser();
-    if (storedUser) {
-      this.currentUser = storedUser;
-      return;
-    }
-
-    this.authService.me().subscribe({
-      next: (user) => {
-        this.currentUser = user;
-        this.authService.saveUser(user);
-      },
-      error: () => {
-        this.currentUser = null;
-      }
-    });
+    this.currentUser = this.authService.getUser();
   }
 
   public toggleTheme(): void {

@@ -64,7 +64,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 
 class UsuarioProfileSerializer(serializers.ModelSerializer):
-    foto_perfil = serializers.SerializerMethodField()
+    foto_perfil = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -78,14 +78,17 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
             'foto_perfil',
         ]
 
-    def get_foto_perfil(self, obj):
-        if not obj.foto_perfil:
-            return None
-
-        request = self.context.get('request')
-        if request is not None:
-            return request.build_absolute_uri(obj.foto_perfil.url)
-        return obj.foto_perfil.url
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.foto_perfil:
+            request = self.context.get('request')
+            if request is not None:
+                data['foto_perfil'] = request.build_absolute_uri(instance.foto_perfil.url)
+            else:
+                data['foto_perfil'] = instance.foto_perfil.url
+        else:
+            data['foto_perfil'] = None
+        return data
 
 
 class UsuarioPermisosSerializer(serializers.ModelSerializer):
