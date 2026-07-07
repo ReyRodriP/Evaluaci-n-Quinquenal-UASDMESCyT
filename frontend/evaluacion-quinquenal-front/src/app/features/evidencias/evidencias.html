@@ -1,98 +1,54 @@
 <section class="evidencias-page">
-  <div class="page-header">
-    <div>
-      <h2>Gestión de evidencias</h2>
-      <p>Seleccione cada indicador para crear la evidencia y subir la primera versión o agregar una nueva versión.</p>
-    </div>
-  </div>
+  <div *ngIf="loading" class="state-message">Cargando asignaciones...</div>
 
-  <div class="table-card">
-    <div *ngIf="loading" class="state-message">Cargando asignaciones...</div>
+  <ng-container *ngIf="!loading">
+    <app-search-bar
+      [titulo]="'Evidencias'"
+      [placeholder]="'Buscar por indicador, departamento, estado...'"
+      [stateOptions]="[]"
+      [showCreate]="false"
+      [showState]="false"
+      (search)="onSearch($event)">
+    </app-search-bar>
 
-    <table *ngIf="!loading && rows.length; else emptyState">
-      <thead>
-        <tr>
-          <th>Departamento</th>
-          <th>Indicador</th>
-          <th>Período</th>
-          <th>Estado</th>
-          <th>Archivo</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of rows">
-          <td>{{ row.departamento_nombre || 'Sin departamento' }}</td>
-          <td>{{ row.indicador_nombre || 'Sin indicador' }}</td>
-          <td>{{ row.periodo_nombre || 'Sin período' }}</td>
-          <td>
-            <span class="status-badge" [class.pending]="row.estado === 'Pendiente'" [class.uploaded]="row.estado === 'Subida'">
-              {{ row.estado }}
-            </span>
-          </td>
-          <td>{{ row.archivoNombre }}</td>
-          <td>
-            <div class="action-group">
-              <button type="button" class="action-btn" (click)="openManage(row)">
-                {{ row.evidenciaId ? 'Subir versión' : 'Gestionar' }}
-              </button>
-              <button *ngIf="row.evidenciaId" type="button" class="secondary-btn small" (click)="openCancel(row)">
-                Cancelar
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <ng-template #emptyState>
-      <div class="state-message">No hay asignaciones disponibles para gestionar evidencias.</div>
-    </ng-template>
-  </div>
-
-  <div class="modal-backdrop" *ngIf="showModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>{{ selectedRow?.evidenciaId ? 'Subir nueva versión' : 'Crear evidencia' }}</h3>
-        <button type="button" class="close-btn" (click)="closeModal()">×</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="field-group">
-          <label for="titulo">Título</label>
-          <input id="titulo" type="text" [(ngModel)]="form.titulo" placeholder="Ej. Evidencia del indicador" />
+    <app-crud-table
+      [columnas]="['Departamento', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
+      [datos]="rowsFiltrados"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+      <ng-template #acciones let-row>
+        <div class="action-group">
+          <button *ngIf="!row.evidenciaId" type="button" class="action-btn" (click)="openManage(row)">
+            Subir evidencia
+          </button>
+          <button *ngIf="row.evidenciaId" type="button" class="action-btn" (click)="openManage(row)">
+            Ver detalle
+          </button>
+          <button *ngIf="row.evidenciaId" type="button" class="action-btn secondary" (click)="descargarUltimoArchivo(row)">
+            Descargar
+          </button>
+          <button *ngIf="row.evidenciaId" type="button" class="action-btn secondary" (click)="verHistorial(row)">
+            Ver historial
+          </button>
+          <button *ngIf="row.evidenciaId && row.evidencia?.estado !== 'cancelada'" type="button" class="action-btn danger" (click)="cancelar(row)">
+            Cancelar
+          </button>
+          <button *ngIf="row.evidenciaId && row.evidencia?.estado === 'cancelada'" type="button" class="action-btn secondary" (click)="reactivar(row)">
+            Reactivar
+          </button>
         </div>
+      </ng-template>
+    </app-crud-table>
 
-        <div class="field-group">
-          <label for="descripcion">Descripción</label>
-          <textarea id="descripcion" rows="4" [(ngModel)]="form.descripcion" placeholder="Describa la evidencia o la versión que está subiendo"></textarea>
-        </div>
+    <div *ngIf="!rowsFiltrados.length && !loading" class="state-message">No hay asignaciones disponibles para gestionar evidencias.</div>
+  </ng-container>
 
-        <div class="field-group" *ngIf="selectedRow?.archivos?.length">
-          <label>Archivos ya enviados</label>
-          <ul class="file-list">
-            <li *ngFor="let archivo of selectedRow?.archivos">
-              <span>{{ archivo.nombreArchivo }}</span>
-              <small>v{{ archivo.version }}</small>
-            </li>
-          </ul>
-        </div>
-
-        <div class="field-group">
-          <label for="archivo">Archivo</label>
-          <input id="archivo" type="file" (change)="onFileChange($event)" />
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button *ngIf="selectedRow?.evidenciaId" type="button" class="secondary-btn" (click)="editSubmission()" [disabled]="submitting">
-          {{ submitting ? 'Procesando...' : 'Editar envío' }}
-        </button>
-        <button type="button" class="secondary-btn" (click)="closeModal()">Cerrar</button>
-        <button type="button" class="primary-btn" [disabled]="submitting" (click)="submitEvidence()">
-          {{ submitting ? 'Procesando...' : (selectedRow?.evidenciaId ? 'Subir versión' : 'Crear evidencia') }}
-        </button>
-      </div>
-    </div>
-  </div>
+  <app-modal
+    [open]="historialAbierto"
+    [data]="historialData"
+    [title]="'Historial'"
+    [editTitle]="'Historial de versiones'"
+    [fields]="historialCampos"
+    (close)="cerrarHistorial()"
+    (save)="cerrarHistorial()">
+  </app-modal>
 </section>

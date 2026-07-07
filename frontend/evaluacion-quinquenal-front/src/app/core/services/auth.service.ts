@@ -94,6 +94,28 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/evidencias/${id}/subir_version/`, payload);
   }
 
+  detalleEvidencia(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/evidencias/${id}/detalle/`);
+  }
+
+  cambiarEstadoEvidencia(id: number, estado: string, comentario?: string): Observable<any> {
+    const payload: any = { estado };
+    if (comentario) payload.comentario = comentario;
+    return this.http.post(`${this.apiUrl}/evidencias/${id}/cambiar_estado/`, payload);
+  }
+
+  crearObservacion(payload: { version: number; comentario: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/observaciones/`, payload);
+  }
+
+  descargarVersion(id: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/versiones/${id}/descargar/`, { responseType: 'blob' });
+  }
+
+  obtenerHistorial(id: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/evidencias/${id}/historial/`);
+  }
+
   // Indicadores
   listarIndicadores(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/indicadores/`);

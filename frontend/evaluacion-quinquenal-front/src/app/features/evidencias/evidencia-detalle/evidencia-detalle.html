@@ -1,0 +1,103 @@
+<section class="detalle-page">
+  <div class="page-header">
+    <a routerLink="/evidencias" class="back-link">&larr; Volver a evidencias</a>
+    <h2>Detalle de evidencia</h2>
+  </div>
+
+  <div *ngIf="loading" class="state-msg">Cargando detalle...</div>
+  <div *ngIf="error" class="state-msg error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && evidencia">
+    <div class="card info-card">
+      <h3>{{ evidencia.titulo }}</h3>
+      <p class="descripcion">{{ evidencia.descripcion }}</p>
+      <div class="badge-group">
+        <span class="status-badge"
+          [class.approved]="evidencia.asignacion_info?.estado === 'aprobado'"
+          [class.rejected]="evidencia.asignacion_info?.estado === 'rechazado'"
+          [class.observed]="evidencia.asignacion_info?.estado === 'observada'"
+          [class.uploaded]="evidencia.asignacion_info?.estado === 'en_progreso'"
+          [class.pending]="evidencia.asignacion_info?.estado === 'pendiente'">
+          {{ evidencia.asignacion_info?.estado_display || evidencia.estado }}
+        </span>
+      </div>
+    </div>
+
+    <div class="card versiones-card">
+      <h3>Versiones</h3>
+      <div *ngIf="versionesOrdenadas.length === 0" class="state-msg">No hay versiones subidas aún.</div>
+
+      <div *ngFor="let version of versionesOrdenadas" class="version-item">
+        <div class="version-header">
+          <strong>v{{ version.version }}</strong>
+          <span class="fecha">{{ version.fecha_subida | date:'dd/MM/yyyy' }}</span>
+        </div>
+
+        <div *ngIf="version.comentario" class="comentario">
+          <em>"{{ version.comentario }}"</em>
+        </div>
+
+        <button class="secondary-btn small" (click)="descargar(version.id_version, version.nombre_archivo)">
+          &#128206; {{ version.nombre_archivo || 'Descargar' }}
+        </button>
+
+        <div *ngIf="version.observaciones?.length" class="observaciones-list">
+          <div *ngFor="let obs of version.observaciones" class="observacion-item">
+            <div class="obs-header">
+              <strong>{{ obs.usuario_nombre }}</strong>
+              <span class="fecha">{{ obs.fecha_creacion | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <p>{{ obs.comentario }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card actions-card">
+      <h3>Acciones</h3>
+
+      <div *ngIf="evidencia.puede_subir_version" class="action-section">
+        <h4>Subir nueva versión</h4>
+        <div class="field-group">
+          <label for="archivo">Archivo</label>
+          <input id="archivo" type="file" (change)="onFileChange($event)" />
+        </div>
+        <div class="field-group">
+          <label for="comentarioVersion">Comentario</label>
+          <textarea id="comentarioVersion" rows="2" [(ngModel)]="comentarioVersion" placeholder="¿Qué se actualizó en esta versión?"></textarea>
+        </div>
+        <button class="primary-btn" (click)="subirVersion()" [disabled]="subiendo">
+          {{ subiendo ? 'Subiendo...' : 'Subir nueva versión' }}
+        </button>
+      </div>
+
+      <div *ngIf="evidencia.puede_cambiar_estado" class="action-section">
+        <h4>Revisar evidencia</h4>
+        <div class="field-group">
+          <label for="comentarioRevision">Comentario (opcional)</label>
+          <textarea id="comentarioRevision" rows="3" [(ngModel)]="comentarioRevision" placeholder="Agregue una observación o comentario sobre esta versión..."></textarea>
+        </div>
+        <div class="field-group">
+          <label>Decisión</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="estado" value="aprobado" [(ngModel)]="estadoSeleccionado" />
+              Aprobar
+            </label>
+            <label>
+              <input type="radio" name="estado" value="rechazado" [(ngModel)]="estadoSeleccionado" />
+              Rechazar
+            </label>
+            <label>
+              <input type="radio" name="estado" value="observada" [(ngModel)]="estadoSeleccionado" />
+              Solicitar cambios
+            </label>
+          </div>
+        </div>
+        <button class="primary-btn" (click)="guardarRevision()" [disabled]="guardandoRevision || !estadoSeleccionado">
+          {{ guardandoRevision ? 'Guardando...' : 'Guardar revisión' }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</section>

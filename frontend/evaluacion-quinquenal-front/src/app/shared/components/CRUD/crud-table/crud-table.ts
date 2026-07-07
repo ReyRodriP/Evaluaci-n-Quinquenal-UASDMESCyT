@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,11 +9,14 @@ import { CommonModule } from '@angular/common';
 })
 export class CrudTable {
   @Input() columnas: string[] = [];
-
   @Input() datos: any[] = [];
+  @Input() ocultarAcciones: string[] = [];
+
   @Output() edit = new EventEmitter<any>();
   @Output() remove = new EventEmitter<any>();
   @Output() toggleEstado = new EventEmitter<any>();
+
+  @ContentChild('acciones') accionesTemplate?: TemplateRef<any>;
 
   onEdit(item: any) {
     this.edit.emit(item);
@@ -25,6 +28,10 @@ export class CrudTable {
 
   onToggleEstado(item: any) {
     this.toggleEstado.emit(item);
+  }
+
+  mostrarBoton(nombre: string): boolean {
+    return !this.ocultarAcciones.includes(nombre);
   }
 
   getColumnKey(columnName: string): string {
@@ -42,7 +49,11 @@ export class CrudTable {
       'fecha de creación': 'fechaCreacion',
       'fecha inicio': 'fecha_inicio',
       'fecha fin': 'fecha_fin',
-      'acciones': 'acciones'
+      'acciones': 'acciones',
+      'departamento': 'departamento_nombre',
+      'indicador': 'indicador_nombre',
+      'archivo': 'archivoNombre',
+      'observaciones': 'observacionesTexto',
     };
     return mapping[columnName.toLowerCase()] || columnName.toLowerCase();
   }

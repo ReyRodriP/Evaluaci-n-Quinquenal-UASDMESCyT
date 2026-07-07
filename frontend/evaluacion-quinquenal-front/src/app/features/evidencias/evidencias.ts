@@ -1,33 +1,33 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../core/services/auth.service';
+import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
+import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
+import { Modal } from '../../shared/components/CRUD/modal/modal';
 
 @Component({
   selector: 'app-evidencias',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, SearchBar, CrudTable, Modal],
   templateUrl: './evidencias.html',
   styleUrl: './evidencias.css',
 })
 export class Evidencias implements OnInit {
   rows: any[] = [];
+  rowsFiltrados: any[] = [];
+  searchTerm = '';
   loading = false;
-  submitting = false;
-  showModal = false;
-  selectedRow: any = null;
-  mode: 'create' | 'edit' = 'create';
 
-  form = {
-    titulo: '',
-    descripcion: '',
-    archivo: null as File | null,
-  };
+  historialAbierto = false;
+  historialCampos: any[] = [];
+  historialData: any = null;
 
   constructor(
     private authService: AuthService,
-    private toast: ToastrService
+    private toast: ToastrService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -36,7 +36,6 @@ export class Evidencias implements OnInit {
 
   loadData(): void {
     this.loading = true;
-
     forkJoin({
       asignaciones: this.authService.listarAsignaciones(),
       evidencias: this.authService.listarEvidencias(),
@@ -50,179 +49,154 @@ export class Evidencias implements OnInit {
 
           const versiones = evidencia?.versiones || [];
           const ultimaVersion = versiones.length ? versiones[versiones.length - 1] : null;
+          const obs = evidencia?.ultima_observacion;
 
           return {
             ...asignacion,
             evidenciaId: evidencia?.id_evidencia ?? null,
             evidencia,
-            estado: evidencia?.estado === 'cancelada' ? 'Cancelada' : evidencia ? 'Subida' : 'Pendiente',
-            archivoNombre: ultimaVersion?.archivo?.split('/').pop() || 'Sin archivo',
-            archivos: versiones.map((version: any) => ({
-              ...version,
-              nombreArchivo: version.archivo?.split('/').pop() || 'Sin archivo',
-            })),
+            estado: evidencia
+              ? (evidencia.estado === 'cancelada' ? 'Cancelada' : (evidencia.asignacion_estado_display || 'Subida'))
+              : 'Pendiente',
+            estadoWorkflow: evidencia?.asignacion_estado,
+            archivoNombre: ultimaVersion?.nombre_archivo || ultimaVersion?.archivo?.split('/').pop() || 'Sin archivo',
+            ultimaVersion,
+            observacionesTexto: obs ? obs.comentario : '',
+            ultimaObsUsuario: obs ? obs.usuario_nombre : '',
           };
         });
+        this.applySearch();
         this.loading = false;
       },
-      error: (err) => {
-        console.error('Error cargando evidencias', err);
+      error: () => {
         this.toast.error('No se pudieron cargar las asignaciones para evidencia');
         this.loading = false;
       },
     });
   }
 
-  openManage(row: any): void {
-    this.selectedRow = row;
-    this.mode = row.evidenciaId ? 'edit' : 'create';
-    this.form = {
-      titulo: row.evidencia?.titulo || `Evidencia ${row.indicador_nombre ?? 'indicador'}`,
-      descripcion: row.evidencia?.descripcion || '',
-      archivo: null,
-    };
-    this.showModal = true;
+  onSearch(term: string): void {
+    this.searchTerm = term;
+    this.applySearch();
   }
 
-  openCancel(row: any): void {
-    this.selectedRow = row;
-    this.showModal = false;
-    this.cancelSubmission();
-  }
-
-  closeModal(): void {
-    this.showModal = false;
-    this.selectedRow = null;
-    this.mode = 'create';
-    this.form = {
-      titulo: '',
-      descripcion: '',
-      archivo: null,
-    };
-  }
-
-  onFileChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.form.archivo = input.files?.[0] ?? null;
-  }
-
-  submitEvidence(): void {
-    if (!this.selectedRow) {
+  applySearch(): void {
+    const term = this.searchTerm.toLowerCase().trim();
+    if (!term) {
+      this.rowsFiltrados = [...this.rows];
       return;
     }
+    this.rowsFiltrados = this.rows.filter((row) => {
+      const campos = [
+        row.indicador_nombre,
+        row.departamento_nombre,
+        row.periodo_nombre,
+        row.archivoNombre,
+        row.estado,
+        row.observacionesTexto,
+      ];
+      return campos.some((c) => c && c.toLowerCase().includes(term));
+    });
+  }
 
-    if (!this.form.archivo && this.mode === 'create') {
-      this.toast.error('Debe adjuntar un archivo para subir la evidencia');
-      return;
-    }
-
-    this.submitting = true;
-
-    const evidenciaPayload = new FormData();
-    evidenciaPayload.append('titulo', this.form.titulo || `Evidencia ${this.selectedRow.indicador_nombre ?? 'indicador'}`);
-    evidenciaPayload.append('descripcion', this.form.descripcion || 'Evidencia subida desde la gestión de evidencias');
-    evidenciaPayload.append('asignacion', String(this.selectedRow.id));
-
-    const handleSuccess = () => {
-      this.toast.success(this.selectedRow.evidenciaId ? 'Evidencia actualizada correctamente' : 'Evidencia creada y versión subida');
-      this.closeModal();
-      this.loadData();
-      this.submitting = false;
-    };
-
-    const handleError = (err: any) => {
-      console.error('Error procesando evidencia', err);
-      this.toast.error('No se pudo procesar la evidencia');
-      this.submitting = false;
-    };
-
-    if (!this.selectedRow.evidenciaId) {
-      this.authService.crearEvidencia(evidenciaPayload).subscribe({
-        next: (response) => {
-          const evidenciaId = response?.id_evidencia ?? response?.id;
-          if (!evidenciaId) {
-            handleError(new Error('No se recibió el identificador de la evidencia'));
-            return;
-          }
-
-          if (!this.form.archivo) {
-            handleSuccess();
-            return;
-          }
-
-          const versionPayload = new FormData();
-          versionPayload.append('archivo', this.form.archivo, this.form.archivo.name);
-          versionPayload.append('comentario', this.form.descripcion || 'Primera versión');
-
-          this.authService.subirVersionEvidencia(evidenciaId, versionPayload).subscribe({
-            next: handleSuccess,
-            error: handleError,
-          });
+  onEdit(row: any): void {
+    if (!row.evidenciaId) {
+      const payload = new FormData();
+      payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
+      payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
+      payload.append('asignacion', String(row.id));
+      this.authService.crearEvidencia(payload).subscribe({
+        next: (res) => {
+          const id = res?.id_evidencia ?? res?.id;
+          if (id) this.router.navigate(['/evidencias', id, 'detalle']);
+          else this.toast.error('No se pudo crear la evidencia');
         },
-        error: handleError,
+        error: () => this.toast.error('No se pudo crear la evidencia'),
       });
       return;
     }
+    this.router.navigate(['/evidencias', row.evidenciaId, 'detalle']);
+  }
 
-    if (this.form.archivo) {
-      const versionPayload = new FormData();
-      versionPayload.append('archivo', this.form.archivo, this.form.archivo.name);
-      versionPayload.append('comentario', this.form.descripcion || 'Versión actualizada');
-
-      this.authService.subirVersionEvidencia(this.selectedRow.evidenciaId, versionPayload).subscribe({
-        next: handleSuccess,
-        error: handleError,
+  openManage(row: any): void {
+    if (!row.evidenciaId) {
+      const payload = new FormData();
+      payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
+      payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
+      payload.append('asignacion', String(row.id));
+      this.authService.crearEvidencia(payload).subscribe({
+        next: (res) => {
+          const id = res?.id_evidencia ?? res?.id;
+          if (id) this.router.navigate(['/evidencias', id, 'detalle']);
+          else this.toast.error('No se pudo crear la evidencia');
+        },
+        error: () => this.toast.error('No se pudo crear la evidencia'),
       });
       return;
     }
-
-    handleSuccess();
+    this.router.navigate(['/evidencias', row.evidenciaId, 'detalle']);
   }
 
-  editSubmission(): void {
-    if (!this.selectedRow?.evidenciaId) {
-      return;
-    }
-
-    this.submitting = true;
-
-    this.authService.actualizarEvidencia(this.selectedRow.evidenciaId, {
-      titulo: this.form.titulo || this.selectedRow.evidencia?.titulo,
-      descripcion: this.form.descripcion || this.selectedRow.evidencia?.descripcion,
-    }).subscribe({
+  cancelar(row: any): void {
+    if (!row.evidenciaId) return;
+    this.authService.actualizarEvidencia(row.evidenciaId, { estado: 'cancelada' }).subscribe({
       next: () => {
-        this.toast.success('Envío editado correctamente');
-        this.closeModal();
+        this.toast.success('Evidencia cancelada');
         this.loadData();
-        this.submitting = false;
       },
-      error: (err) => {
-        console.error('Error editando evidencia', err);
-        this.toast.error('No se pudo editar el envío');
-        this.submitting = false;
-      },
+      error: () => this.toast.error('No se pudo cancelar la evidencia'),
     });
   }
 
-  cancelSubmission(): void {
-    if (!this.selectedRow?.evidenciaId) {
+  reactivar(row: any): void {
+    if (!row.evidenciaId) return;
+    this.authService.actualizarEvidencia(row.evidenciaId, { estado: 'activa' }).subscribe({
+      next: () => {
+        this.toast.success('Evidencia reactivada');
+        this.loadData();
+      },
+      error: () => this.toast.error('No se pudo reactivar la evidencia'),
+    });
+  }
+
+  descargarUltimoArchivo(row: any): void {
+    const v = row.ultimaVersion;
+    if (!v?.id_version) {
+      this.toast.error('No hay archivo disponible para descargar');
       return;
     }
-
-    this.submitting = true;
-
-    this.authService.actualizarEvidencia(this.selectedRow.evidenciaId, { estado: 'cancelada' }).subscribe({
-      next: () => {
-        this.toast.success('Envío cancelado correctamente');
-        this.closeModal();
-        this.loadData();
-        this.submitting = false;
+    this.authService.descargarVersion(v.id_version).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = v.nombre_archivo || 'archivo';
+        a.click();
+        window.URL.revokeObjectURL(url);
       },
-      error: (err) => {
-        console.error('Error cancelando evidencia', err);
-        this.toast.error('No se pudo cancelar el envío');
-        this.submitting = false;
-      },
+      error: () => this.toast.error('No se pudo descargar el archivo'),
     });
+  }
+
+  verHistorial(row: any): void {
+    if (!row.evidenciaId) return;
+    this.authService.obtenerHistorial(row.evidenciaId).subscribe({
+      next: (versiones: any[]) => {
+        const items = versiones.map((v: any) =>
+          `  v${v.version}  ${v.fecha_subida?.slice(0, 10) || ''}  —  ${v.comentario || 'Sin comentario'}`
+        ).join('\n');
+        this.historialData = { historial: items || 'No hay versiones registradas.' };
+        this.historialCampos = [
+          { name: 'historial', label: 'Historial de versiones', type: 'textarea', defaultValue: '' },
+        ];
+        this.historialAbierto = true;
+      },
+      error: () => this.toast.error('No se pudo cargar el historial'),
+    });
+  }
+
+  cerrarHistorial(): void {
+    this.historialAbierto = false;
+    this.historialData = null;
   }
 }

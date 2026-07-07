@@ -1,50 +1,43 @@
- <!-- Tabla -->
-    <div class="table-wrapper">
-
-        <table>
-
-            <thead>
-                <tr>
-                     <th *ngFor="let columna of columnas">{{ columna }}</th>
-                     <th>Acciones</th>
-                 </tr>
-             </thead>
-
-             <tbody>
-
-                 <tr *ngFor="let item of datos">
-                     <td *ngFor="let columna of getDataColumns()">
-                         <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate" 
-                            class="cell-content"
-                            [title]="getCellValue(item, columna)">
-                            
-                             {{ getCellValue(item, columna) }}
-                         </span>
-                         
-                         <ng-template #indicadoresTemplate>
-                             <div class="indicadores-list">
-                                 <span *ngFor="let indicador of item.indicadores" class="indicador-badge">
-                                     <ul>
-                                        <li>{{ indicador.nombre }}</li>
-                                     </ul>
-                                 </span>
-                             </div>
-                         </ng-template>
-                     </td>
-
-                     <td class="actions">
-
-                        <button title="Editar" (click)="onEdit(item)">
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th *ngFor="let columna of columnas">{{ columna }}</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let item of datos">
+                <td *ngFor="let columna of getDataColumns()">
+                    <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate"
+                        class="cell-content"
+                        [title]="getCellValue(item, columna)">
+                        {{ getCellValue(item, columna) }}
+                    </span>
+                    <ng-template #indicadoresTemplate>
+                        <div class="indicadores-list">
+                            <span *ngFor="let indicador of item.indicadores" class="indicador-badge">
+                                <ul>
+                                    <li>{{ indicador.nombre }}</li>
+                                </ul>
+                            </span>
+                        </div>
+                    </ng-template>
+                </td>
+                <td class="actions">
+                    <ng-container *ngIf="accionesTemplate; else defaultAcciones">
+                        <ng-container *ngTemplateOutlet="accionesTemplate; context: { $implicit: item }"></ng-container>
+                    </ng-container>
+                    <ng-template #defaultAcciones>
+                        <button *ngIf="mostrarBoton('edit')" title="Editar" (click)="onEdit(item)">
                             <i class="bx bx-edit"></i>
                         </button>
-
-                         <button title="Activar/Desactivar" (click)="onToggleEstado(item)">
+                        <button *ngIf="mostrarBoton('toggle')" title="Activar/Desactivar" (click)="onToggleEstado(item)">
                             <i class="bx bx-power"></i>
-                         </button>
-
-                        <button title="Eliminar" (click)="onRemove(item)">
+                        </button>
+                        <button *ngIf="mostrarBoton('remove')" title="Eliminar" (click)="onRemove(item)">
                             <i class="bx bx-trash"></i>
                         </button>
-
-                     </td>
-                 </tr>
+                    </ng-template>
+                </td>
+            </tr>
