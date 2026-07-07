@@ -6,8 +6,11 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.seed_facultades()
         self.seed_departamentos()
+        self.seed_periodos()
+        self.seed_criterios()
+
         self.seed_roles()
-        self.seed_permisos()
+        self.seed_groups()
 
         self.stdout.write(
             self.style.SUCCESS("Datos iniciales cargados correctamente.")
@@ -116,6 +119,95 @@ class Command(BaseCommand):
             self.style.SUCCESS("Departamentos de la Facultad de Ciencias registrados correctamente.")
         )
 
+    def seed_periodos(self):
+        from evaluation.models import Periodo
+        from datetime import date
+
+        periodos = [
+            {
+                "nombre": "Periodo 2019-2024",
+                "fecha_inicio": date(2019, 1, 1),
+                "fecha_fin": date(2024, 12, 31),
+                "activo": False
+            },
+            {
+                "nombre": "Periodo 2025-2030",
+                "fecha_inicio": date(2025, 1, 1),
+                "fecha_fin": date(2030, 12, 31),
+                "activo": True
+            }
+        ]
+
+        for periodo in periodos:
+            Periodo.objects.get_or_create(
+                nombre=periodo["nombre"],
+                defaults={
+                    "fecha_inicio": periodo["fecha_inicio"],
+                    "fecha_fin": periodo["fecha_fin"],
+                    "activo": periodo["activo"],
+                }
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS("Períodos registrados correctamente.")
+        )
+
+    def seed_criterios(self):
+        from evaluation.models import Periodo, Criterio
+
+        periodo = Periodo.objects.get(nombre="Periodo 2025-2030")
+
+        criterios = [
+            {
+                "nombre": "Gestión Institucional",
+                "descripcion": "Evalúa la planificación estratégica, el gobierno institucional y los procesos de gestión administrativa."
+            },
+            {
+                "nombre": "Gestión Académica",
+                "descripcion": "Evalúa la calidad de los procesos de enseñanza, el desarrollo curricular y la gestión de la oferta académica."
+            },
+            {
+                "nombre": "Investigación",
+                "descripcion": "Evalúa las actividades de investigación, innovación, producción científica y desarrollo del conocimiento."
+            },
+            {
+                "nombre": "Vinculación con el Medio",
+                "descripcion": "Evalúa la relación de la institución con la sociedad mediante extensión, cooperación y responsabilidad social."
+            },
+            {
+                "nombre": "Estudiantes",
+                "descripcion": "Evalúa los procesos de admisión, permanencia, bienestar, desarrollo y seguimiento de los estudiantes."
+            },
+            {
+                "nombre": "Personal Académico",
+                "descripcion": "Evalúa la gestión, desarrollo, formación y desempeño del personal docente."
+            },
+            {
+                "nombre": "Servicios y Estructuras de Apoyo",
+                "descripcion": "Evalúa la infraestructura, recursos tecnológicos, bibliotecas y demás servicios de apoyo institucional."
+            },
+            {
+                "nombre": "Aseguramiento de la Calidad",
+                "descripcion": "Evalúa los mecanismos institucionales para la mejora continua y el aseguramiento de la calidad."
+            },
+        ]
+
+        for criterio in criterios:
+            Criterio.objects.get_or_create(
+                nombre=criterio["nombre"],
+                periodo=periodo,
+                defaults={
+                    "descripcion": criterio["descripcion"],
+                    "activo": True,
+                }
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS("Criterios registrados correctamente.")
+        )
+
+    
+
     def seed_roles(self):
         from django.contrib.auth.models import Group
 
@@ -133,5 +225,23 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Roles iniciales registrados correctamente.'))
 
-    def seed_permisos(self):
-        self.stdout.write(self.style.WARNING('Semilla de permisos no implementada.'))
+    def seed_groups(self):
+        from django.contrib.auth.models import Group, Permission
+
+        admin_group, _ = Group.objects.get_or_create(
+            name='Administrador General'
+        )
+
+        consulta_group, _ = Group.objects.get_or_create(
+            name='Consulta'
+        )
+
+        all_permissions = Permission.objects.all()
+
+        admin_group.permissions.set(all_permissions)
+
+        consulta_group.permissions.clear()
+
+        self.stdout.write(
+            self.style.SUCCESS("Permisos iniciales asignados correctamente.")
+        )

@@ -22,6 +22,10 @@ import os
 
 # CRUD de Evidencias
 class EvidenciaViewSet(viewsets.ModelViewSet):
+    permission_classes = [
+    IsAuthenticated,
+    CustomModelPermissions
+    ]
     queryset = Evidencia.objects.all()
     serializer_class = EvidenciaSerializer
 
@@ -43,13 +47,17 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def historial(self, request, pk=None):
         evidencia = self.get_object()
-        versiones = evidencia.versiones.all()
+        versiones = evidencia.versiones.order_by('-version')
 
         return Response(
             VersionEvidenciaSerializer(versiones, many=True).data
         )
 # CRUD de Versiones
 class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [
+        IsAuthenticated,
+        CustomModelPermissions
+    ]
     queryset = VersionEvidencia.objects.all()
     serializer_class = VersionEvidenciaSerializer
 
@@ -75,23 +83,10 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
                 many=True
             ).data
         )
-    
-        # 📌 Obtener observaciones de una versión
-    @action(detail=True, methods=['get'])
-    def observaciones(self, request, pk=None):
-        version = self.get_object()
-
-        serializer = ObservacionSerializer(
-            version.observaciones.all(),
-            many=True
-        )
-
-        return Response(serializer.data)
-
 
 # CRUD de Observaciones
 class ObservacionViewSet(viewsets.ModelViewSet):
-    queryset = Observacion.objects.all()
+    queryset = Observacion.objects.filter(activo=True)
     serializer_class = ObservacionSerializer
 
     permission_classes = [

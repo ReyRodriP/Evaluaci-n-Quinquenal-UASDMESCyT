@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import Evidencia, VersionEvidencia, Observacion
-from rest_framework import serializers
-from .models import Observacion
 
 class ObservacionSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.ReadOnlyField(source='usuario.username')
