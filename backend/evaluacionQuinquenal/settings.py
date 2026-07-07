@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'organization',
     'evaluation',
     'corsheaders', #Para el uso de CORS y enlazar back con front
+    'auditoria',
+    'notificaciones',
 ]
 
 MIDDLEWARE = [

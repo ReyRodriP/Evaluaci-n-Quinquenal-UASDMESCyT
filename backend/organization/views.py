@@ -7,6 +7,7 @@ from .serializers import (
     PerfilUsuarioSerializer
 )
 from accounts.permissions import CustomModelPermissions
+from auditoria.utils import registrar_auditoria
 
 
 class FacultadViewSet(viewsets.ModelViewSet):
@@ -14,11 +15,31 @@ class FacultadViewSet(viewsets.ModelViewSet):
     serializer_class = FacultadSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
+    def perform_destroy(self, instance):
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Eliminar registro",
+            modelo="Facultad",
+            registro_id=instance.pk,
+            descripcion=f"Se eliminó la facultad '{instance.nombre}'"
+        )
+        instance.delete()
+
 
 class DepartamentoViewSet(viewsets.ModelViewSet):
     queryset = Departamento.objects.all().order_by('nombre')
     serializer_class = DepartamentoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def perform_destroy(self, instance):
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Eliminar registro",
+            modelo="Departamento",
+            registro_id=instance.pk,
+            descripcion=f"Se eliminó el departamento '{instance.nombre}'"
+        )
+        instance.delete()
 
 
 class PerfilUsuarioViewSet(viewsets.ModelViewSet):

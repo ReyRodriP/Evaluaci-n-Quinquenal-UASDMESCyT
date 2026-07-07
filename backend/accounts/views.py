@@ -16,6 +16,9 @@ from .permissions import IsAdminGroup
 
 from django.contrib.auth import get_user_model, authenticate
 
+from auditoria.utils import registrar_auditoria
+from notificaciones.utils import crear_notificacion
+
 User = get_user_model()
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -49,6 +52,38 @@ class UserViewSet(mixins.ListModelMixin,
             return AdminUsuarioSerializer
         return UsuarioSerializer
 
+    def perform_update(self, serializer):
+        old_groups = list(self.get_object().groups.all())
+        instance = serializer.save()
+        new_groups = list(instance.groups.all())
+
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Modificar usuario",
+            modelo="Usuario",
+            registro_id=instance.pk,
+            descripcion=f"Se modificó el usuario {instance.username}"
+        )
+
+        if old_groups != new_groups:
+            old_names = [g.name for g in old_groups]
+            new_names = [g.name for g in new_groups]
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion="Asignar rol",
+                modelo="Usuario",
+                registro_id=instance.pk,
+                descripcion=(
+                    f"Rol del usuario {instance.username} cambió de "
+                    f"{old_names or 'sin rol'} a {new_names or 'sin rol'}"
+                )
+            )
+            crear_notificacion(
+                usuario=instance,
+                titulo="Rol asignado",
+                mensaje=f"Se te ha asignado el rol: {', '.join(new_names) if new_names else 'sin rol'}"
+            )
+
     @action(detail=True, methods=['get'])
     def permisos(self, request, pk=None):
         user = self.get_object()
@@ -74,6 +109,14 @@ def login(request):
 
     serializer = UsuarioSerializer(user)
 
+    registrar_auditoria(
+        usuario=user,
+        accion="Inicio de sesión",
+        modelo="Usuario",
+        registro_id=user.pk,
+        descripcion=f"El usuario {user.username} inició sesión"
+    )
+
     return Response(
         {
             "token": token.key,
@@ -90,6 +133,14 @@ def register(request):
         user = serializer.save()
 
         token = Token.objects.create(user=user)
+
+        registrar_auditoria(
+            usuario=user,
+            accion="Crear usuario",
+            modelo="Usuario",
+            registro_id=user.pk,
+            descripcion=f"Se registró el usuario {user.username} con email {user.email}"
+        )
 
         return Response({'token': token.key, "user": serializer.data}, status=status.HTTP_201_CREATED)
 
