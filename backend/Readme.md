@@ -10,8 +10,8 @@
 1.py manage.py startapp accounts        //App accounts para lo relacionado a usuarios
 
 //-----Super usuario actual
-Username: superblack
-Email: misterblack@gmail.com
+Username: omori
+Email: suicidaloco@gmail.com
 password: 12345678
 
 //-----Roles y permisos (API)

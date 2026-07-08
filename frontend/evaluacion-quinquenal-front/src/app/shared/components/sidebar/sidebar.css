@@ -79,10 +79,18 @@
 
 .sidebar-text .name {
     font-weight: 600;
+    font-size: 25px;
+}
+
+.user-details {
+    display: flex;
+    align-items: center;
 }
 
 .sidebar-text .slogan {
     margin-top: -2px;
+    font-size: 18px;
+    display: block;
 } 
 
 .sidebar .toggle {

@@ -1,17 +1,19 @@
 <aside class="barra-lateral">
 
   <nav class="sidebar" [class.close]="!open">
-    <div class="image-text">
-        <span class="image">
-            <a routerLink="/perfil">
-                <img [src]="currentUser?.foto_perfil || 'img/noUser.png'" alt="Foto de perfil">
-            </a>
-        </span>
-    </div>
+    <div class="user-details">
+        <div class="image-text">
+            <span class="image">
+                <a routerLink="/perfil">
+                    <img [src]="currentUser?.foto_perfil || 'img/noUser.png'" alt="Foto de perfil">
+                </a>
+            </span>
+        </div>
 
-    <div class="text sidebar-text">
-        <span class="name">Hola</span>
-        <span class="slogan">{{ currentUser?.username || 'Usuario' }}</span>
+        <div class="text sidebar-text">
+            <span class="name">Bienvenido</span>
+            <span class="slogan">{{ currentUser?.username || 'Usuario' }}</span>
+        </div>
     </div>
 
     <i class='bx bx-caret-right toggle' (click)="toggleSidebar()"></i>
