@@ -1,2 +1,110 @@
-<h1>Futuro Dashboard</h1>
-<p>Dashboard aqui</p>
+<div class="page-container">
+  <div class="page-header">
+    <h1>Dashboard</h1>
+    <p class="text-muted">Bienvenido, {{ user?.first_name || 'Usuario' }}. Resumen del sistema de gestión de evidencias.</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class='bx bx-user'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.usuarios }}</span>
+        <span class="stat-label">Usuarios</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class='bx bx-arch'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.facultades }}</span>
+        <span class="stat-label">Facultades</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class='bx bx-building'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.departamentos }}</span>
+        <span class="stat-label">Departamentos</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class='bx bx-calendar'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.periodos }}</span>
+        <span class="stat-label">Períodos</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon teal">
+        <i class='bx bx-list-check'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.criterios }}</span>
+        <span class="stat-label">Criterios</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon pink">
+        <i class='bx bx-bar-chart-alt-2'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.indicadores }}</span>
+        <span class="stat-label">Indicadores</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class='bx bx-task'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.asignaciones }}</span>
+        <span class="stat-label">Asignaciones</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class='bx bx-file'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.evidencias }}</span>
+        <span class="stat-label">Evidencias</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid two-cols">
+    <div class="stat-card">
+      <div class="stat-icon warning">
+        <i class='bx bx-time'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.pendientes }}</span>
+        <span class="stat-label">Asignaciones pendientes / en progreso</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon success">
+        <i class='bx bx-check-circle'></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.completadas }}</span>
+        <span class="stat-label">Asignaciones completadas / aprobadas</span>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,21 @@
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.contenido {
+  margin-left: 250px;
+  flex: 1;
+  transition: var(--tran-04);
+  background: var(--body-color);
+}
+
+.contenido {
+  margin-left: 250px;
+}
+
+@media (max-width: 768px) {
+  .contenido {
+    margin-left: 0;
+  }
+}

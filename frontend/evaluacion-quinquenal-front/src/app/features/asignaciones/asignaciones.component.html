@@ -1,0 +1,74 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>Asignaciones</h1>
+    <button class="btn btn-primary" (click)="abrirModal()">+ Nueva Asignación</button>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Indicador</th>
+        <th>Departamento</th>
+        <th>Período</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let a of asignaciones">
+        <td>{{ a.indicador_nombre }}</td>
+        <td>{{ a.departamento_nombre }}</td>
+        <td>{{ a.periodo_nombre }}</td>
+        <td>
+          <span class="badge" [class]="getBadgeClass(a.estado)">
+            {{ a.estado_display }}
+          </span>
+        </td>
+        <td class="actions">
+          <button class="btn btn-sm btn-edit" (click)="abrirModal(a)">Editar</button>
+          <button class="btn btn-sm btn-delete" (click)="eliminar(a.id!)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="showModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>{{ editMode ? 'Editar' : 'Nueva' }} Asignación</h2>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Indicador</label>
+        <select class="form-control" [(ngModel)]="form.indicador">
+          <option *ngFor="let i of indicadores" [value]="i.id">{{ i.nombre }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Departamento</label>
+        <select class="form-control" [(ngModel)]="form.departamento">
+          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Período</label>
+        <select class="form-control" [(ngModel)]="form.periodo">
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select class="form-control" [(ngModel)]="form.estado">
+          <option value="pendiente">Pendiente</option>
+          <option value="en_progreso">En progreso</option>
+          <option value="completado">Completado</option>
+          <option value="aprobado">Aprobado</option>
+          <option value="rechazado">Rechazado</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="showModal = false">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>

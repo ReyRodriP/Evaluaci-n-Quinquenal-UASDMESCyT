@@ -1,10 +1,12 @@
 import { Component, Renderer2, ElementRef, Output, EventEmitter } from '@angular/core';
-import { RouterLink } from "@angular/router";
-import { Register } from '../../../features/auth/pages/register/register';
+import { RouterLink, Router } from "@angular/router";
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../features/auth/services/auth-service';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink],
+  standalone: true,
+  imports: [RouterLink, CommonModule],
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.css', '../navbar/navbar.css'],
 })
@@ -14,7 +16,16 @@ export class Sidebar {
 
   @Output() openChange = new EventEmitter<boolean>()
 
-  constructor (private renderer: Renderer2, private el: ElementRef){}
+  constructor (
+    private renderer: Renderer2,
+    private el: ElementRef,
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  get user() {
+    return this.authService.getCurrentUser();
+  }
 
   public toggleTheme(): void {
     const texto = this.el.nativeElement.querySelector('.mode-text')
@@ -32,5 +43,10 @@ export class Sidebar {
   public toggleSidebar(): void {
     this.open = !this.open
     this.openChange.emit(this.open)
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/auth/login']);
   }
 }
