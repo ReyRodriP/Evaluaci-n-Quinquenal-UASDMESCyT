@@ -130,17 +130,12 @@ body.dark .menu-bar .mode i.sun {
 }
 
 body.dark .menu-bar .mode i.moon {
-<<<<<<< HEAD
-    opacity: 0;
+  opacity: 0;
 }
 
 /*CRUD Container*/
-.crud-container{
-    padding:30px;
-}
-
-=======
-  opacity: 0;
+.crud-container {
+  padding: 30px;
 }
 
 /* Page Container */
@@ -429,24 +424,19 @@ textarea.form-control {
   margin: 0;
 }
 
-/* width */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
-/* Track */
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Handle */
 ::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 3px;
 }
 
-/* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
   background: #666;
 }
->>>>>>> Ramon_Paulino_Gil_100345706

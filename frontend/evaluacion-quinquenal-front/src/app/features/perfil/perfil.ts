@@ -33,7 +33,7 @@ export class Perfil implements OnInit {
 
   loadProfile(): void {
     this.authService.me().subscribe({
-      next: (user) => {
+      next: (user: any) => {
         this.user = {
           ...user,
           foto_perfil: user?.foto_perfil || ''

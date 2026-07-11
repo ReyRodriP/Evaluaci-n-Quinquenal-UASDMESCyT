@@ -7,12 +7,8 @@ import { LoginRequest, LoginResponse, Usuario } from '../../../core/models/user.
   providedIn: 'root',
 })
 export class AuthService {
-<<<<<<< HEAD
   baseUrl="http://127.0.0.1:8000/api/";
   private readonly userStorageKey = 'auth_user';
-=======
-  baseUrl = 'http://127.0.0.1:8000/api/';
->>>>>>> Ramon_Paulino_Gil_100345706
 
   constructor(private http: HttpClient) {}
 
@@ -71,9 +67,13 @@ export class AuthService {
     localStorage.setItem('auth_token', token);
   }
 
+  removeToken(): void {
+    localStorage.removeItem('auth_token');
+  }
+
   saveUser(user: any): void {
     if (!user) {
-      this.removeUser();
+      localStorage.removeItem(this.userStorageKey);
       return;
     }
     localStorage.setItem(this.userStorageKey, JSON.stringify(user));
@@ -84,7 +84,6 @@ export class AuthService {
     if (!storedUser) {
       return null;
     }
-
     try {
       return JSON.parse(storedUser);
     } catch {
@@ -96,33 +95,8 @@ export class AuthService {
     localStorage.removeItem(this.userStorageKey);
   }
 
-  getToken(): string | null {
-    return localStorage.getItem('auth_token');
-  }
-
-  removeToken(): void {
-    localStorage.removeItem('auth_token');
-  }
-
-  isLoggedIn(): boolean {
-    return !!this.getToken();
-  }
-
-  logout(): void {
-    this.removeToken();
-    this.removeUser();
-  }
-
-  me(): Observable<any> {
-    return this.http.get(`${this.baseUrl}me`);
-  }
-
   updateProfile(profile: any): Observable<any> {
     return this.http.patch(`${this.baseUrl}profile`, profile);
-  }
-
-  changePassword(payload: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}change_password`, payload);
   }
 
   // Facultades CRUD operations
