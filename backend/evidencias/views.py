@@ -25,16 +25,19 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
+        accion = "Subir versión" if instance.version > 1 else "Crear evidencia"
+        desc = (
+            f"{'Se subió una nueva versión' if instance.version > 1 else 'Se creó la evidencia'}"
+            f" '{instance.nombre}' v{instance.version} "
+            f"para el indicador '{instance.asignacion.indicador.nombre}' "
+            f"del departamento '{instance.asignacion.departamento.nombre}'"
+        )
         registrar_auditoria(
             usuario=self.request.user,
-            accion="Subir evidencia",
+            accion=accion,
             modelo="Evidencia",
             registro_id=instance.pk,
-            descripcion=(
-                f"Se subió la evidencia '{instance.nombre}' "
-                f"para el indicador '{instance.asignacion.indicador.nombre}' "
-                f"del departamento '{instance.asignacion.departamento.nombre}'"
-            )
+            descripcion=desc
         )
 
     def perform_destroy(self, instance):

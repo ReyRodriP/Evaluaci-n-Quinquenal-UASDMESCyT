@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
 from .models import Facultad, Departamento, PerfilUsuario
 from .serializers import (
     FacultadSerializer,
@@ -9,13 +10,8 @@ from .serializers import (
 from accounts.permissions import CustomModelPermissions
 from auditoria.utils import registrar_auditoria
 
-
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
-
 class FacultadViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Facultad.objects.all().order_by('nombre')
     serializer_class = FacultadSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -33,7 +29,6 @@ class FacultadViewSet(viewsets.ModelViewSet):
 
 class DepartamentoViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Departamento.objects.all().order_by('nombre')
     serializer_class = DepartamentoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -51,7 +46,6 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
 
 class PerfilUsuarioViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = PerfilUsuario.objects.all()
     serializer_class = PerfilUsuarioSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]

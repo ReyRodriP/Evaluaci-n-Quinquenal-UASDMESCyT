@@ -1,30 +1,20 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-<<<<<<< HEAD
-from evaluation.models import Asignacion, EstadoAsignacion
-from .models import Periodo, Criterio, Indicador, Asignacion
-=======
+from rest_framework.authentication import TokenAuthentication
 from .models import Periodo, Criterio, Indicador, Asignacion, EstadoAsignacion
->>>>>>> Ramon_Paulino_Gil_100345706
 from .serializers import (
     PeriodoSerializer,
     CriterioSerializer,
     IndicadorSerializer,
     AsignacionSerializer
-    
 )
 from accounts.permissions import CustomModelPermissions
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 from organization.models import PerfilUsuario
 
-
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
-
 class PeriodoViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Periodo.objects.all().order_by('-fecha_inicio')
     serializer_class = PeriodoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -42,7 +32,6 @@ class PeriodoViewSet(viewsets.ModelViewSet):
 
 class CriterioViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Criterio.objects.all().order_by('nombre')
     serializer_class = CriterioSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -60,7 +49,6 @@ class CriterioViewSet(viewsets.ModelViewSet):
 
 class IndicadorViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Indicador.objects.all().order_by('nombre')
     serializer_class = IndicadorSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -78,7 +66,6 @@ class IndicadorViewSet(viewsets.ModelViewSet):
 
 class AsignacionViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Asignacion.objects.all().order_by('periodo', 'departamento')
     serializer_class = AsignacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -111,6 +98,16 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             mensaje=f"Se te ha asignado el indicador '{instance.indicador.nombre}' en el período {instance.periodo.nombre}"
         )
 
+    def _notificar_subido_por(self, instance, titulo, mensaje):
+        evidencias = instance.evidencias.all()
+        for evidencia in evidencias:
+            if evidencia.subido_por:
+                crear_notificacion(
+                    usuario=evidencia.subido_por,
+                    titulo=titulo,
+                    mensaje=mensaje
+                )
+
     def perform_update(self, serializer):
         old_estado = self.get_object().estado
         instance = serializer.save()
@@ -136,6 +133,15 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                     f"a '{instance.get_estado_display()}'"
                 )
             )
+            if instance.estado == EstadoAsignacion.APROBADO:
+                self._notificar_subido_por(
+                    instance=instance,
+                    titulo="Evidencia aprobada",
+                    mensaje=(
+                        f"Tu evidencia para el indicador '{instance.indicador.nombre}' "
+                        f"ha sido aprobada"
+                    )
+                )
 
     def perform_destroy(self, instance):
         registrar_auditoria(

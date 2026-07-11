@@ -14,8 +14,6 @@ from django.contrib.auth.models import Group, Permission
 from .permissions import CustomModelPermissions, IsAdminGroup, IsAdminOrReadOnly
 
 from django.contrib.auth import get_user_model, authenticate
-
-from django.contrib.auth import get_user_model, authenticate #Para obtener el modelo
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings

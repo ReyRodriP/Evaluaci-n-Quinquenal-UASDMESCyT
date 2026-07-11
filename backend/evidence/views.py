@@ -8,6 +8,8 @@ from django.db.models import Max
 from rest_framework.permissions import IsAuthenticated
 
 from accounts.permissions import CustomModelPermissions
+from auditoria.utils import registrar_auditoria
+from notificaciones.utils import crear_notificacion
 
 from evaluation.models import Asignacion, EstadoAsignacion
 
@@ -199,8 +201,31 @@ class ObservacionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         observacion = serializer.save(usuario=self.request.user)
 
+        evidencia = observacion.version.evidencia
+        asignacion = evidencia.asignacion
+
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Crear observación",
+            modelo="Observacion",
+            registro_id=observacion.pk,
+            descripcion=(
+                f"Se creó una observación sobre la evidencia '{evidencia.titulo}' "
+                f"(versión {observacion.version.version}): {observacion.comentario}"
+            )
+        )
+
+        if evidencia.subido_por:
+            crear_notificacion(
+                usuario=evidencia.subido_por,
+                titulo="Evidencia observada",
+                mensaje=(
+                    f"Tu evidencia '{evidencia.titulo}' ha recibido una observación: "
+                    f"{observacion.comentario}"
+                )
+            )
+
         # 🔥 Cambiar estado automáticamente
-        asignacion = observacion.version.evidencia.asignacion
         asignacion.estado = EstadoAsignacion.OBSERVADA
         asignacion.save()
 
