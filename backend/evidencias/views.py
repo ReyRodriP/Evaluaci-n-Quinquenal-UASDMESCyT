@@ -1,0 +1,65 @@
+from rest_framework import viewsets, parsers
+from rest_framework.permissions import IsAuthenticated
+from django.http import FileResponse
+from rest_framework.decorators import action
+from .models import Evidencia
+from .serializers import EvidenciaSerializer
+from accounts.permissions import CustomModelPermissions
+from auditoria.utils import registrar_auditoria
+from notificaciones.utils import crear_notificacion
+from evaluation.models import EstadoAsignacion
+
+
+class EvidenciaViewSet(viewsets.ModelViewSet):
+    queryset = Evidencia.objects.all()
+    serializer_class = EvidenciaSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    def get_queryset(self):
+        queryset = Evidencia.objects.all()
+        asignacion_id = self.request.query_params.get('asignacion')
+        if asignacion_id:
+            queryset = queryset.filter(asignacion_id=asignacion_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Subir evidencia",
+            modelo="Evidencia",
+            registro_id=instance.pk,
+            descripcion=(
+                f"Se subió la evidencia '{instance.nombre}' "
+                f"para el indicador '{instance.asignacion.indicador.nombre}' "
+                f"del departamento '{instance.asignacion.departamento.nombre}'"
+            )
+        )
+
+    def perform_destroy(self, instance):
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Eliminar evidencia",
+            modelo="Evidencia",
+            registro_id=instance.pk,
+            descripcion=f"Se eliminó la evidencia '{instance.nombre}'"
+        )
+        instance.delete()
+
+    @action(detail=True, methods=['get'])
+    def descargar(self, request, pk=None):
+        evidencia = self.get_object()
+        response = FileResponse(
+            evidencia.archivo.open('rb'),
+            as_attachment=True,
+            filename=evidencia.archivo.name.split('/')[-1]
+        )
+        registrar_auditoria(
+            usuario=request.user,
+            accion="Descargar evidencia",
+            modelo="Evidencia",
+            registro_id=evidencia.pk,
+            descripcion=f"Se descargó la evidencia '{evidencia.nombre}'"
+        )
+        return response

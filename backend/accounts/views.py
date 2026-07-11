@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, action
+from rest_framework.decorators import api_view, action, permission_classes, authentication_classes
 from rest_framework.response import Response
 from .serializers import (
     UsuarioSerializer, UsuarioListSerializer, UsuarioPermisosSerializer,
@@ -6,13 +6,9 @@ from .serializers import (
     UsuarioProfileSerializer
 )
 from rest_framework.authtoken.models import Token
-from rest_framework import status
+from rest_framework import status, viewsets, mixins
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import viewsets, mixins
-from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth.models import Group, Permission
 from .permissions import CustomModelPermissions, IsAdminGroup, IsAdminOrReadOnly
@@ -25,6 +21,8 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from auditoria.utils import registrar_auditoria
+from notificaciones.utils import crear_notificacion
 
 User = get_user_model()
 
@@ -73,6 +71,38 @@ class UserViewSet(mixins.ListModelMixin,
             return AdminUsuarioSerializer
         return UsuarioSerializer
 
+    def perform_update(self, serializer):
+        old_groups = list(self.get_object().groups.all())
+        instance = serializer.save()
+        new_groups = list(instance.groups.all())
+
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Modificar usuario",
+            modelo="Usuario",
+            registro_id=instance.pk,
+            descripcion=f"Se modificó el usuario {instance.username}"
+        )
+
+        if old_groups != new_groups:
+            old_names = [g.name for g in old_groups]
+            new_names = [g.name for g in new_groups]
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion="Asignar rol",
+                modelo="Usuario",
+                registro_id=instance.pk,
+                descripcion=(
+                    f"Rol del usuario {instance.username} cambió de "
+                    f"{old_names or 'sin rol'} a {new_names or 'sin rol'}"
+                )
+            )
+            crear_notificacion(
+                usuario=instance,
+                titulo="Rol asignado",
+                mensaje=f"Se te ha asignado el rol: {', '.join(new_names) if new_names else 'sin rol'}"
+            )
+
     @action(detail=True, methods=['get'])
     def permisos(self, request, pk=None):
         user = self.get_object()
@@ -98,6 +128,14 @@ def login(request):
 
     serializer = UsuarioSerializer(user)
 
+    registrar_auditoria(
+        usuario=user,
+        accion="Inicio de sesión",
+        modelo="Usuario",
+        registro_id=user.pk,
+        descripcion=f"El usuario {user.username} inició sesión"
+    )
+
     return Response(
         {
             "token": token.key,
@@ -115,6 +153,14 @@ def register(request):
         user = serializer.save()
 
         token = Token.objects.create(user=user)
+
+        registrar_auditoria(
+            usuario=user,
+            accion="Crear usuario",
+            modelo="Usuario",
+            registro_id=user.pk,
+            descripcion=f"Se registró el usuario {user.username} con email {user.email}"
+        )
 
         return Response({'token': token.key, "user": serializer.data}, status=status.HTTP_201_CREATED)
 

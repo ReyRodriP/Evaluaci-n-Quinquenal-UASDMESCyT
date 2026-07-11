@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .contenido {
     margin: 80px 0 0 260px;
     transition: var(--tran-04);
@@ -10,3 +11,26 @@
 .crud-container{
     padding:30px;
 }
+=======
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.contenido {
+  margin-left: 250px;
+  flex: 1;
+  transition: var(--tran-04);
+  background: var(--body-color);
+}
+
+.contenido {
+  margin-left: 250px;
+}
+
+@media (max-width: 768px) {
+  .contenido {
+    margin-left: 0;
+  }
+}
+>>>>>>> Ramon_Paulino_Gil_100345706

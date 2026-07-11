@@ -1,24 +1,58 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
+import { LoginRequest, LoginResponse, Usuario } from '../../../core/models/user.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+<<<<<<< HEAD
   baseUrl="http://127.0.0.1:8000/api/";
   private readonly userStorageKey = 'auth_user';
+=======
+  baseUrl = 'http://127.0.0.1:8000/api/';
+>>>>>>> Ramon_Paulino_Gil_100345706
 
-  constructor(private http:HttpClient) {
+  constructor(private http: HttpClient) {}
 
+  login(user: LoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.baseUrl}login`, user).pipe(
+      tap((res) => {
+        localStorage.setItem('auth_token', res.token);
+        localStorage.setItem('user_data', JSON.stringify(res.user));
+      })
+    );
   }
 
-  register(user:any):Observable<any> {
-    return this.http.post(`${this.baseUrl}register`,user);
+  register(user: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}register`, user);
   }
 
-  login(user:any):Observable<any> {
-    return this.http.post(`${this.baseUrl}login`,user/*, {withCredentials: true}*/);
+  logout(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('auth_token');
+  }
+
+  getCurrentUser(): Usuario | null {
+    const data = localStorage.getItem('user_data');
+    return data ? JSON.parse(data) : null;
+  }
+
+  isLoggedIn(): boolean {
+    return !!this.getToken();
+  }
+
+  me(): Observable<Usuario> {
+    return this.http.get<Usuario>(`${this.baseUrl}me`);
+  }
+
+  changePassword(data: { old_password: string; new_password: string }): Observable<any> {
+    return this.http.post(`${this.baseUrl}change_password`, data);
   }
 
   forgotPassword(payload:any): Observable<any> {

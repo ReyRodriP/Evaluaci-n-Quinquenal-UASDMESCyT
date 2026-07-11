@@ -1,11 +1,19 @@
+<<<<<<< HEAD
 import { Component, Renderer2, ElementRef, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../features/auth/services/auth-service';
 import { filter, Subscription } from 'rxjs';
+=======
+import { Component, Renderer2, ElementRef, Output, EventEmitter } from '@angular/core';
+import { RouterLink, Router } from "@angular/router";
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../features/auth/services/auth-service';
+>>>>>>> Ramon_Paulino_Gil_100345706
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink],
+  standalone: true,
+  imports: [RouterLink, CommonModule],
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.css', '../navbar/navbar.css'],
 })
@@ -17,11 +25,16 @@ export class Sidebar implements OnInit, OnDestroy {
 
   @Output() openChange = new EventEmitter<boolean>()
 
+<<<<<<< HEAD
   constructor(
+=======
+  constructor (
+>>>>>>> Ramon_Paulino_Gil_100345706
     private renderer: Renderer2,
     private el: ElementRef,
     private authService: AuthService,
     private router: Router
+<<<<<<< HEAD
   ){}
 
   ngOnInit(): void {
@@ -37,6 +50,12 @@ export class Sidebar implements OnInit, OnDestroy {
 
   private loadUser(): void {
     this.currentUser = this.authService.getUser();
+=======
+  ) {}
+
+  get user() {
+    return this.authService.getCurrentUser();
+>>>>>>> Ramon_Paulino_Gil_100345706
   }
 
   public toggleTheme(): void {
@@ -57,6 +76,7 @@ export class Sidebar implements OnInit, OnDestroy {
     this.openChange.emit(this.open)
   }
 
+<<<<<<< HEAD
   public onLogout(): void {
     this.authService.logoutApi().subscribe({
       next: () => {
@@ -68,5 +88,10 @@ export class Sidebar implements OnInit, OnDestroy {
         this.router.navigate(['/auth/login']);
       }
     });
+=======
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/auth/login']);
+>>>>>>> Ramon_Paulino_Gil_100345706
   }
 }

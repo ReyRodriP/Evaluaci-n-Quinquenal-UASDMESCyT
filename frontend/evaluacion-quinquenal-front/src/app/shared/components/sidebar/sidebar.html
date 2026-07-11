@@ -10,10 +10,16 @@
             </span>
         </div>
 
+<<<<<<< HEAD
         <div class="text sidebar-text">
             <span class="name">Bienvenido</span>
             <span class="slogan">{{ currentUser?.username || 'Usuario' }}</span>
         </div>
+=======
+    <div class="text sidebar-text">
+        <span class="name">{{ user?.first_name || 'Hola!' }}</span>
+        <span class="slogan">{{ user?.username || '*Usuario*' }}</span>
+>>>>>>> Ramon_Paulino_Gil_100345706
     </div>
 
     <i class='bx bx-caret-right toggle' (click)="toggleSidebar()"></i>
@@ -23,13 +29,14 @@
             <ul class="menu-links">
                 <li class="nav-link">
                     <a routerLink="/dashboard">
-                        <i class='bx  bx-home icon'></i>
-                        <span class="text nav-text">Dashboard -</span> 
+                        <i class='bx bx-home icon'></i>
+                        <span class="text nav-text">Dashboard</span> 
                     </a>
                 </li>
 
                 <li class="nav-link">
                     <a routerLink="/usuarios">
+<<<<<<< HEAD
                         <i class='bx  bx-user icon'></i>
                         <span class="text nav-text">Usuarios</span> 
                     </a>
@@ -39,16 +46,21 @@
                     <a routerLink="/roles">
                         <i class='bx bx-shield-quarter icon'></i>
                         <span class="text nav-text">Roles</span>
+=======
+                        <i class='bx bx-user icon'></i>
+                        <span class="text nav-text">Usuarios</span> 
+>>>>>>> Ramon_Paulino_Gil_100345706
                     </a>
                 </li>
 
                 <li class="nav-link">
                     <a routerLink="/facultades">
-                        <i class='bx  bx-arch icon'></i>
+                        <i class='bx bx-arch icon'></i>
                         <span class="text nav-text">Facultades</span> 
                     </a>
                 </li>
 
+<<<<<<< HEAD
                 <li class="nav-link">
                     <a routerLink="/departamentos">
                         <i class='bx  bx-building icon'></i>
@@ -97,32 +109,61 @@
                         <span class="text nav-text">Planes de estudios</span> 
                     </a>
                 </li>
+=======
+>>>>>>> Ramon_Paulino_Gil_100345706
                 <li class="nav-link">
-                    <a routerLink="#">
-                        <i class='bx  bx-clipboard-detail icon'></i>
-                        <span class="text nav-text">Evaluadores</span> 
+                    <a routerLink="/periodos">
+                        <i class='bx bx-calendar icon'></i>
+                        <span class="text nav-text">Períodos</span> 
                     </a>
                 </li>
 
-                 <li class="nav-link">
-                    <a routerLink="#">
-                        <i class='bx  bx-archive icon'></i>
-                        <span class="text nav-text">Auditorias</span> 
+                <li class="nav-link">
+                    <a routerLink="/criterios">
+                        <i class='bx bx-list-check icon'></i>
+                        <span class="text nav-text">Criterios</span> 
                     </a>
                 </li>
-                 <li class="nav-link">
-                    <a routerLink="#">
-                        <i class='bx  bx-vertical-align-bottom icon'></i>
-                        <span class="text nav-text">Reportes</span> 
+
+                <li class="nav-link">
+                    <a routerLink="/indicadores">
+                        <i class='bx bx-bar-chart-alt-2 icon'></i>
+                        <span class="text nav-text">Indicadores</span> 
                     </a>
-                </li> -->
+                </li>
+
+                <li class="nav-link">
+                    <a routerLink="/asignaciones">
+                        <i class='bx bx-task icon'></i>
+                        <span class="text nav-text">Asignaciones</span> 
+                    </a>
+                </li>
+
+                <li class="nav-link">
+                    <a routerLink="/evidencias">
+                        <i class='bx bx-file icon'></i>
+                        <span class="text nav-text">Evidencias</span> 
+                    </a>
+                </li>
+
+                <li class="nav-link">
+                    <a routerLink="/auditoria">
+                        <i class='bx bx-clipboard-detail icon'></i>
+                        <span class="text nav-text">Auditoría</span> 
+                    </a>
+                </li>
             </ul>
         </div>
 
         <div class="botton-content">
              <li class="nav-link">
+<<<<<<< HEAD
                     <a href="#" (click)="onLogout(); $event.preventDefault()">
                         <i class='bx  bx-arrow-out-left-square-half icon'></i>
+=======
+                    <a (click)="logout()" style="cursor: pointer;">
+                        <i class='bx bx-arrow-out-left-square-half icon'></i>
+>>>>>>> Ramon_Paulino_Gil_100345706
                         <span class="text nav-text">Cerrar sesión</span> 
                     </a>
             </li>
