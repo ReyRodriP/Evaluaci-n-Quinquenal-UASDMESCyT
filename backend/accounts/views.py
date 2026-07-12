@@ -108,6 +108,7 @@ class UserViewSet(mixins.ListModelMixin,
         return Response(serializer.data)
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def login(request):
 
@@ -143,6 +144,7 @@ def login(request):
     )
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def register(request):
     serializer = UsuarioSerializer(data=request.data)
@@ -234,6 +236,7 @@ def change_password(request): #Para cambiar contraseña de usuario
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def forgot_password(request):
     email = (request.data.get('email') or '').strip()
@@ -273,6 +276,7 @@ def forgot_password(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def reset_password(request):
     uid = request.data.get('uid')

@@ -10,18 +10,18 @@
     <div class="info-sistema">
 
       <span class="titulo">
-        Sistema de Gestión de Evidencias
+        Sistema de Gestión de Tesis
       </span>
 
       <span class="subtitulo">
-        Evaluación Quinquenal UASD - MESCyT
+        Universidad Autónoma de Santo Domingo
       </span>
 
     </div>
 
   </div>
 
-  <div class="derecha" *ngIf="!isLoggedIn">
+  <div class="derecha">
 
     <button class="btn-notification">
       <i class="bx bx-bell-ring"></i>
@@ -37,20 +37,6 @@
     <a routerLink="auth/register" class="btn-register">
       Registrarse
     </a> -->
-
-  </div>
-
-  <div class="derecha" *ngIf="isLoggedIn">
-
-    <span class="user-info">
-      <i class='bx bx-user-circle'></i>
-      {{ user?.first_name }} {{ user?.last_name }}
-      <span class="user-rol">({{ user?.rol }})</span>
-    </span>
-
-    <a class="btn-logout" (click)="logout()">
-      <i class='bx bx-log-out'></i> Cerrar sesión
-    </a>
 
   </div>
 

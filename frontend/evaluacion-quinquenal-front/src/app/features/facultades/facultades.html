@@ -1,108 +1,18 @@
-<div class="page-container">
-  <div class="page-header">
-    <h1>Facultades y Departamentos</h1>
-    <button class="btn btn-primary" (click)="abrirFacultadModal()">+ Nueva Facultad</button>
-  </div>
+<div class="crud-container">
+    <div class="crud-header">
+        <app-search-bar [titulo]="'Facultades'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todas', 'Activas', 'Inactivas']" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)"></app-search-bar>
+    <app-crud-table [columnas]="columnas" [datos]="datosFiltrados" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
+    <app-pagination></app-pagination>
 
-  <div *ngFor="let f of facultades" class="facultad-card">
-    <div class="facultad-header">
-      <div>
-        <h3>{{ f.nombre }}</h3>
-        <p class="text-muted">{{ f.descripcion }}</p>
-      </div>
-      <div class="facultad-actions">
-        <span class="badge" [class.badge-success]="f.activo" [class.badge-danger]="!f.activo">
-          {{ f.activo ? 'Activo' : 'Inactivo' }}
-        </span>
-        <button class="btn btn-sm btn-edit" (click)="abrirFacultadModal(f)">Editar</button>
-        <button class="btn btn-sm btn-delete" (click)="eliminarFacultad(f.id!)">Eliminar</button>
-        <button class="btn btn-sm btn-primary" (click)="abrirDeptModal(undefined, f.id)">+ Depto</button>
-      </div>
-    </div>
-
-    <table class="table dept-table">
-      <thead>
-        <tr>
-          <th>Departamento</th>
-          <th>Descripción</th>
-          <th>Activo</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let d of getDeptosByFacultad(f.id!)">
-          <td>{{ d.nombre }}</td>
-          <td>{{ d.descripcion }}</td>
-          <td>
-            <span class="badge" [class.badge-success]="d.activo" [class.badge-danger]="!d.activo">
-              {{ d.activo ? 'Sí' : 'No' }}
-            </span>
-          </td>
-          <td class="actions">
-            <button class="btn btn-sm btn-edit" (click)="abrirDeptModal(d)">Editar</button>
-            <button class="btn btn-sm btn-delete" (click)="eliminarDepartamento(d.id!)">Eliminar</button>
-          </td>
-        </tr>
-        <tr *ngIf="getDeptosByFacultad(f.id!).length === 0">
-          <td colspan="4" class="text-center">Sin departamentos</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <app-modal
+      [open]="showModal"
+      [data]="selectedItem"
+      [title]="'Facultad'"
+      [newTitle]="'Nueva Facultad'"
+      [editTitle]="'Editar Facultad'"
+      [fields]="facultadFields"
+      (close)="onModalClose()"
+      (save)="onModalSave($event)"></app-modal>
+</div>
 </div>
 
-<div class="modal-overlay" *ngIf="showFacultadModal" (click)="showFacultadModal = false">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <h2>{{ editFacultadMode ? 'Editar' : 'Nueva' }} Facultad</h2>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Nombre</label>
-        <input type="text" class="form-control" [(ngModel)]="facForm.nombre" required>
-      </div>
-      <div class="form-group">
-        <label>Descripción</label>
-        <textarea class="form-control" [(ngModel)]="facForm.descripcion"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" [(ngModel)]="facForm.activo"> Activo
-        </label>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="showFacultadModal = false">Cancelar</button>
-      <button class="btn btn-primary" (click)="guardarFacultad()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" *ngIf="showDeptModal" (click)="showDeptModal = false">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <h2>{{ editDeptMode ? 'Editar' : 'Nuevo' }} Departamento</h2>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Nombre</label>
-        <input type="text" class="form-control" [(ngModel)]="deptForm.nombre" required>
-      </div>
-      <div class="form-group">
-        <label>Descripción</label>
-        <textarea class="form-control" [(ngModel)]="deptForm.descripcion"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Facultad</label>
-        <select class="form-control" [(ngModel)]="deptForm.facultad">
-          <option *ngFor="let f of facultades" [value]="f.id">{{ f.nombre }}</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" [(ngModel)]="deptForm.activo"> Activo
-        </label>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="showDeptModal = false">Cancelar</button>
-      <button class="btn btn-primary" (click)="guardarDepartamento()">Guardar</button>
-    </div>
-  </div>
-</div>

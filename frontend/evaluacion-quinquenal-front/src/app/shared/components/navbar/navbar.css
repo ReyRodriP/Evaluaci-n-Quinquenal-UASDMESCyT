@@ -1,31 +1,65 @@
 .barra-navegacion {
     position: fixed;
     top: 0;
-    left: 250px;
-    right: 0;
-    height: 60px;
-    background: var(--sidebar-color);
+    left: 0;
+    z-index: 3;
+
+    height: 75px;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 30px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    left: 250px;
+    width: calc(100% - 250px);
+
+    padding: 0 2rem;
+
+    background: linear-gradient(
+        135deg,
+        #003366,
+        #0077cc
+    );
+
+    box-shadow: 0 4px 15px rgba(0, 0, 0, .15);
     transition: var(--tran-04);
-    z-index: 99;
 }
 
 .barra-navegacion.close {
     left: 88px;
+    width: calc(100% - 88px);
 }
+
+.barra-navegacion::after {
+    content: '';
+    position: absolute;
+
+    bottom: 0;
+    left: 0;
+
+    width: 100%;
+    height: 3px;
+
+    background: linear-gradient(
+        90deg,
+        #00c6ff,
+        #0072ff
+    );
+}
+
+/* ===========================
+   IZQUIERDA
+=========================== */
 
 .izquierda {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 1rem;
 }
 
 .logo-uasd {
-    height: 40px;
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
 }
 
 .info-sistema {
@@ -34,152 +68,226 @@
 }
 
 .titulo {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-title-color);
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: .3px;
 }
 
 .subtitulo {
-    font-size: 12px;
-    color: var(--text-color);
+    color: #dce8f7;
+    font-size: .85rem;
+    margin-top: 2px;
 }
+
+/* ===========================
+   DERECHA
+=========================== */
 
 .derecha {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 1rem;
 }
 
-.btn-login,
-.btn-register {
-    padding: 8px 20px;
-    border-radius: 6px;
+.derecha a {
     text-decoration: none;
-    font-weight: 500;
-    font-size: 14px;
-    transition: var(--tran-02);
-}
-
-.btn-notification {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border: none;
-    outline: none;
-    border-radius: 50%;
-    background: rgba(255,255,255,.12);
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     transition: .3s ease;
 }
 
-.btn-notification i {
-    font-size: 1.45rem;
-    transition: .3s;
-}
+/*============================
+    BOTÓN NOTIFICACIONES
+=============================*/
 
-.btn-notification:hover {
-    background: rgba(255,255,255,.22);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(0,0,0,.18);
-}
+.btn-notification{
 
-.btn-notification:hover i {
-    transform: rotate(-15deg);
-}
+    position: relative;
 
-.btn-notification:active {
-    transform: scale(.92);
-}
+    width: 48px;
+    height: 48px;
 
-.notification-badge {
-    position: absolute;
-    top: 4px;
-    right: 3px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: #ff3b30;
-    color: white;
+    border: none;
+    outline: none;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.12);
+
+    color: #fff;
+
+    cursor: pointer;
+
     display: flex;
     justify-content: center;
     align-items: center;
+
+    transition: .3s ease;
+}
+
+.btn-notification i{
+
+    font-size: 1.45rem;
+
+    transition: .3s;
+}
+
+.btn-notification:hover{
+
+    background: rgba(255,255,255,.22);
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 8px 18px rgba(0,0,0,.18);
+}
+
+.btn-notification:hover i{
+
+    transform: rotate(-15deg);
+}
+
+/* Click */
+
+.btn-notification:active{
+
+    transform: scale(.92);
+}
+
+/*============================
+        BADGE
+=============================*/
+
+.notification-badge{
+
+    position: absolute;
+
+    top: 4px;
+    right: 3px;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
+    border-radius: 999px;
+
+    background: #ff3b30;
+    color: white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
     font-size: .65rem;
     font-weight: 700;
+
     border: 2px solid #0077cc;
+
     animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-    0% {
+/*============================
+        ANIMACIÓN
+=============================*/
+
+@keyframes pulse{
+
+    0%{
+
         transform: scale(1);
         box-shadow: 0 0 0 0 rgba(255,59,48,.6);
+
     }
-    70% {
+
+    70%{
+
         transform: scale(1.1);
         box-shadow: 0 0 0 10px rgba(255,59,48,0);
+
     }
-    100% {
+
+    100%{
+
         transform: scale(1);
         box-shadow: 0 0 0 0 rgba(255,59,48,0);
+
     }
+
 }
+/* LOGIN
 
 .btn-login {
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
+    color: white;
+    border: 2px solid white;
+
+    padding: .7rem 1.2rem;
+    border-radius: 10px;
+
+    font-weight: 500;
 }
 
 .btn-login:hover {
-    background: var(--primary-color);
-    color: white;
+    background: white;
+    color: #003366;
 }
 
+/* REGISTRO 
+
 .btn-register {
-    background: var(--primary-color);
-    color: white;
+    background: white;
+    color: #003366;
+
+    padding: .7rem 1.2rem;
+    border-radius: 10px;
+
+    font-weight: 600;
 }
 
 .btn-register:hover {
-    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, .2);
+} */
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media (max-width: 768px) {
+
+    .barra-navegacion {
+        padding: 0 1rem;
+    }
+
+    .titulo {
+        font-size: 1rem;
+    }
+
+    .subtitulo {
+        display: none;
+    }
+
+    .logo-uasd {
+        width: 45px;
+        height: 45px;
+    }
+
+    .btn-login,
+    .btn-register {
+        padding: .55rem .9rem;
+        font-size: .85rem;
+    }
 }
 
-.btn-logout {
-    padding: 8px 15px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 14px;
-    color: #dc3545;
-    cursor: pointer;
-    border: 1px solid #dc3545;
-    transition: var(--tran-02);
-    background: transparent;
-}
+@media (max-width: 550px) {
 
-.btn-logout:hover {
-    background: #dc3545;
-    color: white;
-}
+    .titulo {
+        display: none;
+    }
 
-.user-info {
-    font-size: 14px;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
+    .barra-navegacion {
+        justify-content: space-between;
+    }
 
-.user-info i {
-    font-size: 20px;
-}
-
-.user-rol {
-    font-size: 12px;
-    color: var(--primary-color);
-    font-weight: 500;
+    .derecha {
+        gap: .5rem;
+    }
 }

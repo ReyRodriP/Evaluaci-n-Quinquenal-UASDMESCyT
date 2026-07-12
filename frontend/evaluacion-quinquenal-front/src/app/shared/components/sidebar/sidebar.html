@@ -14,6 +14,7 @@
             <span class="name">Bienvenido</span>
             <span class="slogan">{{ currentUser?.username || 'Usuario' }}</span>
         </div>
+    </div>
 
     <i class='bx bx-caret-right toggle' (click)="toggleSidebar()"></i>
 
@@ -22,8 +23,8 @@
             <ul class="menu-links">
                 <li class="nav-link">
                     <a routerLink="/dashboard">
-                        <i class='bx bx-home icon'></i>
-                        <span class="text nav-text">Dashboard</span> 
+                        <i class='bx  bx-home icon'></i>
+                        <span class="text nav-text">Dashboard -</span> 
                     </a>
                 </li>
 
@@ -43,7 +44,7 @@
 
                 <li class="nav-link">
                     <a routerLink="/facultades">
-                        <i class='bx bx-arch icon'></i>
+                        <i class='bx  bx-arch icon'></i>
                         <span class="text nav-text">Facultades</span> 
                     </a>
                 </li>
@@ -89,13 +90,32 @@
                         <span class="text nav-text">Evidencias</span>
                     </a>
                 </li>
-
-                <li class="nav-link">
-                    <a routerLink="/auditoria">
-                        <i class='bx bx-clipboard icon'></i>
-                        <span class="text nav-text">Auditoría</span>
+                
+<!-- 
+                    <a routerLink="/plans">
+                        <i class='bx  bx-reading icon'></i>
+                        <span class="text nav-text">Planes de estudios</span> 
                     </a>
                 </li>
+                <li class="nav-link">
+                    <a routerLink="#">
+                        <i class='bx  bx-clipboard-detail icon'></i>
+                        <span class="text nav-text">Evaluadores</span> 
+                    </a>
+                </li>
+
+                 <li class="nav-link">
+                    <a routerLink="#">
+                        <i class='bx  bx-archive icon'></i>
+                        <span class="text nav-text">Auditorias</span> 
+                    </a>
+                </li>
+                 <li class="nav-link">
+                    <a routerLink="#">
+                        <i class='bx  bx-vertical-align-bottom icon'></i>
+                        <span class="text nav-text">Reportes</span> 
+                    </a>
+                </li> -->
             </ul>
         </div>
 
@@ -106,7 +126,6 @@
                         <span class="text nav-text">Cerrar sesión</span> 
                     </a>
             </li>
-
              <li class="mode">
                     <div class="moon-sun">
                         <i class="bx bx-moon icon moon"></i>
@@ -118,8 +137,7 @@
                         <span class="switch" (click)="toggleTheme()"></span>
                     </div>
             </li>
-            </div>
-            </div>
         </div>
-    </nav>
+    </div>
+</nav>
 </aside>
