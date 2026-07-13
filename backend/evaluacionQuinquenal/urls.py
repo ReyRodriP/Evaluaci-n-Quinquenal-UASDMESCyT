@@ -12,8 +12,8 @@ urlpatterns = [
     path('api/', include('accounts.urls')),
     path('api/', include('auditoria.urls')),
     path('api/', include('notificaciones.urls')),
-    path('api/', include('evidencias.urls')),
     path('api/', include('evidence.urls')),
+    path('api/', include('evidencias.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]
 

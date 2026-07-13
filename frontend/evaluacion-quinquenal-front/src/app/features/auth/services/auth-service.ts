@@ -171,4 +171,9 @@ export class AuthService {
   actualizarPerfil(id:any, perfil:any): Observable<any> {
     return this.http.patch(`${this.baseUrl}perfiles/${id}/`, perfil);
   }
+
+  // Auditoria
+  listarAuditorias(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}auditoria/`);
+  }
 }

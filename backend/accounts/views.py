@@ -125,7 +125,7 @@ def login(request):
 
     token, created = Token.objects.get_or_create(user=user)
 
-    serializer = UsuarioSerializer(user)
+    serializer = UsuarioProfileSerializer(user, context={'request': request})
 
     registrar_auditoria(
         usuario=user,

@@ -30,6 +30,10 @@ export class CrudTable {
     this.toggleEstado.emit(item);
   }
 
+  get showAccionesColumn(): boolean {
+    return this.accionesTemplate != null || ['edit', 'toggle', 'remove'].some(a => !this.ocultarAcciones.includes(a));
+  }
+
   mostrarBoton(nombre: string): boolean {
     return !this.ocultarAcciones.includes(nombre);
   }
@@ -54,6 +58,10 @@ export class CrudTable {
       'indicador': 'indicador_nombre',
       'archivo': 'archivoNombre',
       'observaciones': 'observacionesTexto',
+      'usuario': 'usuario_nombre',
+      'acción': 'accion',
+      'modelo': 'modelo',
+      'fecha': 'fecha',
     };
     return mapping[columnName.toLowerCase()] || columnName.toLowerCase();
   }

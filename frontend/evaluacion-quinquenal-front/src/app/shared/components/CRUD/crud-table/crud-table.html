@@ -3,7 +3,7 @@
         <thead>
             <tr>
                 <th *ngFor="let columna of columnas">{{ columna }}</th>
-                <th>Acciones</th>
+                <th *ngIf="showAccionesColumn">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -24,7 +24,7 @@
                         </div>
                     </ng-template>
                 </td>
-                <td class="actions">
+                <td *ngIf="showAccionesColumn" class="actions">
                     <ng-container *ngIf="accionesTemplate; else defaultAcciones">
                         <ng-container *ngTemplateOutlet="accionesTemplate; context: { $implicit: item }"></ng-container>
                     </ng-container>
