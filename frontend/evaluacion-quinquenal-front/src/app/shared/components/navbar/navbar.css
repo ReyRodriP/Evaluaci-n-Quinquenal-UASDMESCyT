@@ -96,6 +96,158 @@
 }
 
 /*============================
+    NOTIFICACIONES WRAPPER
+=============================*/
+
+.notif-wrapper {
+  position: relative;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 1000;
+
+  width: 360px;
+  max-height: 420px;
+
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.18);
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 16px 18px;
+  font-size: .95rem;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notif-header i {
+  font-size: 1.2rem;
+  color: #3b82f6;
+}
+
+.notif-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.notif-empty {
+  padding: 32px 18px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: .85rem;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: background .15s;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.notif-item:hover {
+  background: #f8fafc;
+}
+
+.notif-item.no-leida {
+  background: #eff6ff;
+}
+
+.notif-item.no-leida:hover {
+  background: #dbeafe;
+}
+
+.notif-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+.notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-titulo {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.notif-mensaje {
+  font-size: .78rem;
+  color: #475569;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-fecha {
+  font-size: .7rem;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.notif-ver-todas {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: background .15s;
+  text-align: center;
+}
+
+.notif-ver-todas:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 480px) {
+  .notif-dropdown {
+    position: fixed;
+    top: 75px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: calc(100vh - 75px);
+    border-radius: 0;
+  }
+
+  .notif-list {
+    max-height: none;
+    flex: 1;
+  }
+}
+
+/*============================
     BOTÓN NOTIFICACIONES
 =============================*/
 

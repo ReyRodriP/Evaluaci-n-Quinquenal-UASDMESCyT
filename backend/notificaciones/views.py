@@ -26,3 +26,13 @@ class NotificacionViewSet(mixins.ListModelMixin,
             NotificacionSerializer(notificacion).data,
             status=status.HTTP_200_OK
         )
+
+    @action(detail=False, methods=['post'])
+    def marcar_todas(self, request):
+        actualizadas = Notificacion.objects.filter(
+            usuario=request.user, leida=False
+        ).update(leida=True)
+        return Response(
+            {'actualizadas': actualizadas},
+            status=status.HTTP_200_OK
+        )

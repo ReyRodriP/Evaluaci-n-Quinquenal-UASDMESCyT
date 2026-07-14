@@ -15,7 +15,8 @@ import { Indicadores } from './features/indicadores/indicadores';
 import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
 import { Evidencias } from './features/evidencias/evidencias';
-import { Auditorias } from './features/auditorias/auditorias';  
+import { Auditorias } from './features/auditorias/auditorias';
+import { Notificaciones } from './features/notificaciones/notificaciones';
 import { EvidenciaDetalle } from './features/evidencias/evidencia-detalle/evidencia-detalle';
 import { AuthGuard } from './core/guards/auth.guard';
 import { Perfil } from './features/perfil/perfil';
@@ -100,6 +101,10 @@ export const routes: Routes = [
             {
                 path: 'auditorias',
                 component: Auditorias
+            },
+            {
+                path: 'notificaciones',
+                component: Notificaciones
             },
             {
                 path: 'perfil',

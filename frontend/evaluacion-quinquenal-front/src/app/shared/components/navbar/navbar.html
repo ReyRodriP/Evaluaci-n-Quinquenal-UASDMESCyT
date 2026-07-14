@@ -23,20 +23,44 @@
 
   <div class="derecha">
 
-    <button class="btn-notification">
-      <i class="bx bx-bell-ring"></i>
-       <span class="notification-badge">
-        3
-      </span>
-    </button>
+    <div class="notif-wrapper">
+      <button class="btn-notification" (click)="toggleDropdown()">
+        <i class="bx bx-bell-ring"></i>
+        <span class="notification-badge" *ngIf="noLeidas > 0">
+          {{ noLeidas > 99 ? '99+' : noLeidas }}
+        </span>
+      </button>
 
-    <!-- <a routerLink="auth/login" class="btn-login">
-      Iniciar Sesión
-    </a>
+      <div class="notif-dropdown" *ngIf="dropdownOpen" (mouseleave)="cerrarDropdown()">
+        <div class="notif-header">
+          <i class="bx bx-bell"></i>
+          <span>Notificaciones</span>
+        </div>
 
-    <a routerLink="auth/register" class="btn-register">
-      Registrarse
-    </a> -->
+        <div class="notif-list">
+          <div *ngIf="!notificaciones.length" class="notif-empty">
+            No hay notificaciones
+          </div>
+
+          <div
+            *ngFor="let n of ultimas"
+            class="notif-item"
+            [class.no-leida]="!n.leida"
+            (click)="marcarYcerrar(n.id)">
+            <div class="notif-dot" *ngIf="!n.leida"></div>
+            <div class="notif-content">
+              <div class="notif-titulo">{{ n.titulo }}</div>
+              <div class="notif-mensaje">{{ n.mensaje }}</div>
+              <div class="notif-fecha">{{ n.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="notif-ver-todas" (click)="irATodas()">
+          Ver todas
+        </button>
+      </div>
+    </div>
 
   </div>
 

@@ -176,4 +176,17 @@ export class AuthService {
   listarAuditorias(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}auditoria/`);
   }
+
+  // Notificaciones
+  listarNotificaciones(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}notificaciones/`);
+  }
+
+  marcarNotificacionLeida(id: number): Observable<any> {
+    return this.http.patch(`${this.baseUrl}notificaciones/${id}/leer/`, {});
+  }
+
+  marcarTodasLeidas(): Observable<any> {
+    return this.http.post(`${this.baseUrl}notificaciones/marcar_todas/`, {});
+  }
 }

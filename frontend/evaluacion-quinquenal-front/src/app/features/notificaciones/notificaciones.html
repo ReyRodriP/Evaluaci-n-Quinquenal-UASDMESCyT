@@ -1,1 +1,51 @@
-<p>notificaciones works!</p>
+<div class="notif-page">
+  <div class="notif-page-header">
+    <div>
+      <h2>Notificaciones</h2>
+      <p class="notif-subtitle" *ngIf="!loading">
+        {{ pendientes }} pendientes &middot; {{ notificaciones.length }} total
+      </p>
+    </div>
+    <button
+      class="btn-marcar-todas"
+      *ngIf="pendientes > 0"
+      (click)="marcarTodas()"
+      [disabled]="marcandoTodas">
+      <i class="bx bx-check-double"></i>
+      {{ marcandoTodas ? 'Marcando...' : 'Marcar todas como leídas' }}
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="state-msg">Cargando notificaciones...</div>
+
+  <ng-container *ngIf="!loading">
+    <div *ngIf="!notificaciones.length" class="state-msg empty">
+      <i class="bx bx-bell-off"></i>
+      <p>No tienes notificaciones</p>
+    </div>
+
+    <div class="notif-list" *ngIf="notificaciones.length">
+      <div
+        *ngFor="let n of notificaciones"
+        class="notif-card"
+        [class.no-leida]="!n.leida"
+        (click)="marcarLeida(n)">
+        <div class="notif-left">
+          <div class="notif-dot" *ngIf="!n.leida"></div>
+        </div>
+        <div class="notif-body">
+          <div class="notif-titulo">{{ n.titulo }}</div>
+          <div class="notif-mensaje">{{ n.mensaje }}</div>
+          <div class="notif-fecha">{{ n.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+        </div>
+        <div class="notif-right">
+          <i
+            class="bx"
+            [ngClass]="n.leida ? 'bx-check-circle' : 'bx-circle'"
+            [style.color]="n.leida ? '#22c55e' : '#94a3b8'">
+          </i>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

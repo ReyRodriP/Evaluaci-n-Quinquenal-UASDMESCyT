@@ -1,0 +1,140 @@
+.notif-page {
+  padding: 24px;
+}
+
+.notif-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.notif-page-header h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.notif-subtitle {
+  margin: 4px 0 0;
+  font-size: .85rem;
+  color: #64748b;
+}
+
+.btn-marcar-todas {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.btn-marcar-todas:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.btn-marcar-todas:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.state-msg {
+  text-align: center;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.state-msg.empty i {
+  font-size: 2.5rem;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.state-msg.empty p {
+  font-size: .95rem;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notif-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.notif-card:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, .08);
+}
+
+.notif-card.no-leida {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.notif-left {
+  width: 20px;
+  padding-top: 4px;
+  flex-shrink: 0;
+}
+
+.notif-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+.notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-titulo {
+  font-weight: 600;
+  font-size: .9rem;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.notif-mensaje {
+  font-size: .82rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.notif-fecha {
+  font-size: .72rem;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
+.notif-right {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.notif-right i {
+  font-size: 1.3rem;
+}
