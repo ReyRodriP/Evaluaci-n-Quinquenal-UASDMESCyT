@@ -158,4 +158,21 @@ export class AuthService {
   listarFacultades(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/facultades/`);
   }
+
+  // Dashboard
+  obtenerResumen(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/dashboard/resumen/`);
+  }
+
+  obtenerAvance(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/dashboard/avance/`);
+  }
+
+  obtenerDashboardDepartamento(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/dashboard/departamento/${id}/`);
+  }
+
+  obtenerDashboardPeriodo(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/dashboard/periodo/${id}/`);
+  }
 }

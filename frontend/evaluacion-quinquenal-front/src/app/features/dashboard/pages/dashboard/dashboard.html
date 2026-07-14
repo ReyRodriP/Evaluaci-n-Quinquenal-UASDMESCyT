@@ -1,2 +1,85 @@
-<h1>Futuro Dashboard</h1>
-<p>Dashboard aqui</p>
+<div class="dashboard-page">
+  <h2 class="page-title">Dashboard</h2>
+
+  <div *ngIf="loading" class="state-msg">Cargando información del dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon blue"><i class="bx bx-building"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.departamentos || 0 }}</span>
+          <span class="kpi-label">Departamentos</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon indigo"><i class="bx bx-bar-chart"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.indicadores || 0 }}</span>
+          <span class="kpi-label">Indicadores</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-task"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.asignaciones || 0 }}</span>
+          <span class="kpi-label">Asignaciones</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bx bx-clock-dashed-half"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.pendientes || 0 }}</span>
+          <span class="kpi-label">Pendientes</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-check-circle"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.aprobadas || 0 }}</span>
+          <span class="kpi-label">Aprobadas</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon purple"><i class="bx bx-message-detail"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.observadas || 0 }}</span>
+          <span class="kpi-label">Observadas</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Estado de asignaciones</h3>
+        <div id="chart-pastel"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Avance por facultad</h3>
+        <div id="chart-avance"></div>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="quick-links">
+      <a routerLink="/asignaciones" class="quick-link-card">
+        <i class="bx bx-task"></i>
+        <span>Gestionar asignaciones</span>
+      </a>
+      <a routerLink="/evidencias" class="quick-link-card">
+        <i class="bx bx-file"></i>
+        <span>Subir evidencias</span>
+      </a>
+      <a routerLink="/notificaciones" class="quick-link-card">
+        <i class="bx bx-bell"></i>
+        <span>Ver notificaciones</span>
+      </a>
+      <a routerLink="/periodos" class="quick-link-card">
+        <i class="bx bx-calendar"></i>
+        <span>Gestionar periodos</span>
+      </a>
+    </div>
+  </ng-container>
+</div>
