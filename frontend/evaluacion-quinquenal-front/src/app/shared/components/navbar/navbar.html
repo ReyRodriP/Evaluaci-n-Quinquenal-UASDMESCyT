@@ -10,15 +10,48 @@
     <div class="info-sistema">
 
       <span class="titulo">
-        Sistema de GestiÃ³n de Tesis
+        Sistema de Gestión de Tesis
       </span>
 
       <span class="subtitulo">
-        Universidad AutÃ³noma de Santo Domingo
+        Universidad Autónoma de Santo Domingo
       </span>
 
     </div>
 
+  </div>
+
+  <div class="buscador-wrapper" #buscadorWrapper>
+    <i class="bx bx-search buscador-icon"></i>
+    <input
+      class="buscador-input"
+      type="text"
+      placeholder="Buscar indicadores, departamentos..."
+      [ngModel]="searchQuery"
+      (ngModelChange)="onSearchInput($event)"
+      (focus)="searchOpen = true"
+      (keydown.escape)="cerrarBusqueda()">
+
+    <div class="buscador-dropdown" *ngIf="searchOpen && (searchQuery.length >= 2 || totalResultados > 0)">
+      <div *ngIf="searching" class="buscador-empty">Buscando...</div>
+
+      <ng-container *ngIf="!searching">
+        <div *ngIf="!totalResultados" class="buscador-empty">Sin resultados</div>
+
+        <ng-container *ngFor="let grupo of gruposResultados">
+          <div *ngIf="grupo.items.length" class="buscador-grupo">
+            <div class="buscador-grupo-titulo">{{ grupo.key }}</div>
+            <div
+              *ngFor="let item of grupo.items"
+              class="buscador-item"
+              (click)="irAResultado(item)">
+              <div class="buscador-item-nombre">{{ item.nombre || item.username }}</div>
+              <div class="buscador-item-sub">{{ item.facultad || item.criterio || item.periodo || item.email || item.nombre_completo }}</div>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
   </div>
 
   <div class="derecha">

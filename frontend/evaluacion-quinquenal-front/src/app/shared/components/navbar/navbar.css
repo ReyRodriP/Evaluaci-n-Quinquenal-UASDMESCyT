@@ -96,6 +96,124 @@
 }
 
 /*============================
+    BUSCADOR
+=============================*/
+
+.buscador-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+  margin: 0 1rem;
+}
+
+.buscador-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,.55);
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.buscador-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 38px;
+  border: none;
+  border-radius: 20px;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-size: .85rem;
+  outline: none;
+  transition: .25s;
+  box-sizing: border-box;
+}
+
+.buscador-input::placeholder { color: rgba(255,255,255,.5); }
+
+.buscador-input:focus {
+  background: rgba(255,255,255,.95);
+  color: #0f172a;
+}
+
+.buscador-input:focus + .buscador-icon,
+.buscador-input:focus ~ .buscador-icon { color: #94a3b8; }
+
+.buscador-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.18);
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.buscador-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: .85rem;
+}
+
+.buscador-grupo {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.buscador-grupo:last-child { border-bottom: none; }
+
+.buscador-grupo-titulo {
+  padding: 8px 16px 4px;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #64748b;
+}
+
+.buscador-item {
+  padding: 8px 16px 8px 16px;
+  cursor: pointer;
+  transition: background .12s;
+}
+
+.buscador-item:hover { background: #f8fafc; }
+
+.buscador-item-nombre {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.buscador-item-sub {
+  font-size: .75rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+@media (max-width: 768px) {
+  .buscador-wrapper {
+    max-width: none;
+    margin: 0 .5rem;
+  }
+
+  .buscador-dropdown {
+    position: fixed;
+    top: 75px;
+    left: 0;
+    right: 0;
+    max-height: calc(100vh - 75px);
+    border-radius: 0;
+  }
+}
+
+/*============================
     NOTIFICACIONES WRAPPER
 =============================*/
 

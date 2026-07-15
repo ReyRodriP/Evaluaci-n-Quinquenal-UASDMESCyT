@@ -172,6 +172,11 @@ export class AuthService {
     return this.http.patch(`${this.baseUrl}perfiles/${id}/`, perfil);
   }
 
+  // Buscador
+  buscar(query: string): Observable<any> {
+    return this.http.get(`${this.baseUrl}search/`, { params: { q: query } });
+  }
+
   // Auditoria
   listarAuditorias(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}auditoria/`);
