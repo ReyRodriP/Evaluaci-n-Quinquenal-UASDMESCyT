@@ -73,6 +73,32 @@ export class AuthService {
     return this.http.delete(`${this.apiUrl}/asignaciones/${id}/`);
   }
 
+  aprobarAsignacion(id: number, comentario?: string): Observable<any> {
+    const payload: any = {};
+    if (comentario) payload.comentario = comentario;
+    return this.http.post(`${this.apiUrl}/asignaciones/${id}/aprobar/`, payload);
+  }
+
+  rechazarAsignacion(id: number, comentario?: string): Observable<any> {
+    const payload: any = {};
+    if (comentario) payload.comentario = comentario;
+    return this.http.post(`${this.apiUrl}/asignaciones/${id}/rechazar/`, payload);
+  }
+
+  enviarARevision(id: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/asignaciones/${id}/en_revision/`, {});
+  }
+
+  solicitarCambios(id: number, comentario?: string): Observable<any> {
+    const payload: any = {};
+    if (comentario) payload.comentario = comentario;
+    return this.http.post(`${this.apiUrl}/asignaciones/${id}/observada/`, payload);
+  }
+
+  resumenAsignacion(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/asignaciones/${id}/resumen/`);
+  }
+
   // Evidencias
   listarEvidencias(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/evidencias/`);
@@ -96,12 +122,6 @@ export class AuthService {
 
   detalleEvidencia(id: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/evidencias/${id}/detalle/`);
-  }
-
-  cambiarEstadoEvidencia(id: number, estado: string, comentario?: string): Observable<any> {
-    const payload: any = { estado };
-    if (comentario) payload.comentario = comentario;
-    return this.http.post(`${this.apiUrl}/evidencias/${id}/cambiar_estado/`, payload);
   }
 
   crearObservacion(payload: { version: number; comentario: string }): Observable<any> {

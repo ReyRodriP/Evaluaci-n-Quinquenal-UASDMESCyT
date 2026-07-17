@@ -1,5 +1,14 @@
-from rest_framework import serializers
-from .models import Periodo, Criterio, Indicador, Asignacion
+﻿from rest_framework import serializers
+from .models import Periodo, Criterio, Indicador, Asignacion, HistorialEstado
+
+
+class HistorialEstadoSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source='usuario.get_full_name', read_only=True, default='')
+
+    class Meta:
+        model = HistorialEstado
+        fields = ['id', 'asignacion', 'estado_anterior', 'estado_nuevo', 'usuario', 'usuario_nombre', 'comentario', 'fecha']
+        read_only_fields = ['usuario', 'fecha']
 
 
 class PeriodoSerializer(serializers.ModelSerializer):

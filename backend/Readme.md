@@ -29,3 +29,34 @@ Asignar permisos a un rol (via API):
 Asignar rol a usuario:
   PUT /api/profile/     con {"group_ids": [1, 2]}
   (el perfil del usuario devuelve groups con sus roles y permisos)
+
+# Roles actuales con sus respectivos permisos 
+
+1. Administrador General
+-Todos
+
+2. Coordinador Quinquenal
+-Visualizar Dashboard
+-Manejar Facultades
+-Manejar Departamentos
+-Manejar Periodos
+-Manejar Criterios
+-Manejar Indicadores
+-Manejar Asignaciones
+-Manejar Evidencias
+-Visualizar Auditoria
+
+3. Responsable Departamental
+-Ver indicadores asignados
+-Subir Evidencias
+-Actualizar Evidencias
+-Responder Observaciones
+-Ver Dashboard
+
+4. Revisor Institucional
+-Revisar evidencias 
+-Aprobar y rechazarlas
+-Agregar observaciones 
+
+5. Consulta 
+-Ninguno
