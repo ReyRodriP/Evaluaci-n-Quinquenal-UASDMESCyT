@@ -4,7 +4,7 @@ from django.http import FileResponse
 from rest_framework.decorators import action
 from .models import Evidencia
 from .serializers import EvidenciaSerializer
-from accounts.permissions import CustomModelPermissions
+from accounts.permissions import CustomModelPermissions, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 from evaluation.models import EstadoAsignacion
@@ -21,7 +21,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         asignacion_id = self.request.query_params.get('asignacion')
         if asignacion_id:
             queryset = queryset.filter(asignacion_id=asignacion_id)
-        return queryset
+        return filtrar_por_rol(queryset, self.request, dept_field='asignacion__departamento')
 
     def perform_create(self, serializer):
         instance = serializer.save()

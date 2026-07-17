@@ -7,7 +7,7 @@ from django.db.models import Max
 
 from rest_framework.permissions import IsAuthenticated
 
-from accounts.permissions import CustomModelPermissions
+from accounts.permissions import CustomModelPermissions, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 
@@ -30,6 +30,10 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
     ]
     queryset = Evidencia.objects.all()
     serializer_class = EvidenciaSerializer
+
+    def get_queryset(self):
+        qs = Evidencia.objects.all()
+        return filtrar_por_rol(qs, self.request, dept_field='asignacion__departamento')
 
     def create(self, request, *args, **kwargs):
         asignacion_id = request.data.get("asignacion")
@@ -133,6 +137,10 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = VersionEvidencia.objects.all()
     serializer_class = VersionEvidenciaSerializer
 
+    def get_queryset(self):
+        qs = VersionEvidencia.objects.all()
+        return filtrar_por_rol(qs, self.request, dept_field='evidencia__asignacion__departamento')
+
     @action(detail=True, methods=["get"])
     def descargar(self, request, pk=None):
         version = self.get_object()
@@ -163,6 +171,10 @@ class ObservacionViewSet(viewsets.ModelViewSet):
         IsAuthenticated,
         CustomModelPermissions
     ]
+
+    def get_queryset(self):
+        qs = Observacion.objects.filter(activo=True)
+        return filtrar_por_rol(qs, self.request, dept_field='version__evidencia__asignacion__departamento')
 
     def perform_create(self, serializer):
         observacion = serializer.save(usuario=self.request.user)

@@ -11,7 +11,7 @@ from .serializers import (
     AsignacionSerializer,
     HistorialEstadoSerializer
 )
-from accounts.permissions import CustomModelPermissions
+from accounts.permissions import CustomModelPermissions, filtrar_por_rol, departamentos_permitidos
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 from organization.models import PerfilUsuario
@@ -73,6 +73,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     queryset = Asignacion.objects.all().order_by('periodo', 'departamento')
     serializer_class = AsignacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def get_queryset(self):
+        qs = Asignacion.objects.all().order_by('periodo', 'departamento')
+        return filtrar_por_rol(qs, self.request, dept_field='departamento')
 
     def _notificar_departamento(self, departamento, titulo, mensaje):
         perfiles = PerfilUsuario.objects.filter(departamento=departamento)
