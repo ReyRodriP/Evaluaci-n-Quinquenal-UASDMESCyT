@@ -27,6 +27,10 @@ export class PermisosService {
 
   constructor(private authService: AuthService) {}
 
+  get esSuperuser(): boolean {
+    return this.authService.getUser()?.is_superuser === true;
+  }
+
   get grupos(): string[] {
     return this.authService.getUser()?.groups ?? [];
   }
@@ -40,18 +44,19 @@ export class PermisosService {
   }
 
   tieneGrupo(grupo: string): boolean {
-    return this.grupos.includes(grupo);
+    return this.grupos.includes(grupo) || this.esSuperuser;
   }
 
   tienePermiso(codename: string): boolean {
-    return this.permisos.includes(codename);
+    return this.permisos.includes(codename) || this.esSuperuser;
   }
 
   tieneAlgunPermiso(codenames: string[]): boolean {
-    return codenames.some(c => this.permisos.includes(c));
+    return this.esSuperuser || codenames.some(c => this.permisos.includes(c));
   }
 
   menuVisible(): MenuItem[] {
+    if (this.esSuperuser) return this.menuItems;
     return this.menuItems.filter(item => {
       if (!item.grupos) return true;
       return item.grupos.some(g => this.tieneGrupo(g));
@@ -59,6 +64,7 @@ export class PermisosService {
   }
 
   puedeAccederRuta(path: string): boolean {
+    if (this.esSuperuser) return true;
     const item = this.menuItems.find(m => m.path === path);
     if (!item) return true;
     if (!item.grupos) return true;

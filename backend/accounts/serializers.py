@@ -79,6 +79,7 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
             'last_name',
             'telefono',
             'foto_perfil',
+            'is_superuser',
             'groups',
             'rol',
             'permisos',
