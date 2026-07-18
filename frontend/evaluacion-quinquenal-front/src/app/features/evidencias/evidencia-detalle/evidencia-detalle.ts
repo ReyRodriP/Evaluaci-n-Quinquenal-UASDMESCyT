@@ -64,18 +64,18 @@ export class EvidenciaDetalle implements OnInit {
     this.subiendo = true;
     const payload = new FormData();
     payload.append('archivo', this.nuevoArchivo, this.nuevoArchivo.name);
-    payload.append('comentario', this.comentarioVersion || 'Nueva versi髇');
+    payload.append('comentario', this.comentarioVersion || 'Nueva versi贸n');
 
     this.authService.subirVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
       next: () => {
-        this.toast.success('Versi髇 subida correctamente');
+        this.toast.success('Versi贸n subida correctamente');
         this.nuevoArchivo = null;
         this.comentarioVersion = '';
         this.cargarDetalle(this.evidencia.id_evidencia);
         this.subiendo = false;
       },
       error: () => {
-        this.toast.error('No se pudo subir la versi髇');
+        this.toast.error('No se pudo subir la versi贸n');
         this.subiendo = false;
       },
     });
@@ -107,7 +107,7 @@ export class EvidenciaDetalle implements OnInit {
     }
     const asignacionId = this.getAsignacionId();
     if (!asignacionId) {
-      this.toast.error('No se pudo identificar la asignaci髇 asociada');
+      this.toast.error('No se pudo identificar la asignaci贸n asociada');
       return;
     }
     this.guardandoRevision = true;
@@ -121,21 +121,21 @@ export class EvidenciaDetalle implements OnInit {
           : null;
 
     if (!request$) {
-      this.toast.error('Estado no v醠ido');
+      this.toast.error('Estado no v谩lido');
       this.guardandoRevision = false;
       return;
     }
 
     request$.subscribe({
       next: () => {
-        this.toast.success('Revisi髇 guardada correctamente');
+        this.toast.success('Revisi贸n guardada correctamente');
         this.comentarioRevision = '';
         this.estadoSeleccionado = '';
         this.cargarDetalle(this.evidencia.id_evidencia);
         this.guardandoRevision = false;
       },
       error: () => {
-        this.toast.error('No se pudo guardar la revisi髇');
+        this.toast.error('No se pudo guardar la revisi贸n');
         this.guardandoRevision = false;
       },
     });

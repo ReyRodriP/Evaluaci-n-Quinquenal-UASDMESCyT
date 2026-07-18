@@ -1,7 +1,7 @@
 from rest_framework.permissions import DjangoModelPermissions, BasePermission, SAFE_METHODS
 from organization.models import PerfilUsuario
 
-ROLES_SIN_RESTRICCION = ('Administrador General', 'Coordinador Quinquenal')
+ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal'}
 
 
 def _grupos_usuario(user):

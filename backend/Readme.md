@@ -58,5 +58,11 @@ Asignar rol a usuario:
 -Aprobar y rechazarlas
 -Agregar observaciones 
 
-5. Consulta 
+5. Evaluador Externo 
+•	Consultar evidencias aprobadas. 
+•	Revisar indicadores. 
+•	Generar observaciones externas. 
+
+
+6. Consulta 
 -Ninguno
