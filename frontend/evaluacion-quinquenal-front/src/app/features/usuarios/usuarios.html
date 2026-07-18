@@ -4,6 +4,7 @@
       [titulo]="'Usuarios'"
       [placeholder]="'Buscar por nombre, correo o rol'"
       [stateOptions]="['Todos', 'Activos', 'Inactivos']"
+      [showCreate]="puedeCrear"
       (create)="openNew()"
       (search)="onSearch($event)"
       (stateChange)="onStateChange($event)">
@@ -13,6 +14,7 @@
   <app-crud-table
     [columnas]="columnas"
     [datos]="datosFiltrados"
+    [ocultarAcciones]="ocultarAcciones"
     (edit)="openEdit($event)"
     (remove)="onRemove($event)"
     (toggleEstado)="onToggleEstado($event)">

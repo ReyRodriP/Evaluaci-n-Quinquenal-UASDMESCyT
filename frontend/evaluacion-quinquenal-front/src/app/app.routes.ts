@@ -19,6 +19,7 @@ import { Auditorias } from './features/auditorias/auditorias';
 import { Notificaciones } from './features/notificaciones/notificaciones';
 import { EvidenciaDetalle } from './features/evidencias/evidencia-detalle/evidencia-detalle';
 import { AuthGuard } from './core/guards/auth.guard';
+import { PermisoGuard } from './core/guards/permiso.guard';
 import { Perfil } from './features/perfil/perfil';
 
 export const routes: Routes = [
@@ -55,32 +56,43 @@ export const routes: Routes = [
         canActivate: [AuthGuard],
         children: [
             {
+                path: '',
+                redirectTo: 'dashboard',
+                pathMatch: 'full'
+            },
+            {
                 path: 'dashboard',
                 component: Dashboard
             },
             {
                 path: 'usuarios',
-                component: Usuarios
+                component: Usuarios,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'facultades',
-                component: Facultades
+                component: Facultades,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'departamentos',
-                component: Departamentos
+                component: Departamentos,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'periodos',
-                component: Periodos
+                component: Periodos,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'criterios',
-                component: Criterios
+                component: Criterios,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'indicadores',
-                component: Indicadores
+                component: Indicadores,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'asignaciones',
@@ -96,11 +108,13 @@ export const routes: Routes = [
             },
             {
                 path: 'roles',
-                component: Roles
+                component: Roles,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'auditorias',
-                component: Auditorias
+                component: Auditorias,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'notificaciones',

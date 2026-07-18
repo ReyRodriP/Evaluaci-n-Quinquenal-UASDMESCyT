@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from "@angular/router";
 import { AuthService } from '../../../features/auth/services/auth-service';
+import { PermisosService } from '../../../core/services/permisos.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
@@ -25,8 +26,25 @@ export class Navbar implements OnInit, OnDestroy {
   private searchTerms = new Subject<string>()
   private polling?: ReturnType<typeof setInterval>
 
+  private readonly tipoRuta: Record<string, string> = {
+    Indicador: '/indicadores',
+    Departamento: '/departamentos',
+    Facultad: '/facultades',
+    Criterio: '/criterios',
+    Usuario: '/usuarios',
+  };
+
+  private readonly tipoPermiso: Record<string, string> = {
+    Indicador: 'evaluation.view_indicador',
+    Departamento: 'organization.view_departamento',
+    Facultad: 'organization.view_facultad',
+    Criterio: 'evaluation.view_criterio',
+    Usuario: 'auth.view_user',
+  };
+
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private router: Router,
     private elementRef: ElementRef
   ) {}
@@ -52,7 +70,11 @@ export class Navbar implements OnInit, OnDestroy {
 
   get gruposResultados(): { key: string; items: any[] }[] {
     return Object.entries(this.searchResults)
-      .filter(([, arr]) => Array.isArray(arr) && arr.length > 0)
+      .filter(([key, arr]) => {
+        if (!Array.isArray(arr) || arr.length === 0) return false;
+        const permiso = this.tipoPermiso[key];
+        return !permiso || this.permisos.tienePermiso(permiso);
+      })
       .map(([key, arr]) => ({ key, items: arr as any[] }))
   }
 
@@ -86,14 +108,7 @@ export class Navbar implements OnInit, OnDestroy {
     this.searchOpen = false
     this.searchQuery = ''
     this.searchResults = {}
-    const rutas: Record<string, string> = {
-      Indicador: '/indicadores',
-      Departamento: '/departamentos',
-      Facultad: '/facultades',
-      Criterio: '/criterios',
-      Usuario: '/usuarios',
-    }
-    const ruta = rutas[item.tipo] || '/dashboard'
+    const ruta = this.tipoRuta[item.tipo] || '/dashboard'
     this.router.navigate([ruta])
   }
 

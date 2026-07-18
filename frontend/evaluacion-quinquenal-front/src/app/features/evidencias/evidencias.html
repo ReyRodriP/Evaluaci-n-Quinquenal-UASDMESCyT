@@ -17,7 +17,7 @@
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
       <ng-template #acciones let-row>
         <div class="action-group">
-          <button *ngIf="!row.evidenciaId" type="button" class="action-btn" (click)="openManage(row)">
+          <button *ngIf="!row.evidenciaId && puedeSubir" type="button" class="action-btn" (click)="openManage(row)">
             Subir evidencia
           </button>
           <button *ngIf="row.evidenciaId" type="button" class="action-btn" (click)="openManage(row)">
@@ -29,10 +29,10 @@
           <button *ngIf="row.evidenciaId" type="button" class="action-btn secondary" (click)="verHistorial(row)">
             Ver historial
           </button>
-          <button *ngIf="row.evidenciaId && row.evidencia?.estado !== 'cancelada'" type="button" class="action-btn danger" (click)="cancelar(row)">
+          <button *ngIf="row.evidenciaId && row.evidencia?.estado !== 'cancelada' && puedeCancelarReactivar" type="button" class="action-btn danger" (click)="cancelar(row)">
             Cancelar
           </button>
-          <button *ngIf="row.evidenciaId && row.evidencia?.estado === 'cancelada'" type="button" class="action-btn secondary" (click)="reactivar(row)">
+          <button *ngIf="row.evidenciaId && row.evidencia?.estado === 'cancelada' && puedeCancelarReactivar" type="button" class="action-btn secondary" (click)="reactivar(row)">
             Reactivar
           </button>
         </div>

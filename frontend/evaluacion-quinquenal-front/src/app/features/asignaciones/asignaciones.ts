@@ -6,6 +6,7 @@ import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-asignaciones',
@@ -40,8 +41,20 @@ export class Asignaciones implements OnInit {
     ], defaultValue: 'pendiente' }
   ];
 
+  get puedeCrear(): boolean {
+    return this.permisos.tieneAlgunPermiso(['evaluation.add_asignacion']);
+  }
+
+  get ocultarAcciones(): string[] {
+    if (this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion', 'evaluation.delete_asignacion'])) {
+      return [];
+    }
+    return ['edit', 'toggle', 'remove'];
+  }
+
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService
   ) {}
 

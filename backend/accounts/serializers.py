@@ -67,6 +67,7 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
     foto_perfil = serializers.ImageField(required=False, allow_null=True)
     groups = serializers.StringRelatedField(many=True, read_only=True)
     rol = serializers.SerializerMethodField()
+    permisos = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -80,11 +81,15 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
             'foto_perfil',
             'groups',
             'rol',
+            'permisos',
         ]
 
     def get_rol(self, obj):
         groups = obj.groups.all()
         return groups.first().name if groups else None
+
+    def get_permisos(self, obj):
+        return sorted(obj.get_all_permissions())
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

@@ -5,6 +5,7 @@ import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
+import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-criterios',
@@ -31,8 +32,23 @@ export class Criterios implements OnInit {
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
 
+  get puedeCrear(): boolean {
+    return this.permisos.tieneAlgunPermiso(['evaluation.add_criterio']);
+  }
+
+  get ocultarAcciones(): string[] {
+    if (this.permisos.tieneAlgunPermiso(['evaluation.change_criterio', 'evaluation.delete_criterio'])) {
+      return [];
+    }
+    const ocultas: string[] = [];
+    if (!this.permisos.tienePermiso('evaluation.change_criterio')) ocultas.push('edit', 'toggle');
+    if (!this.permisos.tienePermiso('evaluation.delete_criterio')) ocultas.push('remove');
+    return ocultas;
+  }
+
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService
   ) {}
 

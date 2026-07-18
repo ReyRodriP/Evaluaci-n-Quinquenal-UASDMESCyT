@@ -1,7 +1,7 @@
 <div class="crud-container">
   <div class="crud-header">
-    <app-search-bar [titulo]="'Asignaciones'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todos', 'Pendiente', 'En progreso', 'Completado', 'Aprobado', 'Rechazado']" [stateLabel]="'Estado de asignación'" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)"></app-search-bar>
-    <app-crud-table [columnas]="columnas" [datos]="datosFiltrados" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
+    <app-search-bar [titulo]="'Asignaciones'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todos', 'Pendiente', 'En progreso', 'Completado', 'Aprobado', 'Rechazado']" [stateLabel]="'Estado de asignación'" [showCreate]="puedeCrear" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)"></app-search-bar>
+    <app-crud-table [columnas]="columnas" [datos]="datosFiltrados" [ocultarAcciones]="ocultarAcciones" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
     <app-pagination></app-pagination>
 
     <app-modal

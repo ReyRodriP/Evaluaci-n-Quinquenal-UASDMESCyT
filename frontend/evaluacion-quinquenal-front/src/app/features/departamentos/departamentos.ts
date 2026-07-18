@@ -5,6 +5,7 @@ import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { AuthService } from '../auth/services/auth-service';
 import { ToastrService } from 'ngx-toastr';
+import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-departamentos',
@@ -31,8 +32,23 @@ export class Departamentos implements OnInit {
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activa', 'Inactiva'], defaultValue: 'Activa' }
   ];
 
+  get puedeCrear(): boolean {
+    return this.permisos.tieneAlgunPermiso(['organization.add_departamento']);
+  }
+
+  get ocultarAcciones(): string[] {
+    if (this.permisos.tieneAlgunPermiso(['organization.change_departamento', 'organization.delete_departamento'])) {
+      return [];
+    }
+    const ocultas: string[] = [];
+    if (!this.permisos.tienePermiso('organization.change_departamento')) ocultas.push('edit', 'toggle');
+    if (!this.permisos.tienePermiso('organization.delete_departamento')) ocultas.push('remove');
+    return ocultas;
+  }
+
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService
   ) {}
 

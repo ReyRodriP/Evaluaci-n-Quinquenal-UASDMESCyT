@@ -6,6 +6,7 @@ import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../auth/services/auth-service';
 import { ToastrService } from 'ngx-toastr';
+import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-facultades',
@@ -126,9 +127,24 @@ export class Facultades implements OnInit {
 
   facultadForm: FormGroup;
 
+  get puedeCrear(): boolean {
+    return this.permisos.tieneAlgunPermiso(['organization.add_facultad']);
+  }
+
+  get ocultarAcciones(): string[] {
+    if (this.permisos.tieneAlgunPermiso(['organization.change_facultad', 'organization.delete_facultad'])) {
+      return [];
+    }
+    const ocultas: string[] = [];
+    if (!this.permisos.tienePermiso('organization.change_facultad')) ocultas.push('edit', 'toggle');
+    if (!this.permisos.tienePermiso('organization.delete_facultad')) ocultas.push('remove');
+    return ocultas;
+  }
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService
   ) {
     this.facultadForm = this.fb.group({

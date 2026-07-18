@@ -7,6 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
+import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-evidencias',
@@ -24,8 +25,22 @@ export class Evidencias implements OnInit {
   historialCampos: any[] = [];
   historialData: any = null;
 
+  get puedeSubir(): boolean {
+    return this.permisos.tieneAlgunPermiso([
+      'evidence.add_evidencia', 'evidence.add_versionevidencia',
+      'evidencias.add_evidencia',
+    ]);
+  }
+
+  get puedeCancelarReactivar(): boolean {
+    return this.permisos.tieneAlgunPermiso([
+      'evidence.change_evidencia', 'evidencias.change_evidencia',
+    ]);
+  }
+
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService,
     private router: Router
   ) {}
