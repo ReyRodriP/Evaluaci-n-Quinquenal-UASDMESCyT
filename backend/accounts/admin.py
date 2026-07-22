@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import Group
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from .models import Usuario
 from .role_permissions import ROLE_PERMISSIONS, get_role_permissions_diff
 
@@ -14,14 +14,14 @@ class FixedPermissionsGroupAdmin(BaseGroupAdmin):
 
     def permissions_status(self, obj):
         if obj.name not in ROLE_PERMISSIONS:
-            return format_html(
-                '<span style="color:orange;">Rol libre</span>'
-            )
+           return mark_safe(
+    '<span style="color:green;">✓ Sincronizado</span>'
+)
         extra, missing = get_role_permissions_diff(obj)
         if not extra and not missing:
-            return format_html(
-                '<span style="color:green;">✓ Sincronizado</span>'
-            )
+           return mark_safe(
+    '<span style="color:green;">✓ Sincronizado</span>'
+)
         parts = []
         if extra:
             parts.append(
@@ -31,7 +31,7 @@ class FixedPermissionsGroupAdmin(BaseGroupAdmin):
             parts.append(
                 f'<span style="color:orange;">{len(missing)} faltante</span>'
             )
-        return format_html(" &nbsp;|&nbsp; ".join(parts))
+        return mark_safe(" &nbsp;|&nbsp; ".join(parts))
     permissions_status.short_description = "Permisos"
 
     def get_fieldsets(self, request, obj=None):

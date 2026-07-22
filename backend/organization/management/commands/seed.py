@@ -226,7 +226,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Roles iniciales registrados correctamente.'))
 
     def seed_groups(self):
-        from django.contrib.auth.models import Group, Permission
+        from django.contrib.auth.models import Group
+        from accounts.role_permissions import sync_group_permissions
 
         admin_group, _ = Group.objects.get_or_create(
             name='Administrador General'
@@ -236,12 +237,11 @@ class Command(BaseCommand):
             name='Consulta'
         )
 
-        all_permissions = Permission.objects.all()
-
-        admin_group.permissions.set(all_permissions)
-
-        consulta_group.permissions.clear()
+        sync_group_permissions(admin_group)
+        sync_group_permissions(consulta_group)
 
         self.stdout.write(
-            self.style.SUCCESS("Permisos iniciales asignados correctamente.")
+            self.style.SUCCESS(
+                "Permisos iniciales asignados correctamente."
+            )
         )
