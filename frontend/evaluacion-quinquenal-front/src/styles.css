@@ -51,6 +51,9 @@
     --primary-color-light: #f6f5ff;
     --toggle-color: #000;
 
+    --heading-color: #1e293b;
+    --text-secondary: #64748b;
+
     /*--------Transitions---------*/
     --tran-02: all 0.2s ease;
     --tran-03: all 0.3s ease;
@@ -94,6 +97,8 @@ body.dark {
     --indicator-badge-bg: #273447;
     --indicator-badge-text: #b3d2ff;
     --table-shadow: 0 3px 10px rgba(255,255,255,.05);
+    --heading-color: #e2e8f0;
+    --text-secondary: #94a3b8;
     --modal-header-bg: linear-gradient(135deg, #161b22, #252b33);
     --modal-header-color: #f8fafc;
     --modal-body-bg: #1f2226;
