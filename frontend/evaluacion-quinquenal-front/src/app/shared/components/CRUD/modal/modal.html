@@ -25,10 +25,16 @@
             [name]="field.name"
             [placeholder]="field.placeholder || ''"></textarea>
 
+          <input *ngIf="field.type === 'select' && field.searchable" class="select-search"
+            type="text" placeholder="Buscar {{ field.label | lowercase }}..."
+            [(ngModel)]="searchTexts[field.name]" (click)="$event.stopPropagation()"
+            [name]="'search_' + field.name" />
+
           <select *ngIf="field.type === 'select'"
             [(ngModel)]="model[field.name]"
             [name]="field.name">
-            <option *ngFor="let option of field.options" [ngValue]="option?.value ?? option">{{ option?.label ?? option }}</option>
+            <option *ngIf="field.allowClear" [ngValue]="null">--- Sin {{ field.label | lowercase }} ---</option>
+            <option *ngFor="let option of getFilteredOptions(field)" [ngValue]="option?.value ?? option">{{ option?.label ?? option }}</option>
           </select>
 
           <div *ngIf="field.type === 'checkboxgroup'" class="checkbox-group">

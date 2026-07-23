@@ -34,7 +34,7 @@ export class Usuarios implements OnInit {
     { label: 'Contraseña', name: 'password', type: 'password', placeholder: 'Dejar en blanco para no cambiar', defaultValue: '' },
     { label: 'Nombre', name: 'first_name', type: 'text', placeholder: 'Nombre del usuario', defaultValue: '' },
     { label: 'Correo', name: 'email', type: 'email', placeholder: 'correo@dominio.com', defaultValue: '' },
-    { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '' },
+    { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '', allowClear: true, searchable: true },
     { label: 'Rol', name: 'rol', type: 'select', options: ['Administrador', 'Consulta', 'Responsable', 'Coordinador'], defaultValue: 'Consulta' },
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
@@ -201,17 +201,12 @@ export class Usuarios implements OnInit {
   }
 
   private syncPerfilUsuario(userId: any, departamento: any, onSuccess: () => void, onError: (err: any) => void): void {
-    if (!departamento) {
-      onSuccess();
-      return;
-    }
-
     this.authService.listarPerfiles().subscribe({
       next: (perfiles) => {
         const profile = perfiles.find((perfil: any) => perfil.usuario === userId || perfil.usuario?.id === userId);
 
         if (profile && profile.id) {
-          this.authService.actualizarPerfil(profile.id, { departamento }).subscribe({
+          this.authService.actualizarPerfil(profile.id, { departamento: departamento || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error actualizando perfil de usuario', err);
@@ -219,7 +214,7 @@ export class Usuarios implements OnInit {
             }
           });
         } else {
-          this.authService.crearPerfil({ usuario: userId, departamento }).subscribe({
+          this.authService.crearPerfil({ usuario: userId, departamento: departamento || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error creando perfil de usuario', err);

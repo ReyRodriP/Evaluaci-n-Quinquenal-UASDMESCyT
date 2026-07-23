@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
     --primary: #003366;
@@ -125,7 +125,7 @@ input{
     border-radius:12px;
 
     font-size:15px;
-    font-family:'Poppins',sans-serif;
+    font-family:'Public Sans',sans-serif;
 
     transition:.3s;
 }
