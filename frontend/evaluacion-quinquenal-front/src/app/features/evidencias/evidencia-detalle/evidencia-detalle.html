@@ -46,13 +46,41 @@
 
             <div class="info-header">
 
-                <div>
+                <div *ngIf="!editandoInfo">
 
                     <h3>{{ evidencia.titulo }}</h3>
 
                     <p class="descripcion">
                         {{ evidencia.descripcion }}
                     </p>
+
+                    <button *ngIf="evidencia.puede_editar_info" type="button" class="secondary-btn" (click)="editarInfo()" style="margin-top:8px">
+                        <i class="bx bx-edit-alt"></i>
+                        Editar información
+                    </button>
+
+                </div>
+
+                <div *ngIf="editandoInfo" class="edit-info-form">
+
+                    <div class="field-group">
+                        <label>Título</label>
+                        <input type="text" [(ngModel)]="infoEditada.titulo" placeholder="Título de la evidencia" />
+                    </div>
+
+                    <div class="field-group">
+                        <label>Descripción</label>
+                        <textarea rows="3" [(ngModel)]="infoEditada.descripcion" placeholder="Descripción de la evidencia"></textarea>
+                    </div>
+
+                    <div class="edit-info-actions">
+                        <button type="button" class="secondary-btn" (click)="cancelarEdicion()" [disabled]="guardandoInfo">
+                            Cancelar
+                        </button>
+                        <button type="button" class="primary-btn" (click)="guardarInfo()" [disabled]="guardandoInfo">
+                            {{ guardandoInfo ? 'Guardando...' : 'Guardar' }}
+                        </button>
+                    </div>
 
                 </div>
 
@@ -129,7 +157,7 @@
                 </div>
 
                 <div
-                    *ngFor="let version of versionesOrdenadas"
+                    *ngFor="let version of versionesOrdenadas; let i = index"
                     class="version-item">
 
                     <div class="version-header">
@@ -138,6 +166,7 @@
 
                             <strong>
                                 Versión {{ version.version }}
+                                <span *ngIf="i === 0" class="latest-badge">(última)</span>
                             </strong>
 
                             <div class="fecha">
@@ -146,26 +175,64 @@
 
                         </div>
 
-                        <button
-                            class="secondary-btn"
+                        <div class="version-actions">
+                            <button
+                                *ngIf="i === 0 && evidencia.puede_editar_info && editandoVersionId !== version.id_version"
+                                class="secondary-btn small"
+                                (click)="editarVersion(version)">
 
-                            (click)="descargar(version.id_version, version.nombre_archivo)">
+                                <i class="bx bx-edit-alt"></i>
+                                Editar
 
-                            <i class="bx bx-download"></i>
+                            </button>
 
-                            {{ version.nombre_archivo || 'Descargar' }}
+                            <button
+                                class="secondary-btn"
 
-                        </button>
+                                (click)="descargar(version.id_version, version.nombre_archivo)">
+
+                                <i class="bx bx-download"></i>
+
+                                {{ version.nombre_archivo || 'Descargar' }}
+
+                            </button>
+                        </div>
 
                     </div>
 
-                    <div
-                        *ngIf="version.comentario"
-                        class="comentario">
+                    <div *ngIf="editandoVersionId !== version.id_version">
+                        <div
+                            *ngIf="version.comentario"
+                            class="comentario">
 
-                        <i class="bx bx-message-rounded-detail"></i>
+                            <i class="bx bx-message-rounded-detail"></i>
 
-                        {{ version.comentario }}
+                            {{ version.comentario }}
+
+                        </div>
+                    </div>
+
+                    <div *ngIf="editandoVersionId === version.id_version" class="edit-version-form">
+
+                        <div class="field-group">
+                            <label>Archivo (dejar vacío para mantener el actual)</label>
+                            <input type="file" (change)="onVersionEditFileChange($event)" />
+                            <small class="current-file">Archivo actual: {{ version.nombre_archivo }}</small>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Comentario</label>
+                            <textarea rows="3" [(ngModel)]="versionEditComentario" placeholder="Comentario de la versión"></textarea>
+                        </div>
+
+                        <div class="edit-info-actions">
+                            <button type="button" class="secondary-btn" (click)="cancelarEdicionVersion()" [disabled]="guardandoVersionEdit">
+                                Cancelar
+                            </button>
+                            <button type="button" class="primary-btn" (click)="guardarEdicionVersion()" [disabled]="guardandoVersionEdit">
+                                {{ guardandoVersionEdit ? 'Guardando...' : 'Guardar cambios' }}
+                            </button>
+                        </div>
 
                     </div>
 
@@ -242,16 +309,26 @@
                 =================== -->
 
                 <div
-                    *ngIf="evidencia.puede_subir_version"
-                    class="action-section">
+                    *ngIf="evidencia.asignacion_info?.estado === 'aprobado'"
+                    class="action-section locked-section">
 
                     <h4>
 
-                        <i class="bx bx-upload"></i>
+                        <i class="bx bx-lock-alt"></i>
 
-                        Subir nueva versión
+                        Evidencia aprobada
 
                     </h4>
+
+                    <p class="locked-msg">
+                        Esta evidencia ha sido aprobada y no puede ser modificada.
+                    </p>
+
+                </div>
+
+                <div
+                    *ngIf="evidencia.puede_subir_version"
+                    class="action-section">
 
                     <div class="field-group">
 

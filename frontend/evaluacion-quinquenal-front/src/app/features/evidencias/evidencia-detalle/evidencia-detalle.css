@@ -718,6 +718,64 @@
   RESPONSIVE
 ==========================*/
 
+.edit-info-form {
+    width: 100%;
+}
+
+.edit-info-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.locked-section {
+    text-align: center;
+    opacity: .85;
+}
+
+.locked-section h4 {
+    color: var(--text-title-color);
+}
+
+.locked-msg {
+    color: var(--text-color);
+    font-size: .9rem;
+    margin-top: 8px;
+}
+
+.version-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.latest-badge {
+    font-size: .75rem;
+    font-weight: 500;
+    color: var(--primary-color);
+    margin-left: 6px;
+}
+
+.edit-version-form {
+    margin-top: 15px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background-hover);
+}
+
+.current-file {
+    display: block;
+    font-size: .8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.secondary-btn.small {
+    font-size: .82rem;
+    padding: 6px 12px;
+}
+
 @media(max-width:900px){
 
     .detalle-grid{

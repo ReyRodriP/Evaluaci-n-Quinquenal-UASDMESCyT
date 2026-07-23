@@ -120,6 +120,10 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/evidencias/${id}/subir_version/`, payload);
   }
 
+  editarVersionEvidencia(id: number, payload: FormData): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/evidencias/${id}/editar_version/`, payload);
+  }
+
   detalleEvidencia(id: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/evidencias/${id}/detalle/`);
   }

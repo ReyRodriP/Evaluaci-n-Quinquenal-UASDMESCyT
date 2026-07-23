@@ -24,6 +24,15 @@ export class EvidenciaDetalle implements OnInit {
   estadoSeleccionado = '';
   guardandoRevision = false;
 
+  editandoInfo = false;
+  infoEditada: any = {};
+  guardandoInfo = false;
+
+  editandoVersionId: number | null = null;
+  versionEditComentario = '';
+  versionEditFile: File | null = null;
+  guardandoVersionEdit = false;
+
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
@@ -61,6 +70,11 @@ export class EvidenciaDetalle implements OnInit {
       this.toast.error('Debe seleccionar un archivo');
       return;
     }
+
+    if (!window.confirm('¿Está seguro de que desea subir esta versión? Una vez subida, pasará a revisión.')) {
+      return;
+    }
+
     this.subiendo = true;
     const payload = new FormData();
     payload.append('archivo', this.nuevoArchivo, this.nuevoArchivo.name);
@@ -137,6 +151,85 @@ export class EvidenciaDetalle implements OnInit {
       error: () => {
         this.toast.error('No se pudo guardar la revisión');
         this.guardandoRevision = false;
+      },
+    });
+  }
+
+  editarInfo(): void {
+    this.infoEditada = {
+      titulo: this.evidencia.titulo || '',
+      descripcion: this.evidencia.descripcion || '',
+    };
+    this.editandoInfo = true;
+  }
+
+  cancelarEdicion(): void {
+    this.editandoInfo = false;
+    this.infoEditada = {};
+  }
+
+  guardarInfo(): void {
+    if (!this.infoEditada.titulo?.trim()) {
+      this.toast.error('El título es obligatorio');
+      return;
+    }
+    this.guardandoInfo = true;
+    this.authService.actualizarEvidencia(this.evidencia.id_evidencia, {
+      titulo: this.infoEditada.titulo.trim(),
+      descripcion: this.infoEditada.descripcion.trim(),
+    }).subscribe({
+      next: () => {
+        this.toast.success('Información actualizada correctamente');
+        this.editandoInfo = false;
+        this.infoEditada = {};
+        this.cargarDetalle(this.evidencia.id_evidencia);
+        this.guardandoInfo = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo actualizar la información');
+        this.guardandoInfo = false;
+      },
+    });
+  }
+
+  editarVersion(version: any): void {
+    this.editandoVersionId = version.id_version;
+    this.versionEditComentario = version.comentario || '';
+    this.versionEditFile = null;
+  }
+
+  onVersionEditFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.versionEditFile = input.files?.[0] ?? null;
+  }
+
+  cancelarEdicionVersion(): void {
+    this.editandoVersionId = null;
+    this.versionEditComentario = '';
+    this.versionEditFile = null;
+  }
+
+  guardarEdicionVersion(): void {
+    const versionId = this.editandoVersionId;
+    if (!versionId) return;
+
+    this.guardandoVersionEdit = true;
+    const payload = new FormData();
+    if (this.versionEditFile) {
+      payload.append('archivo', this.versionEditFile, this.versionEditFile.name);
+    }
+    payload.append('comentario', this.versionEditComentario);
+
+    this.authService.editarVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
+      next: () => {
+        this.toast.success('Versión actualizada correctamente');
+        this.cancelarEdicionVersion();
+        this.cargarDetalle(this.evidencia.id_evidencia);
+        this.guardandoVersionEdit = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo actualizar la versión');
+        this.guardandoVersionEdit = false;
       },
     });
   }

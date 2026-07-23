@@ -17,7 +17,8 @@ from .models import Evidencia, VersionEvidencia, Observacion
 from .serializers import (
     EvidenciaSerializer,
     VersionEvidenciaSerializer,
-    ObservacionSerializer
+    ObservacionSerializer,
+    EditarVersionSerializer
 )
 
 import os
@@ -51,6 +52,12 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def subir_version(self, request, pk=None):
         evidencia = self.get_object()
+
+        if evidencia.asignacion.estado == EstadoAsignacion.APROBADO:
+            return Response(
+                {"error": "No se puede modificar una evidencia ya aprobada"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         archivo = request.FILES.get("archivo")
         if not archivo:
@@ -115,8 +122,14 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
             data["historial_estados"] = HistorialEstadoSerializer(historial, many=True).data
 
         data["puede_observar"] = request.user.has_perm("evidence.add_observacion")
-        data["puede_subir_version"] = request.user.has_perm("evidence.add_versionevidencia") or request.user.has_perm("evidence.add_evidencia")
-        data["puede_cambiar_estado"] = request.user.has_perm("evaluation.change_asignacion")
+        es_aprobado = asignacion and asignacion.estado == EstadoAsignacion.APROBADO
+        puede_subir = request.user.has_perm("evidence.add_versionevidencia") or request.user.has_perm("evidence.add_evidencia")
+
+        puede_cambiar = request.user.has_perm("evidence.change_evidencia")
+
+        data["puede_subir_version"] = puede_subir and not es_aprobado
+        data["puede_cambiar_estado"] = request.user.has_perm("evaluation.change_asignacion") and not es_aprobado
+        data["puede_editar_info"] = puede_cambiar and not es_aprobado
 
         return Response(data)
 
@@ -128,6 +141,42 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         return Response(
             VersionEvidenciaSerializer(versiones, many=True).data
         )
+    @action(detail=True, methods=["patch"])
+    def editar_version(self, request, pk=None):
+        evidencia = self.get_object()
+
+        if evidencia.asignacion.estado == EstadoAsignacion.APROBADO:
+            return Response(
+                {"error": "No se puede modificar una evidencia ya aprobada"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        ultima = evidencia.versiones.order_by('-version').first()
+        if not ultima:
+            return Response(
+                {"error": "No hay versiones para editar"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = EditarVersionSerializer(ultima, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        version = serializer.save()
+
+        registrar_auditoria(
+            usuario=request.user,
+            accion="Editar versión",
+            modelo="VersionEvidencia",
+            registro_id=version.pk,
+            descripcion=(
+                f"Se editó la versión {version.version} de la evidencia "
+                f"'{evidencia.titulo}'"
+            )
+        )
+
+        return Response(VersionEvidenciaSerializer(version).data)
+
 # CRUD de Versiones
 class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [
