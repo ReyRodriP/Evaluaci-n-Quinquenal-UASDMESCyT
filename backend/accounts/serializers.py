@@ -5,9 +5,14 @@ from django.contrib.auth.models import Group, Permission
 User = get_user_model()
 
 class PermissionSerializer(serializers.ModelSerializer):
+    app_label = serializers.SerializerMethodField()
+
     class Meta:
         model = Permission
-        fields = ['id', 'name', 'codename', 'content_type']
+        fields = ['id', 'name', 'codename', 'content_type', 'app_label']
+
+    def get_app_label(self, obj):
+        return obj.content_type.app_label
 
 class GroupSerializer(serializers.ModelSerializer):
     permissions = PermissionSerializer(many=True, read_only=True)

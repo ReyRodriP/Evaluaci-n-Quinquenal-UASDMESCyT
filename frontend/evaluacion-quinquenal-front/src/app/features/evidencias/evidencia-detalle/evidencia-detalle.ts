@@ -19,6 +19,7 @@ export class EvidenciaDetalle implements OnInit {
   subiendo = false;
   nuevoArchivo: File | null = null;
   comentarioVersion = '';
+  confirmandoSubida = false;
 
   comentarioRevision = '';
   estadoSeleccionado = '';
@@ -65,19 +66,25 @@ export class EvidenciaDetalle implements OnInit {
     this.nuevoArchivo = input.files?.[0] ?? null;
   }
 
-  subirVersion(): void {
+  confirmarSubida(): void {
     if (!this.nuevoArchivo) {
       this.toast.error('Debe seleccionar un archivo');
       return;
     }
+    this.confirmandoSubida = true;
+  }
 
-    if (!window.confirm('¿Está seguro de que desea subir esta versión? Una vez subida, pasará a revisión.')) {
-      return;
-    }
+  cancelarConfirmacion(): void {
+    this.confirmandoSubida = false;
+  }
 
+  subirVersion(): void {
+    if (!this.nuevoArchivo) return;
+    this.confirmandoSubida = false;
     this.subiendo = true;
+    const archivo = this.nuevoArchivo;
     const payload = new FormData();
-    payload.append('archivo', this.nuevoArchivo, this.nuevoArchivo.name);
+    payload.append('archivo', archivo, archivo.name);
     payload.append('comentario', this.comentarioVersion || 'Nueva versión');
 
     this.authService.subirVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({

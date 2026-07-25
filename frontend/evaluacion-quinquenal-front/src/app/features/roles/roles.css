@@ -1,0 +1,32 @@
+.permisos-cell {
+    max-width: 350px;
+}
+
+.permisos-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+    font-size: .85rem;
+}
+
+.permisos-text.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+}
+
+.ver-mas-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: .82rem;
+    padding: 4px 0;
+    margin-top: 2px;
+}
+
+.ver-mas-btn:hover {
+    text-decoration: underline;
+}

@@ -5,7 +5,8 @@ from .serializers import (
     AdminUsuarioSerializer, GroupSerializer, PermissionSerializer,
     UsuarioProfileSerializer
 )
-from rest_framework.authtoken.models import Token
+from .role_permissions import OUR_APP_LABELS
+
 from rest_framework import status, viewsets, mixins
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -50,6 +51,11 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PermissionSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        return Permission.objects.filter(
+            content_type__app_label__in=OUR_APP_LABELS
+        ).order_by('content_type__app_label', 'codename')
 
 
 class UserViewSet(mixins.ListModelMixin,

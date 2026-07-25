@@ -352,16 +352,42 @@
 
                     </div>
 
-                    <button
-                        class="primary-btn"
-                        (click)="subirVersion()"
-                        [disabled]="subiendo">
+                    <ng-container *ngIf="!confirmandoSubida">
+                        <button
+                            class="primary-btn"
+                            (click)="confirmarSubida()"
+                            [disabled]="subiendo">
 
-                        <i class="bx bx-cloud-upload"></i>
+                            <i class="bx bx-cloud-upload"></i>
 
-                        {{ subiendo ? 'Subiendo...' : 'Subir versión' }}
+                            {{ subiendo ? 'Subiendo...' : 'Subir versión' }}
 
-                    </button>
+                        </button>
+                    </ng-container>
+
+                    <div *ngIf="confirmandoSubida" class="confirm-upload">
+                        <p class="confirm-msg">
+                            <i class="bx bx-info-circle"></i>
+                            ¿Está seguro de que desea subir esta versión? Una vez subida, pasará a revisión.
+                        </p>
+                        <div class="confirm-details">
+                            <div *ngIf="nuevoArchivo" class="confirm-detail">
+                                <strong>Archivo:</strong> {{ nuevoArchivo.name }}
+                            </div>
+                            <div *ngIf="comentarioVersion" class="confirm-detail">
+                                <strong>Comentario:</strong> {{ comentarioVersion }}
+                            </div>
+                        </div>
+                        <div class="confirm-actions">
+                            <button type="button" class="secondary-btn" (click)="cancelarConfirmacion()">
+                                Cancelar
+                            </button>
+                            <button type="button" class="primary-btn" (click)="subirVersion()" [disabled]="subiendo">
+                                <i class="bx bx-check"></i>
+                                {{ subiendo ? 'Subiendo...' : 'Confirmar' }}
+                            </button>
+                        </div>
+                    </div>
 
                 </div>
 

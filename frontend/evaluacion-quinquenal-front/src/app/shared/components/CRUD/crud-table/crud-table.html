@@ -9,19 +9,24 @@
         <tbody>
             <tr *ngFor="let item of datos">
                 <td *ngFor="let columna of getDataColumns()">
-                    <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate"
-                        class="cell-content"
-                        [title]="getCellValue(item, columna)">
-                        {{ getCellValue(item, columna) }}
-                    </span>
-                    <ng-template #indicadoresTemplate>
-                        <div class="indicadores-list">
-                            <span *ngFor="let indicador of item.indicadores" class="indicador-badge">
-                                <ul>
-                                    <li>{{ indicador.nombre }}</li>
-                                </ul>
-                            </span>
-                        </div>
+                    <ng-container *ngIf="plantillasCelda[columna]; else defaultCell">
+                        <ng-container *ngTemplateOutlet="plantillasCelda[columna]; context: { $implicit: item }"></ng-container>
+                    </ng-container>
+                    <ng-template #defaultCell>
+                        <span *ngIf="getColumnKey(columna) !== 'indicadores'; else indicadoresTemplate"
+                            class="cell-content"
+                            [title]="getCellValue(item, columna)">
+                            {{ getCellValue(item, columna) }}
+                        </span>
+                        <ng-template #indicadoresTemplate>
+                            <div class="indicadores-list">
+                                <span *ngFor="let indicador of item.indicadores" class="indicador-badge">
+                                    <ul>
+                                        <li>{{ indicador.nombre }}</li>
+                                    </ul>
+                                </span>
+                            </div>
+                        </ng-template>
                     </ng-template>
                 </td>
                 <td *ngIf="showAccionesColumn" class="actions">

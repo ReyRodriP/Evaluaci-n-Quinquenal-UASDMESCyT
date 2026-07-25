@@ -10,8 +10,20 @@
   <app-crud-table
     [columnas]="columnas"
     [datos]="rolesFiltrados"
+    [plantillasCelda]="{ Permisos: permisosTemplate }"
     (edit)="openEdit($event)">
   </app-crud-table>
+
+  <ng-template #permisosTemplate let-role>
+    <div class="permisos-cell">
+      <span class="permisos-text" [class.expanded]="expandidos.has(role.id)">
+        {{ role.permisos }}
+      </span>
+      <button *ngIf="role.permisoCount > 3" type="button" class="ver-mas-btn" (click)="toggleExpandir(role.id)">
+        {{ expandidos.has(role.id) ? 'Ver menos' : 'Ver más (' + (role.permisoCount - 3) + ')' }}
+      </button>
+    </div>
+  </ng-template>
 
   <app-modal
     [open]="showModal"

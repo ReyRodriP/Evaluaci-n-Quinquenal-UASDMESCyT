@@ -6,6 +6,7 @@ import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { AuthService } from '../auth/services/auth-service';
 import { ToastrService } from 'ngx-toastr';
+import { PERMISSION_LABELS } from './permission-labels';
 
 @Component({
   selector: 'app-roles',
@@ -21,6 +22,7 @@ export class Roles implements OnInit {
   searchTerm = '';
   showModal = false;
   selectedItem: any = null;
+  expandidos: Set<number> = new Set();
 
   roleFields: any[] = [
     {
@@ -42,6 +44,14 @@ export class Roles implements OnInit {
     this.loadRoles();
   }
 
+  toggleExpandir(roleId: number): void {
+    if (this.expandidos.has(roleId)) {
+      this.expandidos.delete(roleId);
+    } else {
+      this.expandidos.add(roleId);
+    }
+  }
+
   private normalizeListResponse(data: any): any[] {
     if (Array.isArray(data)) {
       return data;
@@ -55,11 +65,16 @@ export class Roles implements OnInit {
     return [];
   }
 
+  private permisoLabel(perm: any): string {
+    const key = `${perm.app_label}.${perm.codename}`;
+    return PERMISSION_LABELS[key] || perm.name;
+  }
+
   loadPermisos(): void {
     this.authService.listarPermisos().subscribe({
       next: (data) => {
         const normalized = this.normalizeListResponse(data);
-        this.permisos = normalized.map((perm: any) => ({ value: perm.id, label: perm.name }));
+        this.permisos = normalized.map((perm: any) => ({ value: perm.id, label: this.permisoLabel(perm) }));
         this.roleFields = this.roleFields.map(field => {
           if (field.name !== 'permission_ids') {
             return field;
@@ -86,7 +101,8 @@ export class Roles implements OnInit {
         this.roles = normalized.map((role: any) => ({
           ...role,
           id: role.id ?? role.pk,
-          permisos: (role.permissions || []).map((perm: any) => perm.name).join(', '),
+          permisos: (role.permissions || []).map((perm: any) => this.permisoLabel(perm)).join(', '),
+          permisoCount: (role.permissions || []).length,
           permission_ids: (role.permissions || []).map((perm: any) => perm.id)
         }));
         this.applySearch();

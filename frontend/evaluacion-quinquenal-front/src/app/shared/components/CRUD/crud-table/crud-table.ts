@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./crud-table.css'],
 })
 export class CrudTable {
+  @Input() plantillasCelda: { [key: string]: TemplateRef<any> } = {};
   @Input() columnas: string[] = [];
   @Input() datos: any[] = [];
   @Input() ocultarAcciones: string[] = [];
