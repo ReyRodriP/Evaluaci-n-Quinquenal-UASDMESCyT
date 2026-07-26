@@ -6,7 +6,7 @@ from .serializers import (
     UsuarioProfileSerializer
 )
 from .role_permissions import OUR_APP_LABELS
-
+from rest_framework.authtoken.models import Token 
 from rest_framework import status, viewsets, mixins
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
 from rest_framework.permissions import IsAuthenticated, AllowAny
