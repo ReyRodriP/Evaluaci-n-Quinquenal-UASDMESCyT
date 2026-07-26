@@ -155,6 +155,25 @@ body{
         0 10px 20px rgba(0,119,204,.35);
 }
 
+/* OLVIDE MI CONTRASEÑA */
+
+.forgot-link{
+    text-align:right;
+    margin-bottom:.5rem;
+}
+
+.forgot-link a{
+    color:rgba(255,255,255,.85);
+    font-size:.85rem;
+    text-decoration:none;
+    transition:.3s;
+}
+
+.forgot-link a:hover{
+    color:white;
+    text-decoration:underline;
+}
+
 /* REGISTRO */
 
 .register-link{

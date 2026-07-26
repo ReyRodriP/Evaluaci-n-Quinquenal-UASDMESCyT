@@ -2,7 +2,8 @@ from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from .serializers import (
     UsuarioSerializer, UsuarioListSerializer, UsuarioPermisosSerializer,
-    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer
+    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer,
+    PasswordResetRequestSerializer
 )
 from rest_framework.authtoken.models import Token
 from rest_framework import status
@@ -15,6 +16,10 @@ from django.contrib.auth.models import Group, Permission
 from .permissions import IsAdminGroup
 
 from django.contrib.auth import get_user_model, authenticate
+from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
@@ -206,5 +211,116 @@ def change_password(request): #Para cambiar contraseña de usuario
 
     return Response(
         {"message": "Contraseña actualizada correctamente"},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+def password_reset_request(request):
+    serializer = PasswordResetRequestSerializer(data=request.data)
+
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.validated_data['email']
+    user = User.objects.get(email=email)
+
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?uidb64={uidb64}&token={token}"
+
+    subject = 'Recuperación de Contraseña - Evaluación Quinquenal UASD-MESCyT'
+    html_message = render_to_string('registration/password_reset_email.html', {
+        'user': user,
+        'reset_url': reset_url,
+    })
+    plain_message = strip_tags(html_message)
+
+    send_mail(
+        subject=subject,
+        message=plain_message,
+        html_message=html_message,
+        from_email=None,
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+    registrar_auditoria(
+        usuario=user,
+        accion="Solicitud de recuperación de contraseña",
+        modelo="Usuario",
+        registro_id=user.pk,
+        descripcion=f"El usuario {user.username} solicitó recuperación de contraseña"
+    )
+
+    return Response(
+        {"message": "Se ha enviado un correo con las instrucciones para recuperar tu contraseña."},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+def password_reset_confirm(request):
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_str
+    from django.utils.http import urlsafe_base64_decode
+
+    uidb64 = request.data.get('uidb64')
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+
+    if not uidb64 or not token or not new_password:
+        return Response(
+            {"error": "Faltan campos requeridos (uidb64, token, new_password)."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if len(new_password) < 6:
+        return Response(
+            {"error": "La contraseña debe tener al menos 6 caracteres."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response(
+            {"error": "El enlace de recuperación no es válido."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not default_token_generator.check_token(user, token):
+        return Response(
+            {"error": "El enlace de recuperación ha expirado o no es válido."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user.set_password(new_password)
+    user.save()
+
+    Token.objects.filter(user=user).delete()
+
+    registrar_auditoria(
+        usuario=user,
+        accion="Restablecer contraseña",
+        modelo="Usuario",
+        registro_id=user.pk,
+        descripcion=f"El usuario {user.username} restableció su contraseña"
+    )
+
+    crear_notificacion(
+        usuario=user,
+        titulo="Contraseña restablecida",
+        mensaje="Tu contraseña ha sido restablecida exitosamente."
+    )
+
+    return Response(
+        {"message": "Contraseña restablecida correctamente."},
         status=status.HTTP_200_OK
     )

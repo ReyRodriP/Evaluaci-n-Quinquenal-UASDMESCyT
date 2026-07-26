@@ -96,6 +96,34 @@ class AdminUsuarioSerializer(UsuarioSerializer):
             instance.groups.set(groups)
         return instance
 
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No existe un usuario con este correo electrónico.")
+        if not user.is_active:
+            raise serializers.ValidationError("Esta cuenta de usuario está inactiva.")
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    uid = serializers.IntegerField()
+    new_password = serializers.CharField(min_length=6)
+
+    def validate(self, data):
+        try:
+            user = User.objects.get(pk=data['uid'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Usuario inválido.")
+        if not user.is_active:
+            raise serializers.ValidationError("Esta cuenta de usuario está inactiva.")
+        return data
+
+
 class UsuarioListSerializer(serializers.ModelSerializer):
     rol = serializers.SerializerMethodField()
 

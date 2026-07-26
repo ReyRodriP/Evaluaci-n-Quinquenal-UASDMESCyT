@@ -49,4 +49,12 @@ export class AuthService {
   changePassword(data: { old_password: string; new_password: string }): Observable<any> {
     return this.http.post(`${this.baseUrl}change_password`, data);
   }
+
+  forgotPassword(email: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}password-reset`, { email });
+  }
+
+  resetPassword(data: { uidb64: string; token: string; new_password: string }): Observable<any> {
+    return this.http.post(`${this.baseUrl}password-reset/confirm`, data);
+  }
 }

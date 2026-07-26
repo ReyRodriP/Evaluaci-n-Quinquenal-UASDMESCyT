@@ -8,6 +8,8 @@ router.register(r'permisos', views.PermissionViewSet)
 router.register(r'usuarios', views.UserViewSet)
 
 urlpatterns = [
+    path('password-reset/confirm', views.password_reset_confirm, name='password_reset_confirm'),
+    path('password-reset', views.password_reset_request, name='password_reset_request'),
     re_path('login', views.login),
     re_path('register', views.register),
     re_path('me', views.me),
