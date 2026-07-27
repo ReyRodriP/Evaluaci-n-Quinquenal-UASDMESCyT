@@ -254,9 +254,7 @@ def forgot_password(request):
         if user and user.email:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            reset_url = request.build_absolute_uri(
-                f"/reset-password?uid={uid}&token={token}"
-            )
+            reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?uid={uid}&token={token}"
 
             try:
                 send_mail(
