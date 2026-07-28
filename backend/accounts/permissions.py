@@ -1,7 +1,7 @@
 from rest_framework.permissions import DjangoModelPermissions, BasePermission, SAFE_METHODS
 from organization.models import PerfilUsuario
 
-ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal', 'Evaluador Externo', 'Consulta'}
+ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal', 'Evaluador Externo'}
 
 
 def _grupos_usuario(user):
@@ -12,10 +12,9 @@ def filtrar_por_rol(queryset, request, dept_field='departamento'):
     """
     Filtra un queryset según el rol y departamento del usuario.
 
-    - Administrador General / Coordinador Quinquenal: sin filtro.
+    - Administrador General / Coordinador Quinquenal / Evaluador Externo: sin filtro.
     - Responsable Departamental: solo su departamento.
-    - Revisor Institucional: su facultad completa.
-    - Otros (Consulta, Evaluador Externo): su departamento.
+    - Revisor Institucional / Consulta: su facultad completa.
     """
     user = request.user
     if user.is_superuser:
@@ -33,7 +32,7 @@ def filtrar_por_rol(queryset, request, dept_field='departamento'):
     if not perfil.departamento:
         return queryset.none()
 
-    if 'Revisor Institucional' in grupos:
+    if 'Revisor Institucional' in grupos or 'Consulta' in grupos:
         facultad_id = perfil.departamento.facultad_id
         return queryset.filter(**{f'{dept_field}__facultad_id': facultad_id})
 
@@ -58,7 +57,7 @@ def departamentos_permitidos(request):
     if not perfil.departamento:
         return []
 
-    if 'Revisor Institucional' in grupos:
+    if 'Revisor Institucional' in grupos or 'Consulta' in grupos:
         from organization.models import Departamento
         return list(Departamento.objects.filter(
             facultad_id=perfil.departamento.facultad_id

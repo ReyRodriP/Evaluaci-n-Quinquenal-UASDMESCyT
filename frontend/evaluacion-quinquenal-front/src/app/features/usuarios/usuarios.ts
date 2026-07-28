@@ -35,7 +35,7 @@ export class Usuarios implements OnInit {
     { label: 'Nombre', name: 'first_name', type: 'text', placeholder: 'Nombre del usuario', defaultValue: '' },
     { label: 'Correo', name: 'email', type: 'email', placeholder: 'correo@dominio.com', defaultValue: '' },
     { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '', allowClear: true, searchable: true },
-    { label: 'Rol', name: 'rol', type: 'select', options: ['Administrador', 'Consulta', 'Responsable', 'Coordinador'], defaultValue: 'Consulta' },
+    { label: 'Rol', name: 'rol', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
 
@@ -76,7 +76,7 @@ export class Usuarios implements OnInit {
       username: item.username ?? '',
       first_name: item.first_name ?? item.username ?? '',
       departamento: item.departamentoId ?? item.departamento ?? '',
-      rol: item.rol ?? 'Consulta',
+      rol: item.rol ?? '',
       estado: item.is_active ? 'Activo' : 'Inactivo'
     };
     this.showModal = true;
@@ -105,7 +105,7 @@ export class Usuarios implements OnInit {
             first_name: item.first_name || item.username || '',
             departamento: profile?.departamento_nombre || item.departamento_nombre || item.departamento || '',
             departamentoId,
-            rol: item.rol || 'Consulta',
+            rol: item.rol || 'Sin rol',
             is_active: item.is_active ?? true,
             estado: item.is_active ? 'Activo' : 'Inactivo'
           };
@@ -161,12 +161,7 @@ export class Usuarios implements OnInit {
       },
       error: (err) => {
         console.error('Error cargando roles', err);
-        this.roles = [
-          { value: 'Administrador', label: 'Administrador', id: null },
-          { value: 'Consulta', label: 'Consulta', id: null },
-          { value: 'Responsable', label: 'Responsable', id: null },
-          { value: 'Coordinador', label: 'Coordinador', id: null }
-        ];
+        this.roles = [];
       }
     });
   }

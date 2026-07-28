@@ -137,10 +137,24 @@ class AdminUsuarioSerializer(UsuarioSerializer):
     class Meta(UsuarioSerializer.Meta):
         fields = UsuarioSerializer.Meta.fields + ['group_ids']
 
+    def create(self, validated_data):
+        groups = validated_data.pop('groups', None)
+        password = validated_data.pop('password', None)
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)
+        user.save()
+        if groups is not None:
+            user.groups.set(groups)
+        return user
+
     def update(self, instance, validated_data):
         groups = validated_data.pop('groups', None)
+        password = validated_data.pop('password', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
         instance.save()
         if groups is not None:
             instance.groups.set(groups)

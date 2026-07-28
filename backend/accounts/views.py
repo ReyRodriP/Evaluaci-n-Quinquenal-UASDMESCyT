@@ -58,7 +58,8 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by('content_type__app_label', 'codename')
 
 
-class UserViewSet(mixins.ListModelMixin,
+class UserViewSet(mixins.CreateModelMixin,
+                  mixins.ListModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
                   viewsets.GenericViewSet):
@@ -71,9 +72,12 @@ class UserViewSet(mixins.ListModelMixin,
             return UsuarioListSerializer
         if self.action == 'permisos':
             return UsuarioPermisosSerializer
-        if self.action in ['update', 'partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return AdminUsuarioSerializer
         return UsuarioSerializer
+
+    def perform_create(self, serializer):
+        serializer.save()
 
     def perform_update(self, serializer):
         old_groups = list(self.get_object().groups.all())
