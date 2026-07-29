@@ -1,0 +1,27 @@
+/* PAGINATION */
+
+.pagination{
+    margin-top:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.pages{
+    display:flex;
+    gap:8px;
+}
+
+.pages button{
+    border:none;
+    background:white;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    box-shadow:0 2px 5px rgba(0,0,0,.08);
+}
+
+.current{
+    background:#0077cc !important;
+    color:white;
+}

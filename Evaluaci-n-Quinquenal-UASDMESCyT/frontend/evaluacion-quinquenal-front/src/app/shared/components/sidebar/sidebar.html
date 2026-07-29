@@ -1,0 +1,54 @@
+<aside class="barra-lateral">
+
+  <nav class="sidebar" [class.close]="!open">
+    <div class="user-details">
+        <div class="image-text">
+            <span class="image">
+                <a routerLink="/perfil">
+                    <img [src]="currentUser?.foto_perfil || 'img/noUser.png'" alt="Foto de perfil">
+                </a>
+            </span>
+        </div>
+
+        <div class="text sidebar-text">
+            <span class="name">Bienvenido</span>
+            <span class="slogan">{{ currentUser?.username || 'Usuario' }}</span>
+        </div>
+    </div>
+
+    <i class='bx bx-caret-right toggle' (click)="toggleSidebar()"></i>
+
+    <div class="menu-bar">
+        <div class="menu">
+            <ul class="menu-links">
+                <li class="nav-link" *ngFor="let item of menuItems">
+                    <a [routerLink]="item.path">
+                        <i class='bx {{ item.icon }} icon'></i>
+                        <span class="text nav-text">{{ item.label }}</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="botton-content">
+             <li class="nav-link">
+                    <a href="#" (click)="onLogout(); $event.preventDefault()">
+                        <i class='bx  bx-arrow-out-left-square-half icon'></i>
+                        <span class="text nav-text">Cerrar sesión</span>
+                    </a>
+            </li>
+             <li class="mode">
+                    <div class="moon-sun">
+                        <i class="bx bx-moon icon moon"></i>
+                        <i class="bx bx-sun icon sun"></i>
+                    </div>
+                    <span class="mode-text text">Modo oscuro</span>
+
+                    <div class="toggle-switch">
+                        <span class="switch" (click)="toggleTheme()"></span>
+                    </div>
+            </li>
+        </div>
+    </div>
+</nav>
+</aside>

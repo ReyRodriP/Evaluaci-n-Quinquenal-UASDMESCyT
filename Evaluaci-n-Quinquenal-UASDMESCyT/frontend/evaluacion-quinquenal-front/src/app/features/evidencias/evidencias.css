@@ -1,0 +1,35 @@
+.evidencias-page {
+  padding: 24px;
+}
+
+.state-message {
+  padding: 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+.action-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  background: #0f766e;
+  color: white;
+}
+
+.action-btn.secondary {
+  background: #e2e8f0;
+  color: #1f2937;
+}
+
+.action-btn.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}

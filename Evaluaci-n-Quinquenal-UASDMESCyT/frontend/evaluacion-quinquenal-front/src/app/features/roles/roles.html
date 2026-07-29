@@ -1,0 +1,25 @@
+<div class="crud-container">
+  <app-search-bar
+    [titulo]="'Roles'"
+    [placeholder]="'Buscar roles o permisos...'"
+    [stateOptions]="[]"
+    [showCreate]="false"
+    (search)="onSearch($event)">
+  </app-search-bar>
+
+  <app-crud-table
+    [columnas]="columnas"
+    [datos]="rolesFiltrados"
+    (edit)="openEdit($event)">
+  </app-crud-table>
+
+  <app-modal
+    [open]="showModal"
+    [data]="selectedItem"
+    [title]="'Rol'"
+    [editTitle]="'Editar permisos'"
+    [fields]="roleFields"
+    (close)="onModalClose()"
+    (save)="onModalSave($event)">
+  </app-modal>
+</div>

@@ -1,0 +1,216 @@
+import { Component, OnInit } from '@angular/core';
+import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
+import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
+import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
+import { Modal } from '../../shared/components/CRUD/modal/modal';
+import { AuthService } from '../../core/services/auth.service';
+import { ToastrService } from 'ngx-toastr';
+import { PermisosService } from '../../core/services/permisos.service';
+
+@Component({
+  selector: 'app-criterios',
+  imports: [CrudTable, SearchBar, Pagination, Modal],
+  templateUrl: './criterios.html',
+  styleUrl: './criterios.css',
+})
+export class Criterios implements OnInit {
+  columnas: string[] = ['Nombre', 'Descripción', 'Período', 'Estado', 'Indicadores'];
+
+  datos: any[] = [];
+  datosFiltrados: any[] = [];
+  periodos: any[] = [];
+  searchTerm = '';
+  selectedState = 'Todas';
+
+  showModal: boolean = false;
+  selectedItem: any = null;
+
+  criterioFields: any[] = [
+    { label: 'Nombre', name: 'nombre', type: 'text', placeholder: 'Ej. Criterio de calidad', defaultValue: '' },
+    { label: 'Descripción', name: 'descripcion', type: 'textarea', placeholder: 'Descripción del criterio', defaultValue: '' },
+    { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
+    { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
+  ];
+
+  get puedeCrear(): boolean {
+    return this.permisos.tieneAlgunPermiso(['evaluation.add_criterio']);
+  }
+
+  get ocultarAcciones(): string[] {
+    if (this.permisos.tieneAlgunPermiso(['evaluation.change_criterio', 'evaluation.delete_criterio'])) {
+      return [];
+    }
+    const ocultas: string[] = [];
+    if (!this.permisos.tienePermiso('evaluation.change_criterio')) ocultas.push('edit', 'toggle');
+    if (!this.permisos.tienePermiso('evaluation.delete_criterio')) ocultas.push('remove');
+    return ocultas;
+  }
+
+  constructor(
+    private authService: AuthService,
+    private permisos: PermisosService,
+    private toast: ToastrService
+  ) {}
+
+  ngOnInit() {
+    this.loadPeriodos();
+    this.loadCriterios();
+  }
+
+  openNew() {
+    this.selectedItem = null;
+    this.showModal = true;
+  }
+
+  openEdit(item: any) {
+    this.selectedItem = {
+      ...item,
+      periodo: item.periodoId ?? item.periodo,
+      estado: item.activo ? 'Activo' : 'Inactivo',
+    };
+    this.showModal = true;
+  }
+
+  loadPeriodos() {
+    this.authService.listarPeriodos().subscribe({
+      next: (data) => {
+        this.periodos = data;
+        this.criterioFields = this.criterioFields.map(field => {
+          if (field.name !== 'periodo') {
+            return field;
+          }
+
+          return {
+            ...field,
+            options: this.periodos.map((periodo: any) => ({ value: periodo.id, label: periodo.nombre }))
+          };
+        });
+      },
+      error: (err) => {
+        console.error('Error cargando periodos', err);
+        this.toast.error('No se pudieron cargar los periodos');
+      }
+    });
+  }
+
+  loadCriterios() {
+    this.authService.listarCriterios().subscribe({
+      next: (data) => {
+        this.datos = data.map((item: any) => ({
+          ...item,
+          periodo: item.periodo_nombre || '',
+          periodoId: item.periodo,
+          estado: item.activo ? 'Activo' : 'Inactivo'
+        }));
+        this.applySearch();
+      },
+      error: (err) => {
+        console.error('Error cargando criterios', err);
+        this.toast.error('No se pudieron cargar los criterios');
+      }
+    });
+  }
+
+  onSearch(term: string) {
+    this.searchTerm = term;
+    this.applySearch();
+  }
+
+  onStateChange(state: string) {
+    this.selectedState = state;
+    this.applySearch();
+  }
+
+  private applySearch() {
+    const normalizedTerm = this.searchTerm.toLowerCase().trim();
+    this.datosFiltrados = this.datos.filter((item: any) => {
+      const nombre = `${item.nombre ?? ''}`.toLowerCase();
+      const matchesSearch = !normalizedTerm || nombre.includes(normalizedTerm);
+      const matchesState = this.selectedState === 'Todas'
+        || (this.selectedState === 'Activos' && item.activo)
+        || (this.selectedState === 'Inactivos' && !item.activo);
+      return matchesSearch && matchesState;
+    });
+  }
+
+  onModalClose() {
+    this.showModal = false;
+    this.selectedItem = null;
+  }
+
+  onModalSave(saved: any) {
+    if (!saved.nombre || !saved.periodo) {
+      this.toast.error('Complete todos los campos requeridos');
+      return;
+    }
+
+    const payload = {
+      nombre: saved.nombre,
+      descripcion: saved.descripcion,
+      periodo: saved.periodo,
+      activo: saved.estado === 'Activo',
+    };
+
+    if (this.selectedItem && this.selectedItem.id) {
+      this.authService.actualizarCriterio(this.selectedItem.id, payload).subscribe({
+        next: () => {
+          this.toast.success('Criterio actualizado correctamente');
+          this.loadCriterios();
+          this.onModalClose();
+        },
+        error: (err) => {
+          console.error('Error actualizando criterio', err);
+          this.toast.error('Error al actualizar el criterio');
+        }
+      });
+    } else {
+      this.authService.crearCriterio(payload).subscribe({
+        next: () => {
+          this.toast.success('Criterio creado exitosamente');
+          this.loadCriterios();
+          this.onModalClose();
+        },
+        error: (err) => {
+          console.error('Error creando criterio', err);
+          this.toast.error('Error al crear el criterio');
+        }
+      });
+    }
+  }
+
+  onRemove(item: any) {
+    if (!item.id) {
+      return;
+    }
+
+    this.authService.eliminarCriterio(item.id).subscribe({
+      next: () => {
+        this.toast.success('Criterio eliminado');
+        this.loadCriterios();
+      },
+      error: (err) => {
+        console.error('Error eliminando criterio', err);
+        this.toast.error('No se pudo eliminar el criterio');
+      }
+    });
+  }
+
+  onToggleEstado(item: any) {
+    if (!item.id) {
+      return;
+    }
+
+    const nuevoEstado = !item.activo;
+
+    this.authService.patchCriterio(item.id, { activo: nuevoEstado }).subscribe({
+      next: () => {
+        this.toast.success(`Criterio ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
+        this.loadCriterios();
+      },
+      error: (err) => {
+        console.error('Error cambiando estado de criterio', err);
+        this.toast.error('No se pudo cambiar el estado del criterio');
+      }
+    });
+  }
+}

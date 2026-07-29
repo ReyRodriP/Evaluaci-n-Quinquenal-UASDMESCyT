@@ -1,0 +1,100 @@
+<header class="barra-navegacion" [class.close]="!sidebarOpen">
+
+  <div class="izquierda">
+
+    <img
+      src="img/UASD-Logo.png"
+      alt="Logo UASD"
+      class="logo-uasd">
+
+    <div class="info-sistema">
+
+      <span class="titulo">
+        Sistema de Gestión de Tesis
+      </span>
+
+      <span class="subtitulo">
+        Universidad Autónoma de Santo Domingo
+      </span>
+
+    </div>
+
+  </div>
+
+  <div class="buscador-wrapper" #buscadorWrapper>
+    <i class="bx bx-search buscador-icon"></i>
+    <input
+      class="buscador-input"
+      type="text"
+      placeholder="Buscar indicadores, departamentos..."
+      [ngModel]="searchQuery"
+      (ngModelChange)="onSearchInput($event)"
+      (focus)="searchOpen = true"
+      (keydown.escape)="cerrarBusqueda()">
+
+    <div class="buscador-dropdown" *ngIf="searchOpen && (searchQuery.length >= 2 || totalResultados > 0)">
+      <div *ngIf="searching" class="buscador-empty">Buscando...</div>
+
+      <ng-container *ngIf="!searching">
+        <div *ngIf="!totalResultados" class="buscador-empty">Sin resultados</div>
+
+        <ng-container *ngFor="let grupo of gruposResultados">
+          <div *ngIf="grupo.items.length" class="buscador-grupo">
+            <div class="buscador-grupo-titulo">{{ grupo.key }}</div>
+            <div
+              *ngFor="let item of grupo.items"
+              class="buscador-item"
+              (click)="irAResultado(item)">
+              <div class="buscador-item-nombre">{{ item.nombre || item.username }}</div>
+              <div class="buscador-item-sub">{{ item.facultad || item.criterio || item.periodo || item.email || item.nombre_completo }}</div>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="derecha">
+
+    <div class="notif-wrapper">
+      <button class="btn-notification" (click)="toggleDropdown()">
+        <i class="bx bx-bell-ring"></i>
+        <span class="notification-badge" *ngIf="noLeidas > 0">
+          {{ noLeidas > 99 ? '99+' : noLeidas }}
+        </span>
+      </button>
+
+      <div class="notif-dropdown" *ngIf="dropdownOpen" (mouseleave)="cerrarDropdown()">
+        <div class="notif-header">
+          <i class="bx bx-bell"></i>
+          <span>Notificaciones</span>
+        </div>
+
+        <div class="notif-list">
+          <div *ngIf="!notificaciones.length" class="notif-empty">
+            No hay notificaciones
+          </div>
+
+          <div
+            *ngFor="let n of ultimas"
+            class="notif-item"
+            [class.no-leida]="!n.leida"
+            (click)="marcarYcerrar(n.id)">
+            <div class="notif-dot" *ngIf="!n.leida"></div>
+            <div class="notif-content">
+              <div class="notif-titulo">{{ n.titulo }}</div>
+              <div class="notif-mensaje">{{ n.mensaje }}</div>
+              <div class="notif-fecha">{{ n.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="notif-ver-todas" (click)="irATodas()">
+          Ver todas
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</header>

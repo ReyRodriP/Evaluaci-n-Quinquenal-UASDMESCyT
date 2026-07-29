@@ -1,0 +1,140 @@
+/* You can add global styles to this file, and also import other style files */
+@import 'ngx-toastr/toastr';
+
+/*Colores a usar*/
+:root {
+    --text-title-color: #2d56c8;
+    --text-color: #707070;
+    --icon-color: #32363B;
+    --menu-color: #707780;
+    --icon-menu-color: #707780;
+
+    --text-selected-color: #355CC0;
+    --background-selected: #EBF0FF;
+    --background-hover: #F7F9FA;
+
+    --border-color: #E6E9ED;
+    --table-bg: #ffffff;
+    --table-head-bg: #003366;
+    --table-head-text: #ffffff;
+    --button-bg: #f1f5f9;
+    --button-hover-bg: #dbeafe;
+    --badge-active-bg: #e8f7ee;
+    --badge-active-text: #1b8f4e;
+    --badge-inactive-bg: #fdeaea;
+    --badge-inactive-text: #d32f2f;
+    --indicator-badge-bg: #e3f2fd;
+    --indicator-badge-text: #1976d2;
+    --table-shadow: 0 3px 10px rgba(0,0,0,.08);
+
+    --modal-header-bg: linear-gradient(135deg, var(--primary-color), #4cc2ff);
+    --modal-header-color: #ffffff;
+    --modal-body-bg: var(--sidebar-color);
+    --modal-label-color: #0f172a;
+    --modal-input-bg: #ffffff;
+    --modal-input-text: #111827;
+    --modal-input-border: var(--border-color);
+    --modal-checkbox-bg: #ffffff;
+    --modal-btn-cancel-bg: #f1f5f9;
+    --modal-btn-cancel-text: #e7e7e7;
+    --modal-btn-cancel-hover: #e2e8f0;
+    --modal-btn-save-bg: linear-gradient(135deg, #2563eb, #38bdf8);
+    --modal-btn-save-text: #ffffff;
+    --modal-btn-save-shadow: 0 6px 18px rgba(37,99,235,.35);
+
+    /*--------Global Colors---------*/
+    --body-color: #ffffff;
+    --background-color: #E4E9F7;
+    --sidebar-color: #ffffff;
+    --primary-color: #0091ff;
+    --primary-color-light: #f6f5ff;
+    --toggle-color: #000;
+
+    /*--------Transitions---------*/
+    --tran-02: all 0.2s ease;
+    --tran-03: all 0.3s ease;
+    --tran-04: all 0.4s ease;
+    --tran-05: all 0.5s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    height: 100vh;
+    background-color: var(--body-color);
+    color: var(--text-color);
+    transition: var(--tran-04);
+}
+
+body.dark {
+    --body-color: #18191a;
+    --sidebar-color: #242526;
+    --primary-color: #ffffff;
+    --primary-color-light: #3a3b3c;
+    --toggle-color: #fff;
+    --text-color: #ccc;
+    --border-color: #444;
+    --background-selected: rgba(255,255,255,0.06);
+    --background-hover: rgba(255,255,255,0.08);
+    --table-bg: #242526;
+    --table-head-bg: #35373b;
+    --table-head-text: #ffffff;
+    --button-bg: #2b2d31;
+    --button-hover-bg: #3d3f43;
+    --badge-active-bg: #1d3c27;
+    --badge-active-text: #b8e5c6;
+    --badge-inactive-bg: #432c2c;
+    --badge-inactive-text: #f4b4b4;
+    --indicator-badge-bg: #273447;
+    --indicator-badge-text: #b3d2ff;
+    --table-shadow: 0 3px 10px rgba(255,255,255,.05);
+    --modal-header-bg: linear-gradient(135deg, #161b22, #252b33);
+    --modal-header-color: #f8fafc;
+    --modal-body-bg: #1f2226;
+    --modal-label-color: #f8fafc;
+    --modal-input-bg: #17191d;
+    --modal-input-text: #e5e7eb;
+    --modal-input-border: #3f4146;
+    --modal-checkbox-bg: #17191d;
+    --modal-btn-cancel-bg: #2b2d31;
+    --modal-btn-cancel-text: #282828;
+    --modal-btn-cancel-hover: #3e4147;
+    --modal-btn-save-bg: linear-gradient(135deg, #2563eb, #1d4ed8);
+    --modal-btn-save-text: #ffffff;
+    --modal-btn-save-shadow: 0 6px 18px rgba(37,99,235,.35);
+}
+
+body.dark .switch::before {
+    left: 25px;
+}
+
+body.dark .toggle {
+    color: var(--text-color);
+}
+
+body.dark .sidebar li a:hover .icon,
+body.dark .sidebar li a:hover .text {
+    color: var(--text-color);
+}
+
+.menu-bar .mode i.sun {
+    opacity: 0;
+}
+
+body.dark .menu-bar .mode i.sun {
+    opacity: 1;
+}
+
+body.dark .menu-bar .mode i.moon {
+    opacity: 0;
+}
+
+/*CRUD Container*/
+.crud-container{
+    padding:30px;
+}
+

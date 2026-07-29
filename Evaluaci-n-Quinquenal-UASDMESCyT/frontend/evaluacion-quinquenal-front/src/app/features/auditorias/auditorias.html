@@ -1,0 +1,65 @@
+<div class="auditoria-page">
+  <h2 class="page-title">Auditoría</h2>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon total">
+        <i class="bx bx-calendar-check"></i>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ stats.totalHoy }}</span>
+        <span class="stat-label">Total acciones hoy</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon users">
+        <i class="bx bx-user"></i>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ stats.usuariosActivos }}</span>
+        <span class="stat-label">Usuarios activos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon approved">
+        <i class="bx bx-check-circle"></i>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ stats.aprobaciones }}</span>
+        <span class="stat-label">Aprobaciones</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon observed">
+        <i class="bx bx-eye-big"></i>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ stats.observaciones }}</span>
+        <span class="stat-label">Observaciones</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="auditoria-table-section">
+    <app-search-bar
+      [titulo]="'Historial de acciones'"
+      [placeholder]="'Buscar por usuario, acción, modelo...'"
+      [showCreate]="false"
+      [showState]="false"
+      (search)="onSearch($event)">
+    </app-search-bar>
+
+    <div *ngIf="loading" class="state-message">Cargando registros...</div>
+
+    <app-crud-table
+      *ngIf="!loading"
+      [columnas]="['Usuario', 'Acción', 'Modelo', 'Descripción', 'Fecha']"
+      [datos]="filteredRows"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <div *ngIf="!loading && !filteredRows.length" class="state-message">
+      No se encontraron registros de auditoría.
+    </div>
+  </div>
+</div>
