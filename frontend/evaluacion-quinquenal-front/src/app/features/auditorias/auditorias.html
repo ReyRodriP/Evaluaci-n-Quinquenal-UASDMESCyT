@@ -46,7 +46,9 @@
       [placeholder]="'Buscar por usuario, acción, modelo...'"
       [showCreate]="false"
       [showState]="false"
-      (search)="onSearch($event)">
+      [pageSize]="pageSize"
+      (search)="onSearch($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
     </app-search-bar>
 
     <div *ngIf="loading" class="state-message">Cargando registros...</div>
@@ -54,9 +56,17 @@
     <app-crud-table
       *ngIf="!loading"
       [columnas]="['Usuario', 'Acción', 'Modelo', 'Descripción', 'Fecha']"
-      [datos]="filteredRows"
+      [datos]="datosPaginados"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
     </app-crud-table>
+
+    <app-pagination
+      *ngIf="!loading && filteredRows.length > 0"
+      [total]="filteredRows.length"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage"
+      (pageChange)="onPageChange($event)">
+    </app-pagination>
 
     <div *ngIf="!loading && !filteredRows.length" class="state-message">
       No se encontraron registros de auditoría.

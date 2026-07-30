@@ -4,18 +4,22 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../auth/services/auth-service';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
+import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 
 @Component({
   selector: 'app-auditorias',
-  imports: [CommonModule, SearchBar, CrudTable],
+  imports: [CommonModule, SearchBar, CrudTable, Pagination],
   templateUrl: './auditorias.html',
   styleUrl: './auditorias.css',
 })
 export class Auditorias implements OnInit {
   allRows: any[] = [];
   filteredRows: any[] = [];
+  datosPaginados: any[] = [];
   searchTerm = '';
   loading = false;
+  currentPage = 1;
+  pageSize = 10;
 
   stats = {
     totalHoy: 0,
@@ -77,11 +81,29 @@ export class Auditorias implements OnInit {
     const term = this.searchTerm.toLowerCase().trim();
     if (!term) {
       this.filteredRows = [...this.allRows];
-      return;
+    } else {
+      this.filteredRows = this.allRows.filter((r) =>
+        [r.usuario_nombre, r.accion, r.modelo, r.descripcion, r.fecha]
+          .some((v) => v && v.toLowerCase().includes(term))
+      );
     }
-    this.filteredRows = this.allRows.filter((r) =>
-      [r.usuario_nombre, r.accion, r.modelo, r.descripcion, r.fecha]
-        .some((v) => v && v.toLowerCase().includes(term))
-    );
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.filteredRows.slice(start, start + this.pageSize);
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 }

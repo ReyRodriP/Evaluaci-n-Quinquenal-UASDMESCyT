@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
@@ -14,21 +14,24 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './criterios.css',
 })
 export class Criterios implements OnInit {
-  columnas: string[] = ['Nombre', 'Descripción', 'Período', 'Estado', 'Indicadores'];
+  columnas: string[] = ['Nombre', 'DescripciÃ³n', 'PerÃ­odo', 'Estado', 'Indicadores'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
+  datosPaginados: any[] = [];
   periodos: any[] = [];
   searchTerm = '';
   selectedState = 'Todas';
+  currentPage = 1;
+  pageSize = 10;
 
   showModal: boolean = false;
   selectedItem: any = null;
 
   criterioFields: any[] = [
     { label: 'Nombre', name: 'nombre', type: 'text', placeholder: 'Ej. Criterio de calidad', defaultValue: '' },
-    { label: 'Descripción', name: 'descripcion', type: 'textarea', placeholder: 'Descripción del criterio', defaultValue: '' },
-    { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
+    { label: 'DescripciÃ³n', name: 'descripcion', type: 'textarea', placeholder: 'DescripciÃ³n del criterio', defaultValue: '' },
+    { label: 'PerÃ­odo', name: 'periodo', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
 
@@ -131,6 +134,24 @@ export class Criterios implements OnInit {
         || (this.selectedState === 'Inactivos' && !item.activo);
       return matchesSearch && matchesState;
     });
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.datosFiltrados.slice(start, start + this.pageSize);
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 
   onModalClose() {

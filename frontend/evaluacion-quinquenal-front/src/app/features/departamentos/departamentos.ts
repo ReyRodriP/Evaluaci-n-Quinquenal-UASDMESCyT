@@ -18,9 +18,12 @@ export class Departamentos implements OnInit {
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
+  datosPaginados: any[] = [];
   facultades: any[] = [];
   searchTerm = '';
   selectedState = 'Todas';
+  currentPage = 1;
+  pageSize = 10;
 
   showModal: boolean = false;
   selectedItem: any = null;
@@ -133,6 +136,24 @@ export class Departamentos implements OnInit {
 
       return matchesSearch && matchesState;
     });
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.datosFiltrados.slice(start, start + this.pageSize);
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 
   onModalClose() {

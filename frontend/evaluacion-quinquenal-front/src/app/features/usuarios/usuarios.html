@@ -5,22 +5,29 @@
       [placeholder]="'Buscar por nombre, correo o rol'"
       [stateOptions]="['Todos', 'Activos', 'Inactivos']"
       [showCreate]="puedeCrear"
+      [pageSize]="pageSize"
       (create)="openNew()"
       (search)="onSearch($event)"
-      (stateChange)="onStateChange($event)">
+      (stateChange)="onStateChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
     </app-search-bar>
   </div>
 
   <app-crud-table
     [columnas]="columnas"
-    [datos]="datosFiltrados"
+    [datos]="datosPaginados"
     [ocultarAcciones]="ocultarAcciones"
     (edit)="openEdit($event)"
     (remove)="onRemove($event)"
     (toggleEstado)="onToggleEstado($event)">
   </app-crud-table>
 
-  <app-pagination></app-pagination>
+  <app-pagination
+    [total]="datosFiltrados.length"
+    [pageSize]="pageSize"
+    [currentPage]="currentPage"
+    (pageChange)="onPageChange($event)">
+  </app-pagination>
 
   <app-modal
     [open]="showModal"

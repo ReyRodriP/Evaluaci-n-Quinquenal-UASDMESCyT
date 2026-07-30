@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
@@ -15,13 +15,16 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './asignaciones.css',
 })
 export class Asignaciones implements OnInit {
-  columnas: string[] = ['Departamento', 'Indicadores', 'Período', 'Estado'];
+  columnas: string[] = ['Departamento', 'Indicadores', 'PerÃ­odo', 'Estado'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
+  datosPaginados: any[] = [];
   indicadores: any[] = [];
   searchTerm = '';
   selectedState = 'Todos';
+  currentPage = 1;
+  pageSize = 10;
   departamentos: any[] = [];
   periodos: any[] = [];
 
@@ -31,7 +34,7 @@ export class Asignaciones implements OnInit {
   asignacionFields: any[] = [
     { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '' },
     { label: 'Indicadores', name: 'indicador', type: 'checkboxgroup', options: [], defaultValue: [] },
-    { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
+    { label: 'PerÃ­odo', name: 'periodo', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: [
       { value: 'pendiente', label: 'Pendiente' },
       { value: 'en_progreso', label: 'En progreso' },
@@ -214,6 +217,24 @@ export class Asignaciones implements OnInit {
         || (this.selectedState === item.estado);
       return matchesSearch && matchesState;
     });
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.datosFiltrados.slice(start, start + this.pageSize);
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 
   onModalClose() {
@@ -272,7 +293,7 @@ export class Asignaciones implements OnInit {
           if (requests.length) {
             forkJoin(requests).subscribe({
               next: () => {
-                this.toast.success('Asignación actualizada correctamente');
+                this.toast.success('AsignaciÃ³n actualizada correctamente');
                 this.loadAsignaciones();
                 this.onModalClose();
               },
@@ -282,20 +303,20 @@ export class Asignaciones implements OnInit {
               }
             });
           } else {
-            this.toast.success('Asignación actualizada correctamente');
+            this.toast.success('AsignaciÃ³n actualizada correctamente');
             this.loadAsignaciones();
             this.onModalClose();
           }
         },
         error: (err) => {
-          console.error('Error actualizando asignación', err);
-          this.toast.error('Error al actualizar la asignación');
+          console.error('Error actualizando asignaciÃ³n', err);
+          this.toast.error('Error al actualizar la asignaciÃ³n');
         }
       });
     } else {
       crearAsignaciones(selectedIndicadores).subscribe({
         next: () => {
-          this.toast.success('Asignación(es) creada(s) exitosamente');
+          this.toast.success('AsignaciÃ³n(es) creada(s) exitosamente');
           this.loadAsignaciones();
           this.onModalClose();
         },
@@ -314,12 +335,12 @@ export class Asignaciones implements OnInit {
 
     this.authService.eliminarAsignacion(item.id).subscribe({
       next: () => {
-        this.toast.success('Asignación eliminada');
+        this.toast.success('AsignaciÃ³n eliminada');
         this.loadAsignaciones();
       },
       error: (err) => {
-        console.error('Error eliminando asignación', err);
-        this.toast.error('No se pudo eliminar la asignación');
+        console.error('Error eliminando asignaciÃ³n', err);
+        this.toast.error('No se pudo eliminar la asignaciÃ³n');
       }
     });
   }
@@ -333,12 +354,12 @@ export class Asignaciones implements OnInit {
 
     this.authService.patchAsignacion(item.id, { estado: nuevoEstado }).subscribe({
       next: () => {
-        this.toast.success(`Asignación marcada como ${nuevoEstado}`);
+        this.toast.success(`AsignaciÃ³n marcada como ${nuevoEstado}`);
         this.loadAsignaciones();
       },
       error: (err) => {
-        console.error('Error cambiando estado de asignación', err);
-        this.toast.error('No se pudo cambiar el estado de la asignación');
+        console.error('Error cambiando estado de asignaciÃ³n', err);
+        this.toast.error('No se pudo cambiar el estado de la asignaciÃ³n');
       }
     });
   }

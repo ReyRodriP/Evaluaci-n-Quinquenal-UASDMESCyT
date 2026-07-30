@@ -15,10 +15,12 @@ export class SearchBar {
   @Input() stateLabel: string = 'Estado';
   @Input() showCreate: boolean = true;
   @Input() showState: boolean = true;
+  @Input() pageSize: number = 10;
 
   @Output() create = new EventEmitter<void>();
   @Output() search = new EventEmitter<string>();
   @Output() stateChange = new EventEmitter<string>();
+  @Output() pageSizeChange = new EventEmitter<number>();
 
   onCreate() {
     this.create.emit();
@@ -34,5 +36,10 @@ export class SearchBar {
   onStateChange(event: Event) {
     const target = event.target as HTMLSelectElement;
     this.stateChange.emit(target.value);
+  }
+
+  onPageSizeChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.pageSizeChange.emit(Number(target.value));
   }
 }

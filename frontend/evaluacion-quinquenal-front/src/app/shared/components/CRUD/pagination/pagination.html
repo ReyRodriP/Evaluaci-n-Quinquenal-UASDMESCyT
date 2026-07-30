@@ -1,15 +1,15 @@
-<!-- Paginación -->
-<div class="pagination">
+<div class="pagination" *ngIf="total > 0">
+  <span>
+    Mostrando {{ from }}-{{ to }} de {{ total }} registros
+  </span>
 
-    <span>
-        Mostrando 1-10 de 15 registros
-        </span>
-
-        <div class="pages">
-            <button>◀</button>
-            <button class="current">1</button>
-            <button>2</button>
-            <button>▶</button>
-        </div>
-
-    </div>
+  <div class="pages">
+    <button (click)="goTo(currentPage - 1)" [class.disabled]="currentPage === 1">◀</button>
+    <button
+      *ngFor="let p of pages"
+      (click)="goTo(p)"
+      [class.current]="p === currentPage"
+    >{{ p }}</button>
+    <button (click)="goTo(currentPage + 1)" [class.disabled]="currentPage === totalPages">▶</button>
+  </div>
+</div>

@@ -25,3 +25,8 @@
     background:#0077cc !important;
     color:white;
 }
+
+.pages button.disabled{
+    opacity:0.4;
+    cursor:default;
+}
