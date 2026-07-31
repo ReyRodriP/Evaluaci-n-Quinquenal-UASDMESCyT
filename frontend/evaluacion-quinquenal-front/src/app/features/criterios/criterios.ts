@@ -14,7 +14,7 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './criterios.css',
 })
 export class Criterios implements OnInit {
-  columnas: string[] = ['Nombre', 'DescripciÃ³n', 'PerÃ­odo', 'Estado', 'Indicadores'];
+  columnas: string[] = ['Nombre', 'Descripción', 'Período', 'Estado', 'Indicadores'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
@@ -30,8 +30,8 @@ export class Criterios implements OnInit {
 
   criterioFields: any[] = [
     { label: 'Nombre', name: 'nombre', type: 'text', placeholder: 'Ej. Criterio de calidad', defaultValue: '' },
-    { label: 'DescripciÃ³n', name: 'descripcion', type: 'textarea', placeholder: 'DescripciÃ³n del criterio', defaultValue: '' },
-    { label: 'PerÃ­odo', name: 'periodo', type: 'select', options: [], defaultValue: '' },
+    { label: 'Descripción', name: 'descripcion', type: 'textarea', placeholder: 'Descripción del criterio', defaultValue: '' },
+    { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
 

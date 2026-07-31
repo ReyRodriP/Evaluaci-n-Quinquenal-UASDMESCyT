@@ -15,7 +15,7 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './asignaciones.css',
 })
 export class Asignaciones implements OnInit {
-  columnas: string[] = ['Departamento', 'Indicadores', 'PerÃ­odo', 'Estado'];
+  columnas: string[] = ['Departamento', 'Indicadores', 'Período', 'Estado'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
@@ -34,7 +34,7 @@ export class Asignaciones implements OnInit {
   asignacionFields: any[] = [
     { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '' },
     { label: 'Indicadores', name: 'indicador', type: 'checkboxgroup', options: [], defaultValue: [] },
-    { label: 'PerÃ­odo', name: 'periodo', type: 'select', options: [], defaultValue: '' },
+    { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: [
       { value: 'pendiente', label: 'Pendiente' },
       { value: 'en_progreso', label: 'En progreso' },
@@ -149,8 +149,8 @@ export class Asignaciones implements OnInit {
         });
       },
       error: (err) => {
-        console.error('Error cargando periodos', err);
-        this.toast.error('No se pudieron cargar los periodos');
+        console.error('Error cargando períodos', err);
+        this.toast.error('No se pudieron cargar los períodos');
       }
     });
   }
@@ -293,7 +293,7 @@ export class Asignaciones implements OnInit {
           if (requests.length) {
             forkJoin(requests).subscribe({
               next: () => {
-                this.toast.success('AsignaciÃ³n actualizada correctamente');
+                this.toast.success('Asignación actualizada correctamente');
                 this.loadAsignaciones();
                 this.onModalClose();
               },
@@ -303,20 +303,20 @@ export class Asignaciones implements OnInit {
               }
             });
           } else {
-            this.toast.success('AsignaciÃ³n actualizada correctamente');
+            this.toast.success('Asignación actualizada correctamente');
             this.loadAsignaciones();
             this.onModalClose();
           }
         },
         error: (err) => {
-          console.error('Error actualizando asignaciÃ³n', err);
-          this.toast.error('Error al actualizar la asignaciÃ³n');
+          console.error('Error actualizando asignación', err);
+          this.toast.error('Error al actualizar la asignación');
         }
       });
     } else {
       crearAsignaciones(selectedIndicadores).subscribe({
         next: () => {
-          this.toast.success('AsignaciÃ³n(es) creada(s) exitosamente');
+          this.toast.success('Asignación(es) creada(s) exitosamente');
           this.loadAsignaciones();
           this.onModalClose();
         },
@@ -335,12 +335,12 @@ export class Asignaciones implements OnInit {
 
     this.authService.eliminarAsignacion(item.id).subscribe({
       next: () => {
-        this.toast.success('AsignaciÃ³n eliminada');
+        this.toast.success('Asignación eliminada');
         this.loadAsignaciones();
       },
       error: (err) => {
-        console.error('Error eliminando asignaciÃ³n', err);
-        this.toast.error('No se pudo eliminar la asignaciÃ³n');
+        console.error('Error eliminando asignación', err);
+        this.toast.error('No se pudo eliminar la asignación');
       }
     });
   }
@@ -354,12 +354,12 @@ export class Asignaciones implements OnInit {
 
     this.authService.patchAsignacion(item.id, { estado: nuevoEstado }).subscribe({
       next: () => {
-        this.toast.success(`AsignaciÃ³n marcada como ${nuevoEstado}`);
+        this.toast.success(`Asignación marcada como ${nuevoEstado}`);
         this.loadAsignaciones();
       },
       error: (err) => {
-        console.error('Error cambiando estado de asignaciÃ³n', err);
-        this.toast.error('No se pudo cambiar el estado de la asignaciÃ³n');
+        console.error('Error cambiando estado de asignación', err);
+        this.toast.error('No se pudo cambiar el estado de la asignación');
       }
     });
   }

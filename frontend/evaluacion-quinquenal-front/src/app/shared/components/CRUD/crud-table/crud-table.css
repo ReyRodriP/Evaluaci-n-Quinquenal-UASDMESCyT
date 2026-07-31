@@ -27,7 +27,7 @@ td{
     border-bottom: 1px solid var(--border-color);
 }
 
-th:last-child,
+th.acciones-th,
 td.actions{
     width: 120px;
     text-align: center;

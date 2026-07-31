@@ -10,8 +10,8 @@
   <app-crud-table
     [columnas]="columnas"
     [datos]="rolesFiltrados"
-    [plantillasCelda]="{ Permisos: permisosTemplate }"
-    (edit)="openEdit($event)">
+    [ocultarAcciones]="['edit', 'toggle', 'remove']"
+    [plantillasCelda]="{ Permisos: permisosTemplate }">
   </app-crud-table>
 
   <ng-template #permisosTemplate let-role>
