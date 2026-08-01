@@ -3,6 +3,8 @@ from organization.models import PerfilUsuario
 
 ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal'}
 
+ROLES_REPORTES = {'Administrador General', 'Coordinador Quinquenal', 'Revisor Institucional'}
+
 
 def _grupos_usuario(user):
     return set(user.groups.values_list('name', flat=True))
@@ -100,3 +102,12 @@ class IsAdminOrReadOnly(BasePermission):
             return True
 
         return request.user.groups.filter(name='Administrador General').exists()
+
+
+class PuedeVerReportes(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        return bool(_grupos_usuario(request.user) & ROLES_REPORTES)

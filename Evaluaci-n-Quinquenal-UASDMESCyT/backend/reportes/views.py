@@ -18,7 +18,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import departamentos_permitidos
+from accounts.permissions import PuedeVerReportes, departamentos_permitidos
 from auditoria.models import Auditoria
 from evidence.models import Observacion
 from organization.models import PerfilUsuario
@@ -252,7 +252,7 @@ COLUMNAS_USUARIOS = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Últ
 # Reporte 5: Observaciones
 # ============================================================
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
 def observaciones(request):
     qs = _base_queryset_observaciones(request)
     filas_completas = _filas_observaciones(qs)
@@ -286,7 +286,7 @@ def observaciones(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
 def observaciones_exportar(request):
     qs = _base_queryset_observaciones(request)
     filas = _filas_observaciones(qs)
@@ -329,7 +329,7 @@ def _base_queryset_auditoria(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
 def auditoria(request):
     qs = _base_queryset_auditoria(request)
     filas_completas = _filas_auditoria(qs)
@@ -357,7 +357,7 @@ def auditoria(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
 def auditoria_exportar(request):
     qs = _base_queryset_auditoria(request)
     filas = _filas_auditoria(qs)
@@ -392,7 +392,7 @@ def _base_queryset_usuarios(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
 def usuarios(request):
     qs = _base_queryset_usuarios(request)
     filas_completas = _filas_usuarios(qs)
@@ -424,7 +424,7 @@ def usuarios(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
 def usuarios_exportar(request):
     qs = _base_queryset_usuarios(request)
     filas = _filas_usuarios(qs)
