@@ -10,17 +10,3 @@
         <button (click)="ir(page + 1)" [disabled]="page >= totalPages">▶</button>
     </div>
 </div>
-
-<!-- Estado estático (componentes que aún no pasan datos) -->
-<div class="pagination" *ngIf="total === 0">
-    <span>
-        Mostrando 1-10 de 15 registros
-    </span>
-
-    <div class="pages">
-        <button disabled>◀</button>
-        <button class="current">1</button>
-        <button>2</button>
-        <button disabled>▶</button>
-    </div>
-</div>

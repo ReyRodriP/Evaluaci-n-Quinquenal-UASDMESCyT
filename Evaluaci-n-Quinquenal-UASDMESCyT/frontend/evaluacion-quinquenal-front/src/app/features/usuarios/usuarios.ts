@@ -21,6 +21,9 @@ export class Usuarios implements OnInit {
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
+  paginados: any[] = [];
+  page = 1;
+  pageSize = 10;
   departamentos: any[] = [];
   roles: any[] = [];
   searchTerm = '';
@@ -193,6 +196,19 @@ export class Usuarios implements OnInit {
 
       return matchesSearch && matchesState;
     });
+    const maxPagina = Math.max(1, Math.ceil(this.datosFiltrados.length / this.pageSize));
+    if (this.page > maxPagina) this.page = maxPagina;
+    this.aplicarPagina();
+  }
+
+  cambiarPagina(pagina: number): void {
+    this.page = pagina;
+    this.aplicarPagina();
+  }
+
+  private aplicarPagina(): void {
+    const inicio = (this.page - 1) * this.pageSize;
+    this.paginados = this.datosFiltrados.slice(inicio, inicio + this.pageSize);
   }
 
   onModalClose(): void {

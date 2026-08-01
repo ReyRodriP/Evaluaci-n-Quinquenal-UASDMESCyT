@@ -13,14 +13,14 @@
 
   <app-crud-table
     [columnas]="columnas"
-    [datos]="datosFiltrados"
+    [datos]="paginados"
     [ocultarAcciones]="ocultarAcciones"
     (edit)="openEdit($event)"
     (remove)="onRemove($event)"
     (toggleEstado)="onToggleEstado($event)">
   </app-crud-table>
 
-  <app-pagination></app-pagination>
+  <app-pagination [total]="datosFiltrados.length" [page]="page" [pageSize]="pageSize" (pageChange)="cambiarPagina($event)"></app-pagination>
 
   <app-modal
     [open]="showModal"
