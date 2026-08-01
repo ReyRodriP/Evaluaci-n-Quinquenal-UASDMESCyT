@@ -99,11 +99,11 @@
       </label>
       <label>
         Modelo
-        <input type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" (change)="cargarAuditoria()" />
+        <input type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" (ngModelChange)="onTextoAuditoria()" />
       </label>
       <label>
         Acción
-        <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" (change)="cargarAuditoria()" />
+        <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" (ngModelChange)="onTextoAuditoria()" />
       </label>
       <button class="btn-limpiar" (click)="limpiarFiltrosAuditoria()">
         <i class="bx bx-reset"></i> Limpiar filtros

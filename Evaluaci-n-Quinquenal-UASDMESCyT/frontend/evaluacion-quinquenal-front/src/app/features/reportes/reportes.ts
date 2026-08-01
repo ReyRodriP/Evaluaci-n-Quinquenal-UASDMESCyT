@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
@@ -13,7 +13,7 @@ type Pestana = 'observaciones' | 'auditoria' | 'usuarios';
   templateUrl: './reportes.html',
   styleUrl: './reportes.css',
 })
-export class Reportes implements OnInit {
+export class Reportes implements OnInit, OnDestroy {
   pestanaActiva: Pestana = 'observaciones';
   loading = false;
 
@@ -45,9 +45,24 @@ export class Reportes implements OnInit {
     private toast: ToastrService
   ) {}
 
+  private debounceTimer: any;
+
   ngOnInit(): void {
     this.loadSelectores();
     this.cargarReporteActual();
+  }
+
+  ngOnDestroy(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+  }
+
+  onTextoAuditoria(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = setTimeout(() => this.cargarAuditoria(), 300);
   }
 
   cambiarPestana(pestana: Pestana): void {
