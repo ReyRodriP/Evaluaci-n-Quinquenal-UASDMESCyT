@@ -62,6 +62,11 @@ export class CrudTable {
       'acción': 'accion',
       'modelo': 'modelo',
       'fecha': 'fecha',
+      'versión': 'version',
+      'n° observaciones': 'total_observaciones',
+      'observador': 'observador',
+      'último acceso': 'ultimo_acceso',
+      'registro id': 'registro_id',
     };
     return mapping[columnName.toLowerCase()] || columnName.toLowerCase();
   }
@@ -99,6 +104,10 @@ export class CrudTable {
         return ['rol', 'role', 'nombre_rol'];
       case 'estado':
         return ['estado', 'is_active'];
+      case 'periodo':
+        return ['periodo', 'periodo_nombre'];
+      case 'indicador':
+        return ['indicador', 'indicador_nombre'];
       default:
         return [];
     }

@@ -179,6 +179,16 @@ export class AuthService {
     return this.http.get<any[]>(`${this.apiUrl}/facultades/`);
   }
 
+  // Usuarios
+  listarUsuarios(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/usuarios/`);
+  }
+
+  // Roles
+  listarRoles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/roles/`);
+  }
+
   // Dashboard
   obtenerResumen(): Observable<any> {
     return this.http.get(`${this.apiUrl}/dashboard/resumen/`);
@@ -194,5 +204,25 @@ export class AuthService {
 
   obtenerDashboardPeriodo(id: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/dashboard/periodo/${id}/`);
+  }
+
+  // Reportes
+  reporteObservaciones(params: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/observaciones/`, { params });
+  }
+
+  reporteAuditoria(params: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/auditoria/`, { params });
+  }
+
+  reporteUsuarios(params: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/usuarios/`, { params });
+  }
+
+  exportarReporte(reporte: string, formato: string, params: any): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/reportes/${reporte}/exportar/`, {
+      params: { ...params, formato },
+      responseType: 'blob',
+    });
   }
 }

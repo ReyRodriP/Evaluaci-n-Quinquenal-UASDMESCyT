@@ -16,6 +16,7 @@ import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
 import { Evidencias } from './features/evidencias/evidencias';
 import { Auditorias } from './features/auditorias/auditorias';
+import { Reportes } from './features/reportes/reportes';
 import { Notificaciones } from './features/notificaciones/notificaciones';
 import { EvidenciaDetalle } from './features/evidencias/evidencia-detalle/evidencia-detalle';
 import { AuthGuard } from './core/guards/auth.guard';
@@ -114,6 +115,11 @@ export const routes: Routes = [
             {
                 path: 'auditorias',
                 component: Auditorias,
+                canActivate: [PermisoGuard]
+            },
+            {
+                path: 'reportes',
+                component: Reportes,
                 canActivate: [PermisoGuard]
             },
             {

@@ -1,0 +1,201 @@
+<div class="reportes-page">
+  <h2 class="page-title">Reportes</h2>
+
+  <div class="reportes-tabs">
+    <button
+      class="tab"
+      [class.active]="pestanaActiva === 'observaciones'"
+      (click)="cambiarPestana('observaciones')">
+      <i class="bx bx-message-square-error"></i>
+      Observaciones
+    </button>
+    <button
+      class="tab"
+      [class.active]="pestanaActiva === 'auditoria'"
+      (click)="cambiarPestana('auditoria')">
+      <i class="bx bx-history"></i>
+      Auditoría
+    </button>
+    <button
+      class="tab"
+      [class.active]="pestanaActiva === 'usuarios'"
+      (click)="cambiarPestana('usuarios')">
+      <i class="bx bx-user"></i>
+      Usuarios
+    </button>
+  </div>
+
+  <!-- ===================== REPORTE DE OBSERVACIONES ===================== -->
+  <section *ngIf="pestanaActiva === 'observaciones'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Período
+        <select [(ngModel)]="obsFiltros.periodo">
+          <option value="">Todos</option>
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        Departamento
+        <select [(ngModel)]="obsFiltros.departamento">
+          <option value="">Todos</option>
+          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        Observador
+        <select [(ngModel)]="obsFiltros.usuario">
+          <option value="">Todos</option>
+          <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
+        </select>
+      </label>
+      <button class="btn-filtrar" (click)="cargarObservaciones()">
+        <i class="bx bx-search"></i> Filtrar
+      </button>
+    </div>
+
+    <div class="reporte-resumen" *ngIf="!loading">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ obsResumen.total }}</span>
+        <span class="resumen-etiqueta">Observaciones totales</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ obsResumen.evidencias }}</span>
+        <span class="resumen-etiqueta">Evidencias observadas</span>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <app-crud-table
+      *ngIf="!loading && obsRows.length"
+      [columnas]="obsColumnas"
+      [datos]="obsRows"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <div *ngIf="!loading && !obsRows.length" class="state-message">
+      No hay observaciones registradas con los filtros seleccionados.
+    </div>
+  </section>
+
+  <!-- ===================== REPORTE DE AUDITORÍA ===================== -->
+  <section *ngIf="pestanaActiva === 'auditoria'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Usuario
+        <select [(ngModel)]="audFiltros.usuario">
+          <option value="">Todos</option>
+          <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
+        </select>
+      </label>
+      <label>
+        Desde
+        <input type="date" [(ngModel)]="audFiltros.fecha_desde" />
+      </label>
+      <label>
+        Hasta
+        <input type="date" [(ngModel)]="audFiltros.fecha_hasta" />
+      </label>
+      <label>
+        Modelo
+        <input type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" />
+      </label>
+      <label>
+        Acción
+        <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" />
+      </label>
+      <button class="btn-filtrar" (click)="cargarAuditoria()">
+        <i class="bx bx-search"></i> Filtrar
+      </button>
+    </div>
+
+    <div class="reporte-resumen" *ngIf="!loading">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ audTotal }}</span>
+        <span class="resumen-etiqueta">Registros encontrados</span>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <app-crud-table
+      *ngIf="!loading && audRows.length"
+      [columnas]="audColumnas"
+      [datos]="audRows"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <div *ngIf="!loading && !audRows.length" class="state-message">
+      No se encontraron registros de auditoría con los filtros seleccionados.
+    </div>
+  </section>
+
+  <!-- ===================== REPORTE DE USUARIOS ===================== -->
+  <section *ngIf="pestanaActiva === 'usuarios'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Rol
+        <select [(ngModel)]="usrFiltros.rol">
+          <option value="">Todos</option>
+          <option *ngFor="let r of roles" [value]="r.name">{{ r.name }}</option>
+        </select>
+      </label>
+      <label>
+        Departamento
+        <select [(ngModel)]="usrFiltros.departamento">
+          <option value="">Todos</option>
+          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        Estado
+        <select [(ngModel)]="usrFiltros.estado">
+          <option value="">Todos</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </label>
+      <button class="btn-filtrar" (click)="cargarUsuarios()">
+        <i class="bx bx-search"></i> Filtrar
+      </button>
+    </div>
+
+    <div class="reporte-resumen" *ngIf="!loading">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ usrResumen.total }}</span>
+        <span class="resumen-etiqueta">Usuarios totales</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ usrResumen.activos }}</span>
+        <span class="resumen-etiqueta">Activos</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ usrResumen.inactivos }}</span>
+        <span class="resumen-etiqueta">Inactivos</span>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <app-crud-table
+      *ngIf="!loading && usrRows.length"
+      [columnas]="usrColumnas"
+      [datos]="usrRows"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <div *ngIf="!loading && !usrRows.length" class="state-message">
+      No se encontraron usuarios con los filtros seleccionados.
+    </div>
+  </section>
+
+  <div class="reporte-exportar">
+    <button class="btn-exportar excel" (click)="exportar('xlsx')">
+      <i class="bx bxs-file-xls"></i> Exportar Excel
+    </button>
+    <button class="btn-exportar pdf" (click)="exportar('pdf')">
+      <i class="bx bxs-file-pdf"></i> Exportar PDF
+    </button>
+  </div>
+</div>
