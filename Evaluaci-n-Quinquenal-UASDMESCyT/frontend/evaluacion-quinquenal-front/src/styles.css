@@ -1,5 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'ngx-toastr/toastr';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /*Colores a usar*/
 :root {
@@ -67,6 +68,7 @@ body {
     height: 100vh;
     background-color: var(--body-color);
     color: var(--text-color);
+    font-family: 'Inter', sans-serif;
     transition: var(--tran-04);
 }
 
