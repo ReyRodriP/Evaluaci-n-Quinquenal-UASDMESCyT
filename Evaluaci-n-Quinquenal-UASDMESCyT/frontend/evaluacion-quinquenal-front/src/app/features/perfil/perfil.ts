@@ -122,6 +122,28 @@ export class Perfil implements OnInit {
     };
   }
 
+  hasPhoto(): boolean {
+    const foto = this.user?.foto_perfil;
+    return foto instanceof File || (typeof foto === 'string' && foto !== '' && foto !== 'null');
+  }
+
+  onBorrarFoto(): void {
+    this.user = {
+      ...this.user,
+      foto_perfil: ''
+    };
+
+    this.authService.updateProfile({ foto_perfil: null }).subscribe({
+      next: (updatedUser) => {
+        this.authService.saveUser({ ...this.user, ...updatedUser });
+        this.toast.success('Foto eliminada correctamente');
+      },
+      error: () => {
+        this.toast.error('No se pudo eliminar la foto');
+      }
+    });
+  }
+
   getPhotoUrl(): string {
     if (this.user?.foto_perfil instanceof File) {
       return URL.createObjectURL(this.user.foto_perfil);
