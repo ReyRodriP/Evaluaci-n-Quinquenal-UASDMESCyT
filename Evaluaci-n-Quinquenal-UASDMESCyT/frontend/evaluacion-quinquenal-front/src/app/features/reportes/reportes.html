@@ -30,28 +30,25 @@
     <div class="reporte-filtros">
       <label>
         Período
-        <select [(ngModel)]="obsFiltros.periodo">
+        <select [(ngModel)]="obsFiltros.periodo" (change)="cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
         </select>
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="obsFiltros.departamento">
+        <select [(ngModel)]="obsFiltros.departamento" (change)="cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Observador
-        <select [(ngModel)]="obsFiltros.usuario">
+        <select [(ngModel)]="obsFiltros.usuario" (change)="cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
       </label>
-      <button class="btn-filtrar" (click)="cargarObservaciones()">
-        <i class="bx bx-search"></i> Filtrar
-      </button>
     </div>
 
     <div class="reporte-resumen" *ngIf="!loading">
@@ -84,30 +81,27 @@
     <div class="reporte-filtros">
       <label>
         Usuario
-        <select [(ngModel)]="audFiltros.usuario">
+        <select [(ngModel)]="audFiltros.usuario" (change)="cargarAuditoria()">
           <option value="">Todos</option>
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
       </label>
       <label>
         Desde
-        <input type="date" [(ngModel)]="audFiltros.fecha_desde" />
+        <input type="date" [(ngModel)]="audFiltros.fecha_desde" (change)="cargarAuditoria()" />
       </label>
       <label>
         Hasta
-        <input type="date" [(ngModel)]="audFiltros.fecha_hasta" />
+        <input type="date" [(ngModel)]="audFiltros.fecha_hasta" (change)="cargarAuditoria()" />
       </label>
       <label>
         Modelo
-        <input type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" />
+        <input type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" (change)="cargarAuditoria()" />
       </label>
       <label>
         Acción
-        <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" />
+        <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" (change)="cargarAuditoria()" />
       </label>
-      <button class="btn-filtrar" (click)="cargarAuditoria()">
-        <i class="bx bx-search"></i> Filtrar
-      </button>
     </div>
 
     <div class="reporte-resumen" *ngIf="!loading">
@@ -136,29 +130,26 @@
     <div class="reporte-filtros">
       <label>
         Rol
-        <select [(ngModel)]="usrFiltros.rol">
+        <select [(ngModel)]="usrFiltros.rol" (change)="cargarUsuarios()">
           <option value="">Todos</option>
           <option *ngFor="let r of roles" [value]="r.name">{{ r.name }}</option>
         </select>
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="usrFiltros.departamento">
+        <select [(ngModel)]="usrFiltros.departamento" (change)="cargarUsuarios()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Estado
-        <select [(ngModel)]="usrFiltros.estado">
+        <select [(ngModel)]="usrFiltros.estado" (change)="cargarUsuarios()">
           <option value="">Todos</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
         </select>
       </label>
-      <button class="btn-filtrar" (click)="cargarUsuarios()">
-        <i class="bx bx-search"></i> Filtrar
-      </button>
     </div>
 
     <div class="reporte-resumen" *ngIf="!loading">
