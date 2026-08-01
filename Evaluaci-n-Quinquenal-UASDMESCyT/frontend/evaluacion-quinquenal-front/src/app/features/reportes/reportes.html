@@ -49,6 +49,9 @@
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
       </label>
+      <button class="btn-limpiar" (click)="limpiarFiltrosObservaciones()">
+        <i class="bx bx-reset"></i> Limpiar filtros
+      </button>
     </div>
 
     <div class="reporte-resumen" *ngIf="!loading">
@@ -102,6 +105,9 @@
         Acción
         <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" (change)="cargarAuditoria()" />
       </label>
+      <button class="btn-limpiar" (click)="limpiarFiltrosAuditoria()">
+        <i class="bx bx-reset"></i> Limpiar filtros
+      </button>
     </div>
 
     <div class="reporte-resumen" *ngIf="!loading">
@@ -150,6 +156,9 @@
           <option value="inactivo">Inactivo</option>
         </select>
       </label>
+      <button class="btn-limpiar" (click)="limpiarFiltrosUsuarios()">
+        <i class="bx bx-reset"></i> Limpiar filtros
+      </button>
     </div>
 
     <div class="reporte-resumen" *ngIf="!loading">

@@ -78,6 +78,21 @@ export class Reportes implements OnInit {
     return params;
   }
 
+  limpiarFiltrosObservaciones(): void {
+    this.obsFiltros = { periodo: '', departamento: '', usuario: '' };
+    this.cargarObservaciones();
+  }
+
+  limpiarFiltrosAuditoria(): void {
+    this.audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
+    this.cargarAuditoria();
+  }
+
+  limpiarFiltrosUsuarios(): void {
+    this.usrFiltros = { rol: '', departamento: '', estado: '' };
+    this.cargarUsuarios();
+  }
+
   cargarObservaciones(): void {
     this.loading = true;
     const params = this.limpiarParametros(this.obsFiltros);

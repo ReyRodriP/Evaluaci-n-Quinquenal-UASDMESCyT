@@ -90,6 +90,25 @@
   box-shadow: 0 0 0 3px rgba(30, 78, 121, 0.12);
 }
 
+.btn-limpiar {
+  border: none;
+  background: #1e4e79;
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+
+.btn-limpiar:hover {
+  background: #16395c;
+}
+
 .reporte-resumen {
   display: flex;
   gap: 16px;
