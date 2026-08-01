@@ -21,6 +21,11 @@
     box-shadow:0 2px 5px rgba(0,0,0,.08);
 }
 
+.pages button:disabled{
+    opacity:0.4;
+    cursor:not-allowed;
+}
+
 .current{
     background:#0077cc !important;
     color:white;

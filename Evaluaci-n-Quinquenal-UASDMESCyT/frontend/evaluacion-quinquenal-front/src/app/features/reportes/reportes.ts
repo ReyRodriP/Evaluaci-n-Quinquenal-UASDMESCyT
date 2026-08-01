@@ -4,18 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../core/services/auth.service';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
+import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 
 type Pestana = 'observaciones' | 'auditoria' | 'usuarios';
 
 @Component({
   selector: 'app-reportes',
-  imports: [CommonModule, FormsModule, CrudTable],
+  imports: [CommonModule, FormsModule, CrudTable, Pagination],
   templateUrl: './reportes.html',
   styleUrl: './reportes.css',
 })
 export class Reportes implements OnInit, OnDestroy {
   pestanaActiva: Pestana = 'observaciones';
   loading = false;
+  pageSize = 10;
 
   periodos: any[] = [];
   departamentos: any[] = [];
@@ -25,18 +27,21 @@ export class Reportes implements OnInit, OnDestroy {
   // Reporte de Observaciones
   obsFiltros = { periodo: '', departamento: '', usuario: '' };
   obsRows: any[] = [];
+  obsPage = 1;
   obsResumen = { total: 0, evidencias: 0 };
   obsColumnas = ['Evidencia', 'Indicador', 'Departamento', 'Periodo', 'Versión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones'];
 
   // Reporte de Auditoría
   audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
   audRows: any[] = [];
+  audPage = 1;
   audTotal = 0;
   audColumnas = ['Usuario', 'Acción', 'Modelo', 'Registro ID', 'Descripción', 'Fecha'];
 
   // Reporte de Usuarios
   usrFiltros = { rol: '', departamento: '', estado: '' };
   usrRows: any[] = [];
+  usrPage = 1;
   usrResumen = { total: 0, activos: 0, inactivos: 0 };
   usrColumnas = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Último acceso', 'Estado'];
 
@@ -95,22 +100,25 @@ export class Reportes implements OnInit, OnDestroy {
 
   limpiarFiltrosObservaciones(): void {
     this.obsFiltros = { periodo: '', departamento: '', usuario: '' };
+    this.obsPage = 1;
     this.cargarObservaciones();
   }
 
   limpiarFiltrosAuditoria(): void {
     this.audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
+    this.audPage = 1;
     this.cargarAuditoria();
   }
 
   limpiarFiltrosUsuarios(): void {
     this.usrFiltros = { rol: '', departamento: '', estado: '' };
+    this.usrPage = 1;
     this.cargarUsuarios();
   }
 
   cargarObservaciones(): void {
     this.loading = true;
-    const params = this.limpiarParametros(this.obsFiltros);
+    const params = { ...this.limpiarParametros(this.obsFiltros), page: this.obsPage, page_size: this.pageSize };
     this.authService.reporteObservaciones(params).subscribe({
       next: (data) => {
         this.obsRows = data.rows;
@@ -126,7 +134,7 @@ export class Reportes implements OnInit, OnDestroy {
 
   cargarAuditoria(): void {
     this.loading = true;
-    const params = this.limpiarParametros(this.audFiltros);
+    const params = { ...this.limpiarParametros(this.audFiltros), page: this.audPage, page_size: this.pageSize };
     this.authService.reporteAuditoria(params).subscribe({
       next: (data) => {
         this.audRows = data.rows;
@@ -142,7 +150,7 @@ export class Reportes implements OnInit, OnDestroy {
 
   cargarUsuarios(): void {
     this.loading = true;
-    const params = this.limpiarParametros(this.usrFiltros);
+    const params = { ...this.limpiarParametros(this.usrFiltros), page: this.usrPage, page_size: this.pageSize };
     this.authService.reporteUsuarios(params).subscribe({
       next: (data) => {
         this.usrRows = data.rows;
@@ -154,6 +162,19 @@ export class Reportes implements OnInit, OnDestroy {
         this.loading = false;
       },
     });
+  }
+
+  cambiarPagina(pagina: number): void {
+    if (this.pestanaActiva === 'observaciones') {
+      this.obsPage = pagina;
+      this.cargarObservaciones();
+    } else if (this.pestanaActiva === 'auditoria') {
+      this.audPage = pagina;
+      this.cargarAuditoria();
+    } else {
+      this.usrPage = pagina;
+      this.cargarUsuarios();
+    }
   }
 
   exportar(formato: 'pdf' | 'xlsx'): void {

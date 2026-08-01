@@ -1,5 +1,6 @@
 import io
 from datetime import datetime
+from math import ceil
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count
@@ -123,6 +124,21 @@ def _filas_usuarios(qs):
     return filas
 
 
+def _paginar(request, filas):
+    try:
+        page = max(int(request.query_params.get('page', 1)), 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        page_size = min(max(int(request.query_params.get('page_size', 10)), 1), 100)
+    except (TypeError, ValueError):
+        page_size = 10
+
+    total = len(filas)
+    inicio = (page - 1) * page_size
+    return filas[inicio:inicio + page_size], total, page, page_size, ceil(total / page_size) if total else 0
+
+
 def _build_pdf(titulo, columnas, filas):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -239,13 +255,10 @@ COLUMNAS_USUARIOS = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Últ
 @permission_classes([IsAuthenticated])
 def observaciones(request):
     qs = _base_queryset_observaciones(request)
-    filas = _filas_observaciones(qs)
+    filas_completas = _filas_observaciones(qs)
 
-    evidencias_observadas = len(set(fila[0] for fila in filas))
-    conteo_por_evidencia = {}
-    for fila in filas:
-        clave = fila[0]
-        conteo_por_evidencia[clave] = fila[8]
+    evidencias_observadas = len(set(fila[0] for fila in filas_completas))
+    filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
 
     filas_json = [
         {
@@ -263,8 +276,11 @@ def observaciones(request):
     ]
 
     return Response({
-        'total_observaciones': len(filas),
+        'total_observaciones': total,
         'evidencias_observadas': evidencias_observadas,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
         'rows': filas_json,
     })
 
@@ -316,7 +332,8 @@ def _base_queryset_auditoria(request):
 @permission_classes([IsAuthenticated])
 def auditoria(request):
     qs = _base_queryset_auditoria(request)
-    filas = _filas_auditoria(qs)
+    filas_completas = _filas_auditoria(qs)
+    filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
 
     filas_json = [
         {
@@ -331,7 +348,10 @@ def auditoria(request):
     ]
 
     return Response({
-        'total': len(filas),
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
         'rows': filas_json,
     })
 
@@ -375,7 +395,8 @@ def _base_queryset_usuarios(request):
 @permission_classes([IsAuthenticated])
 def usuarios(request):
     qs = _base_queryset_usuarios(request)
-    filas = _filas_usuarios(qs)
+    filas_completas = _filas_usuarios(qs)
+    filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
 
     filas_json = [
         {
@@ -390,11 +411,14 @@ def usuarios(request):
         for fila in filas
     ]
 
-    activos = sum(1 for fila in filas if fila[6] == 'Activo')
+    activos = sum(1 for fila in filas_completas if fila[6] == 'Activo')
     return Response({
-        'total': len(filas),
+        'total': total,
         'activos': activos,
-        'inactivos': len(filas) - activos,
+        'inactivos': total - activos,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
         'rows': filas_json,
     })
 

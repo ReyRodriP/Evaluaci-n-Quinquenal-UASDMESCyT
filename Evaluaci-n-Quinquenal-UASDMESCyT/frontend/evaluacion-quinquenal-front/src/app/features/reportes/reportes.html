@@ -74,6 +74,14 @@
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
     </app-crud-table>
 
+    <app-pagination
+      *ngIf="!loading && obsRows.length"
+      [total]="obsResumen.total"
+      [page]="obsPage"
+      [pageSize]="pageSize"
+      (pageChange)="cambiarPagina($event)">
+    </app-pagination>
+
     <div *ngIf="!loading && !obsRows.length" class="state-message">
       No hay observaciones registradas con los filtros seleccionados.
     </div>
@@ -125,6 +133,14 @@
       [datos]="audRows"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
     </app-crud-table>
+
+    <app-pagination
+      *ngIf="!loading && audRows.length"
+      [total]="audTotal"
+      [page]="audPage"
+      [pageSize]="pageSize"
+      (pageChange)="cambiarPagina($event)">
+    </app-pagination>
 
     <div *ngIf="!loading && !audRows.length" class="state-message">
       No se encontraron registros de auditoría con los filtros seleccionados.
@@ -184,6 +200,14 @@
       [datos]="usrRows"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
     </app-crud-table>
+
+    <app-pagination
+      *ngIf="!loading && usrRows.length"
+      [total]="usrResumen.total"
+      [page]="usrPage"
+      [pageSize]="pageSize"
+      (pageChange)="cambiarPagina($event)">
+    </app-pagination>
 
     <div *ngIf="!loading && !usrRows.length" class="state-message">
       No se encontraron usuarios con los filtros seleccionados.
