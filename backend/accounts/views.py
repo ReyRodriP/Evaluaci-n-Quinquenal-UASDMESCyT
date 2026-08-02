@@ -20,6 +20,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils import timezone
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 
@@ -134,6 +135,9 @@ def login(request):
         )
 
     token, created = Token.objects.get_or_create(user=user)
+
+    user.last_login = timezone.now()
+    user.save(update_fields=['last_login'])
 
     serializer = UsuarioProfileSerializer(user, context={'request': request})
 
