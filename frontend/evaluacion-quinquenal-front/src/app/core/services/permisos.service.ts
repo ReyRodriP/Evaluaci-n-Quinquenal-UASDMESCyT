@@ -23,6 +23,7 @@ export class PermisosService {
     { path: '/evidencias', label: 'Evidencias', icon: 'bx-file', grupos: null },
     { path: '/notificaciones', label: 'Notificaciones', icon: 'bx-bell', grupos: null },
     { path: '/auditorias', label: 'Auditorías', icon: 'bx-archive', grupos: ['Administrador General', 'Coordinador Quinquenal', 'Revisor Institucional'] },
+    { path: '/reportes', label: 'Reportes', icon: 'bx bx-file-report', grupos: ['Administrador General', 'Coordinador Quinquenal', 'Revisor Institucional'] },
   ];
 
   constructor(private authService: AuthService) {}

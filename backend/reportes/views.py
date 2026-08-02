@@ -13,7 +13,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from rest_framework.decorators import api_view, permission_classes
@@ -155,25 +155,13 @@ def _build_pdf(titulo, columnas, filas):
     )
 
     estilos = getSampleStyleSheet()
-    estilo_titulo = estilos['Title']
-    estilo_titulo.fontSize = 14
-    estilo_titulo.spaceAfter = 2
+    estilo_titulo = ParagraphStyle('titulo_reporte', parent=estilos['Title'], fontSize=14, spaceAfter=2)
 
-    estilo_subtitulo = estilos['Normal']
-    estilo_subtitulo.fontSize = 9
-    estilo_subtitulo.alignment = 1
-    estilo_subtitulo.spaceAfter = 10
+    estilo_subtitulo = ParagraphStyle('subtitulo_reporte', parent=estilos['Normal'], fontSize=9, alignment=1, spaceAfter=10)
 
-    estilo_celda = estilos['Normal']
-    estilo_celda.fontSize = 7.5
-    estilo_celda.alignment = 0
-    estilo_celda.spaceBefore = 0
-    estilo_celda.spaceAfter = 0
+    estilo_celda = ParagraphStyle('celda_reporte', parent=estilos['Normal'], fontSize=7.5, alignment=0, spaceBefore=0, spaceAfter=0, textColor=colors.black)
 
-    estilo_cabecera = estilos['Normal']
-    estilo_cabecera.fontSize = 8
-    estilo_cabecera.textColor = colors.white
-    estilo_cabecera.alignment = 1
+    estilo_cabecera = ParagraphStyle('cabecera_reporte', parent=estilos['Normal'], fontSize=8, textColor=colors.white, alignment=1)
 
     datos = [[Paragraph(col, estilo_cabecera) for col in columnas]]
     datos += [[Paragraph(str(celda or ''), estilo_celda) for celda in fila] for fila in filas]
@@ -401,7 +389,7 @@ def por_facultad_exportar(request, pk=None):
 # Reporte 3: Por departamento
 # ============================================================
 def _responsable_departamento(departamento):
-    perfiles = PerfilUsuario.objects.filter(departamento=departamento).select_related('usuario', 'usuario__groups')
+    perfiles = PerfilUsuario.objects.filter(departamento=departamento).select_related('usuario').prefetch_related('usuario__groups')
     for perfil in perfiles:
         if perfil.usuario.groups.filter(name='Responsable Departamental').exists():
             return perfil.usuario.username
@@ -493,7 +481,7 @@ def por_departamento_exportar(request, pk=None):
 # ============================================================
 def _base_queryset_evidencias(request):
     qs = Evidencia.objects.select_related(
-        'asignacion__indicador',
+        'asignacion__indicador__criterio',
         'asignacion__departamento',
         'asignacion__periodo',
     )
@@ -525,10 +513,14 @@ def _filas_evidencias(qs):
     filas = []
     for evidencia in qs:
         ultima_version = evidencia.versiones.order_by('-fecha_subida').first()
+        asignacion = evidencia.asignacion
         filas.append([
-            evidencia.asignacion.indicador.nombre,
+            asignacion.indicador.nombre,
             evidencia.titulo,
-            evidencia.asignacion.estado,
+            asignacion.departamento.nombre,
+            asignacion.indicador.criterio.nombre,
+            asignacion.periodo.nombre,
+            asignacion.estado,
             _formato_fecha(ultima_version.fecha_subida) if ultima_version else '',
         ])
     return filas
@@ -545,8 +537,11 @@ def evidencias(request):
         {
             'indicador': fila[0],
             'evidencia': fila[1],
-            'estado': fila[2],
-            'fecha': fila[3],
+            'departamento': fila[2],
+            'criterio': fila[3],
+            'periodo': fila[4],
+            'estado': fila[5],
+            'fecha': fila[6],
         }
         for fila in filas
     ]
@@ -567,7 +562,7 @@ def evidencias_exportar(request):
     filas = _filas_evidencias(qs)
     return _responder_exportacion(
         'Reporte de Evidencias',
-        ['Indicador', 'Evidencia', 'Estado', 'Fecha'],
+        ['Indicador', 'Evidencia', 'Departamento', 'Criterio', 'Periodo', 'Estado', 'Fecha'],
         filas,
         request.query_params.get('formato', 'xlsx'),
         'reporte_evidencias',

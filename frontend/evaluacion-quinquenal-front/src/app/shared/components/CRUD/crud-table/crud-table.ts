@@ -100,6 +100,44 @@ export class CrudTable {
         return ['rol', 'role', 'nombre_rol'];
       case 'estado':
         return ['estado', 'is_active'];
+      case 'evidencia':
+        return ['evidencia', 'titulo'];
+      case 'indicador':
+        return ['indicador', 'indicador_nombre'];
+      case 'periodo':
+        return ['periodo_nombre', 'periodo'];
+      case 'criterio':
+        return ['criterio', 'criterio_nombre'];
+      case 'observador':
+        return ['observador', 'usuario', 'username', 'usuario_nombre'];
+      case 'comentario':
+        return ['comentario'];
+      case 'versión':
+        return ['version'];
+      case 'n° observaciones':
+        return ['total_observaciones'];
+      case 'total asignaciones':
+        return ['total_asignaciones'];
+      case 'evidencias':
+        return ['evidencias'];
+      case 'pendientes':
+        return ['pendientes'];
+      case 'aprobadas':
+        return ['aprobadas'];
+      case 'fecha modificación':
+        return ['fecha_modificacion'];
+      case 'responsable':
+        return ['responsable'];
+      case 'última versión':
+        return ['ultima_version'];
+      case 'registro id':
+        return ['registro_id'];
+      case 'descripción':
+        return ['descripcion'];
+      case 'último acceso':
+        return ['ultimo_acceso'];
+      case 'usuario':
+        return ['usuario_nombre', 'username', 'usuario'];
       default:
         return [];
     }
