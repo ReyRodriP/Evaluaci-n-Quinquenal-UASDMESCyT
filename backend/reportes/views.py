@@ -1,10 +1,12 @@
 import io
+import re
 from datetime import datetime
 from math import ceil
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -20,8 +22,9 @@ from rest_framework.response import Response
 
 from accounts.permissions import PuedeVerReportes, departamentos_permitidos
 from auditoria.models import Auditoria
-from evidence.models import Observacion
-from organization.models import PerfilUsuario
+from evaluation.models import Asignacion, Criterio, EstadoAsignacion, HistorialEstado, Periodo
+from evidence.models import Evidencia, Observacion, VersionEvidencia
+from organization.models import Departamento, Facultad, PerfilUsuario
 
 Usuario = get_user_model()
 
@@ -203,7 +206,8 @@ def _build_xlsx(titulo, columnas, filas):
     buffer = io.BytesIO()
     wb = Workbook()
     ws = wb.active
-    ws.title = titulo[:31]
+    nombre_hoja = re.sub(r'[\[\]:*?/\\]', '', titulo)[:31] or 'Reporte'
+    ws.title = nombre_hoja
 
     ws.append(columnas)
     for celda in ws[1]:
@@ -246,6 +250,328 @@ def _responder_exportacion(titulo, columnas, filas, formato, nombre):
 COLUMNAS_OBSERVACIONES = ['Evidencia', 'Indicador', 'Departamento', 'Periodo', 'Versión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones']
 COLUMNAS_AUDITORIA = ['Usuario', 'Acción', 'Modelo', 'Registro ID', 'Descripción', 'Fecha']
 COLUMNAS_USUARIOS = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Último acceso', 'Estado']
+
+
+# ============================================================
+# Reporte 1: General del periodo
+# ============================================================
+def _data_general(request):
+    periodo_id = request.query_params.get('periodo')
+    if periodo_id:
+        periodo = get_object_or_404(Periodo, pk=periodo_id)
+    else:
+        periodo = Periodo.objects.order_by('-id').first()
+
+    deptos_ids = departamentos_permitidos(request)
+
+    qs = Asignacion.objects.all()
+    if deptos_ids is not None:
+        qs = qs.filter(departamento_id__in=deptos_ids)
+    if periodo:
+        qs = qs.filter(periodo=periodo)
+
+    total_asignaciones = qs.count()
+
+    return {
+        'periodo': periodo.nombre if periodo else None,
+        'total_departamentos': (
+            qs.values('departamento_id').distinct().count()
+            if total_asignaciones else (
+                len(deptos_ids) if deptos_ids is not None else Departamento.objects.count()
+            )
+        ),
+        'total_indicadores': qs.values('indicador_id').distinct().count(),
+        'total_asignaciones': total_asignaciones,
+        'pendientes': qs.filter(estado=EstadoAsignacion.PENDIENTE).count(),
+        'en_revision': qs.filter(estado=EstadoAsignacion.EN_PROGRESO).count(),
+        'observadas': qs.filter(estado=EstadoAsignacion.OBSERVADA).count(),
+        'aprobadas': qs.filter(estado=EstadoAsignacion.APROBADO).count(),
+        'rechazadas': qs.filter(estado=EstadoAsignacion.RECHAZADO).count(),
+    }
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def general(request):
+    return Response(_data_general(request))
+
+
+def _filas_general(data):
+    return [
+        ['Periodo', data['periodo'] or ''],
+        ['Total departamentos', data['total_departamentos']],
+        ['Total indicadores', data['total_indicadores']],
+        ['Total asignaciones', data['total_asignaciones']],
+        ['Pendientes', data['pendientes']],
+        ['En revisión', data['en_revision']],
+        ['Observadas', data['observadas']],
+        ['Aprobadas', data['aprobadas']],
+        ['Rechazadas', data['rechazadas']],
+    ]
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def general_exportar(request):
+    data = _data_general(request)
+    return _responder_exportacion(
+        'Reporte General del Periodo',
+        ['Métrica', 'Valor'],
+        _filas_general(data),
+        request.query_params.get('formato', 'xlsx'),
+        'reporte_general',
+    )
+
+
+# ============================================================
+# Reporte 2: Por facultad
+# ============================================================
+def _base_departamentos_visibles(request):
+    deptos_ids = departamentos_permitidos(request)
+    qs = Departamento.objects.all()
+    if deptos_ids is not None:
+        qs = qs.filter(pk__in=deptos_ids)
+    return qs
+
+
+def _data_por_facultad(request, pk):
+    facultad = get_object_or_404(Facultad, pk=pk)
+
+    deptos_ids = departamentos_permitidos(request)
+    departamentos = Departamento.objects.filter(facultad=facultad)
+    if deptos_ids is not None:
+        departamentos = departamentos.filter(pk__in=deptos_ids)
+
+    asignaciones = Asignacion.objects.filter(departamento__in=departamentos)
+
+    data = {
+        'facultad': facultad.nombre,
+        'departamentos': [],
+        'pendientes': asignaciones.filter(estado=EstadoAsignacion.PENDIENTE).count(),
+        'aprobadas': asignaciones.filter(estado=EstadoAsignacion.APROBADO).count(),
+    }
+
+    for departamento in departamentos:
+        asignaciones_dep = Asignacion.objects.filter(departamento=departamento)
+        data['departamentos'].append({
+            'id': departamento.pk,
+            'nombre': departamento.nombre,
+            'total_asignaciones': asignaciones_dep.count(),
+            'evidencias': Evidencia.objects.filter(asignacion__departamento=departamento).count(),
+            'pendientes': asignaciones_dep.filter(estado=EstadoAsignacion.PENDIENTE).count(),
+            'aprobadas': asignaciones_dep.filter(estado=EstadoAsignacion.APROBADO).count(),
+        })
+
+    return data
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def por_facultad(request, pk=None):
+    return Response(_data_por_facultad(request, pk))
+
+
+def _filas_facultad(data):
+    filas = []
+    for dept in data['departamentos']:
+        filas.append([
+            dept['nombre'],
+            dept['total_asignaciones'],
+            dept['evidencias'],
+            dept['pendientes'],
+            dept['aprobadas'],
+        ])
+    return filas
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def por_facultad_exportar(request, pk=None):
+    data = _data_por_facultad(request, pk)
+    return _responder_exportacion(
+        f"Reporte por Facultad: {data['facultad']}",
+        ['Departamento', 'Total asignaciones', 'Evidencias', 'Pendientes', 'Aprobadas'],
+        _filas_facultad(data),
+        request.query_params.get('formato', 'xlsx'),
+        f"reporte_facultad_{pk}",
+    )
+
+
+# ============================================================
+# Reporte 3: Por departamento
+# ============================================================
+def _responsable_departamento(departamento):
+    perfiles = PerfilUsuario.objects.filter(departamento=departamento).select_related('usuario', 'usuario__groups')
+    for perfil in perfiles:
+        if perfil.usuario.groups.filter(name='Responsable Departamental').exists():
+            return perfil.usuario.username
+    if perfiles.exists():
+        return perfiles.first().usuario.username
+    return ''
+
+
+def _data_por_departamento(request, pk):
+    departamento = get_object_or_404(Departamento, pk=pk)
+
+    deptos_ids = departamentos_permitidos(request)
+    if deptos_ids is not None and departamento.pk not in deptos_ids:
+        return {'departamento': departamento.nombre, 'denegado': True, 'total': 0, 'rows': []}
+
+    asignaciones = Asignacion.objects.filter(departamento=departamento).select_related('indicador')
+
+    filas = []
+    for asignacion in asignaciones:
+        ultima_version = VersionEvidencia.objects.filter(
+            evidencia__asignacion=asignacion
+        ).order_by('-fecha_subida').first()
+
+        ultimo_historial = HistorialEstado.objects.filter(
+            asignacion=asignacion
+        ).order_by('-fecha').first()
+
+        filas.append({
+            'indicador': asignacion.indicador.nombre,
+            'estado': asignacion.estado,
+            'fecha_modificacion': (
+                _formato_fecha(ultimo_historial.fecha) if ultimo_historial else ''
+            ),
+            'responsable': _responsable_departamento(departamento),
+            'ultima_version': ultima_version.version if ultima_version else None,
+        })
+
+    filas, total, page, page_size, total_pages = _paginar(request, filas)
+
+    return {
+        'departamento': departamento.nombre,
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
+        'rows': filas,
+    }
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def por_departamento(request, pk=None):
+    data = _data_por_departamento(request, pk)
+    if data.get('denegado'):
+        return Response({'detail': 'No autorizado'}, status=403)
+    return Response(data)
+
+
+def _filas_departamento(data):
+    return [
+        [
+            fila['indicador'],
+            fila['estado'],
+            fila['fecha_modificacion'],
+            fila['responsable'],
+            fila['ultima_version'],
+        ]
+        for fila in data['rows']
+    ]
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def por_departamento_exportar(request, pk=None):
+    data = _data_por_departamento(request, pk)
+    if data.get('denegado'):
+        return Response({'detail': 'No autorizado'}, status=403)
+    return _responder_exportacion(
+        f"Reporte por Departamento: {data['departamento']}",
+        ['Indicador', 'Estado', 'Fecha modificación', 'Responsable', 'Última versión'],
+        _filas_departamento(data),
+        request.query_params.get('formato', 'xlsx'),
+        f"reporte_departamento_{pk}",
+    )
+
+
+# ============================================================
+# Reporte 4: Evidencias
+# ============================================================
+def _base_queryset_evidencias(request):
+    qs = Evidencia.objects.select_related(
+        'asignacion__indicador',
+        'asignacion__departamento',
+        'asignacion__periodo',
+    )
+
+    deptos_ids = departamentos_permitidos(request)
+    if deptos_ids is not None:
+        qs = qs.filter(asignacion__departamento_id__in=deptos_ids)
+
+    estado = request.query_params.get('estado')
+    if estado:
+        qs = qs.filter(asignacion__estado=estado)
+
+    departamento = request.query_params.get('departamento')
+    if departamento:
+        qs = qs.filter(asignacion__departamento_id=departamento)
+
+    periodo = request.query_params.get('periodo')
+    if periodo:
+        qs = qs.filter(asignacion__periodo_id=periodo)
+
+    criterio = request.query_params.get('criterio')
+    if criterio:
+        qs = qs.filter(asignacion__indicador__criterio_id=criterio)
+
+    return qs
+
+
+def _filas_evidencias(qs):
+    filas = []
+    for evidencia in qs:
+        ultima_version = evidencia.versiones.order_by('-fecha_subida').first()
+        filas.append([
+            evidencia.asignacion.indicador.nombre,
+            evidencia.titulo,
+            evidencia.asignacion.estado,
+            _formato_fecha(ultima_version.fecha_subida) if ultima_version else '',
+        ])
+    return filas
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def evidencias(request):
+    qs = _base_queryset_evidencias(request)
+    filas_completas = _filas_evidencias(qs)
+    filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
+
+    filas_json = [
+        {
+            'indicador': fila[0],
+            'evidencia': fila[1],
+            'estado': fila[2],
+            'fecha': fila[3],
+        }
+        for fila in filas
+    ]
+
+    return Response({
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
+        'rows': filas_json,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, PuedeVerReportes])
+def evidencias_exportar(request):
+    qs = _base_queryset_evidencias(request)
+    filas = _filas_evidencias(qs)
+    return _responder_exportacion(
+        'Reporte de Evidencias',
+        ['Indicador', 'Evidencia', 'Estado', 'Fecha'],
+        filas,
+        request.query_params.get('formato', 'xlsx'),
+        'reporte_evidencias',
+    )
 
 
 # ============================================================
