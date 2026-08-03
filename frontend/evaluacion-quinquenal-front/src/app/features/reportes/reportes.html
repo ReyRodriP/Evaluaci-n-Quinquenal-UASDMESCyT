@@ -17,10 +17,10 @@
     <button class="tab" [class.active]="pestanaActiva === 'observaciones'" (click)="cambiarPestana('observaciones')">
       <i class="bx bx-message-square-error"></i> Observaciones
     </button>
-    <button class="tab" [class.active]="pestanaActiva === 'auditoria'" (click)="cambiarPestana('auditoria')">
+    <button *ngIf="puedeVerReportesCompletos" class="tab" [class.active]="pestanaActiva === 'auditoria'" (click)="cambiarPestana('auditoria')">
       <i class="bx bx-history"></i> Auditoría
     </button>
-    <button class="tab" [class.active]="pestanaActiva === 'usuarios'" (click)="cambiarPestana('usuarios')">
+    <button *ngIf="puedeVerReportesCompletos" class="tab" [class.active]="pestanaActiva === 'usuarios'" (click)="cambiarPestana('usuarios')">
       <i class="bx bx-user"></i> Usuarios
     </button>
   </div>

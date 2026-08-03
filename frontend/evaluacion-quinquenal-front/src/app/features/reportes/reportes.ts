@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../core/services/auth.service';
+import { PermisosService } from '../../core/services/permisos.service';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 
@@ -79,8 +80,15 @@ export class Reportes implements OnInit, OnDestroy {
 
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService
   ) {}
+
+  get puedeVerReportesCompletos(): boolean {
+    return this.permisos.esSuperuser
+      || this.permisos.tieneGrupo('Administrador General')
+      || this.permisos.tieneGrupo('Coordinador Quinquenal');
+  }
 
   private debounceTimer: any;
 
@@ -96,6 +104,9 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   cambiarPestana(pestana: Pestana): void {
+    if ((pestana === 'auditoria' || pestana === 'usuarios') && !this.puedeVerReportesCompletos) {
+      return;
+    }
     this.pestanaActiva = pestana;
     this.cargarReporteActual();
   }

@@ -20,7 +20,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import PuedeVerReportes, departamentos_permitidos
+from accounts.permissions import (
+    PuedeVerReportes,
+    PuedeVerReportesCompletos,
+    departamentos_permitidos,
+    facultades_permitidas,
+)
 from auditoria.models import Auditoria
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, HistorialEstado, Periodo
 from evidence.models import Evidencia, Observacion, VersionEvidencia
@@ -325,6 +330,10 @@ def _base_departamentos_visibles(request):
 def _data_por_facultad(request, pk):
     facultad = get_object_or_404(Facultad, pk=pk)
 
+    facultades_ids = facultades_permitidas(request)
+    if facultades_ids is not None and facultad.pk not in facultades_ids:
+        return {'facultad': facultad.nombre, 'denegado': True, 'departamentos': [], 'pendientes': 0, 'aprobadas': 0}
+
     deptos_ids = departamentos_permitidos(request)
     departamentos = Departamento.objects.filter(facultad=facultad)
     if deptos_ids is not None:
@@ -356,7 +365,10 @@ def _data_por_facultad(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def por_facultad(request, pk=None):
-    return Response(_data_por_facultad(request, pk))
+    data = _data_por_facultad(request, pk)
+    if data.get('denegado'):
+        return Response({'detail': 'No autorizado'}, status=403)
+    return Response(data)
 
 
 def _filas_facultad(data):
@@ -376,6 +388,8 @@ def _filas_facultad(data):
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def por_facultad_exportar(request, pk=None):
     data = _data_por_facultad(request, pk)
+    if data.get('denegado'):
+        return Response({'detail': 'No autorizado'}, status=403)
     return _responder_exportacion(
         f"Reporte por Facultad: {data['facultad']}",
         ['Departamento', 'Total asignaciones', 'Evidencias', 'Pendientes', 'Aprobadas'],
@@ -650,7 +664,7 @@ def _base_queryset_auditoria(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, PuedeVerReportes])
+@permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def auditoria(request):
     qs = _base_queryset_auditoria(request)
     filas_completas = _filas_auditoria(qs)
@@ -678,7 +692,7 @@ def auditoria(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, PuedeVerReportes])
+@permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def auditoria_exportar(request):
     qs = _base_queryset_auditoria(request)
     filas = _filas_auditoria(qs)
@@ -713,7 +727,7 @@ def _base_queryset_usuarios(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, PuedeVerReportes])
+@permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def usuarios(request):
     qs = _base_queryset_usuarios(request)
     filas_completas = _filas_usuarios(qs)
@@ -745,7 +759,7 @@ def usuarios(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, PuedeVerReportes])
+@permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def usuarios_exportar(request):
     qs = _base_queryset_usuarios(request)
     filas = _filas_usuarios(qs)

@@ -1,180 +1,234 @@
 .reportes-page {
   padding: 24px;
+  max-width: 1480px;
+  margin: 0 auto;
 }
 
 .page-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin-bottom: 24px;
-  color: #1e293b;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 24px;
+  color: var(--heading-color);
 }
 
 .reportes-tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  margin-bottom: 24px;
+  background: var(--table-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
   padding: 6px;
   width: fit-content;
   max-width: 100%;
   flex-wrap: wrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--table-shadow);
 }
 
 .tab {
   border: none;
   background: transparent;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: #64748b;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.15s ease;
+  transition: var(--tran-03);
 }
 
 .tab:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--background-hover);
+  color: var(--heading-color);
 }
 
 .tab.active {
-  background: #1e4e79;
-  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color), #4cc2ff);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 145, 255, 0.24);
 }
 
 .reporte-section {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: var(--table-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--table-shadow);
   margin-bottom: 20px;
 }
 
 .reporte-filtros {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 14px;
-  align-items: flex-end;
+  align-items: end;
   margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(0, 145, 255, 0.04), rgba(59, 130, 246, 0.02));
+  border: 1px solid rgba(0, 145, 255, 0.14);
+  border-radius: 14px;
 }
 
 .reporte-filtros label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #475569;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--heading-color);
 }
 
 .reporte-filtros select,
 .reporte-filtros input {
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
   font-size: 0.9rem;
-  background: #fff;
-  color: #0f172a;
-  min-width: 150px;
+  background: var(--sidebar-color);
+  color: var(--modal-input-text);
+  min-width: 0;
+  width: 100%;
+  transition: var(--tran-03);
 }
 
 .reporte-filtros select:focus,
 .reporte-filtros input:focus {
   outline: none;
-  border-color: #1e4e79;
-  box-shadow: 0 0 0 3px rgba(30, 78, 121, 0.12);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 145, 255, 0.16);
 }
 
 .btn-limpiar {
   border: none;
-  background: #1e4e79;
+  background: linear-gradient(135deg, #0f4c81, var(--primary-color));
   color: #fff;
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  transition: background 0.15s ease;
+  min-height: 42px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .btn-limpiar:hover {
-  background: #16395c;
+  transform: translateY(-1px);
+  opacity: 0.95;
 }
 
 .reporte-resumen {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
   margin-bottom: 20px;
 }
 
 .resumen-item {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 14px 20px;
+  background: linear-gradient(180deg, var(--sidebar-color), rgba(59, 130, 246, 0.03));
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  min-width: 140px;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.resumen-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary-color), #4cc2ff);
 }
 
 .resumen-valor {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #1e4e79;
+  color: var(--heading-color);
+  line-height: 1.1;
 }
 
 .resumen-etiqueta {
-  font-size: 0.78rem;
-  color: #64748b;
-  margin-top: 2px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .reporte-exportar {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 8px;
 }
 
 .btn-exportar {
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   color: #fff;
-  transition: opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .btn-exportar:hover {
-  opacity: 0.88;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .btn-exportar.excel {
-  background: #1d6f42;
+  background: linear-gradient(135deg, #1d6f42, #22c55e);
 }
 
 .btn-exportar.pdf {
-  background: #b91c1c;
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
 }
 
 .state-message {
   text-align: center;
-  padding: 32px;
-  color: #64748b;
-  font-size: 0.95rem;
+  padding: 38px 24px;
+  color: var(--text-secondary);
+  font-size: 0.96rem;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+@media (max-width: 720px) {
+  .reportes-page {
+    padding: 16px;
+  }
+
+  .reportes-tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
+
+  .reporte-exportar {
+    flex-direction: column;
+  }
+
+  .btn-exportar {
+    width: 100%;
+    justify-content: center;
+  }
 }

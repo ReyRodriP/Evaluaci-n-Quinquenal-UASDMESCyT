@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -10,15 +10,23 @@ import ApexCharts from 'apexcharts';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard implements OnInit, AfterViewInit {
+export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   resumen: any = {}
   avance: any[] = []
   loading = true
+  private graficos: ApexCharts[] = []
+  private observer?: MutationObserver
 
   constructor(private authService: AuthService) {}
 
   ngOnInit(): void {
     this.cargarDatos()
+    this.observarTema()
+  }
+
+  ngOnDestroy(): void {
+    this.observer?.disconnect()
+    this.destruirGraficos()
   }
 
   cargarDatos(): void {
@@ -39,16 +47,36 @@ export class Dashboard implements OnInit, AfterViewInit {
     if (!this.loading) this.inicializarGraficos()
   }
 
+  private esOscuro(): boolean {
+    return document.body.classList.contains('dark')
+  }
+
+  private observarTema(): void {
+    this.observer = new MutationObserver(() => this.inicializarGraficos())
+    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+  }
+
   private inicializarGraficos(): void {
+    this.destruirGraficos()
     this.graficoPastel()
     this.graficoAvance()
+  }
+
+  private destruirGraficos(): void {
+    this.graficos.forEach(g => g.destroy())
+    this.graficos = []
   }
 
   private graficoPastel(): void {
     const el = document.getElementById('chart-pastel')
     if (!el) return
-    new ApexCharts(el, {
-      chart: { type: 'donut', fontFamily: 'inherit' },
+    const dark = this.esOscuro()
+    const grafico = new ApexCharts(el, {
+      chart: {
+        type: 'donut',
+        fontFamily: 'inherit',
+        foreColor: dark ? '#cbd5e1' : '#475569',
+      },
       labels: ['Pendientes', 'En progreso', 'Aprobadas', 'Observadas', 'Rechazadas'],
       series: [
         this.resumen.pendientes || 0,
@@ -61,23 +89,37 @@ export class Dashboard implements OnInit, AfterViewInit {
       plotOptions: { pie: { donut: { size: '60%' } } },
       legend: { position: 'bottom' },
       responsive: [{ breakpoint: 480, options: { chart: { width: 300 }, legend: { position: 'bottom' } } }],
-    }).render()
+    })
+    grafico.render()
+    this.graficos.push(grafico)
   }
 
   private graficoAvance(): void {
     const el = document.getElementById('chart-avance')
     if (!el || !this.avance.length) return
+    const dark = this.esOscuro()
     const facultades = this.avance.map(a => a.facultad)
     const porcentajes = this.avance.map(a => Math.round(a.porcentaje * 100) / 100)
-    new ApexCharts(el, {
-      chart: { type: 'bar', fontFamily: 'inherit', toolbar: { show: false } },
+    const grafico = new ApexCharts(el, {
+      chart: {
+        type: 'bar',
+        fontFamily: 'inherit',
+        toolbar: { show: false },
+        foreColor: dark ? '#cbd5e1' : '#475569',
+      },
       series: [{ name: 'Avance (%)', data: porcentajes }],
       xaxis: { categories: facultades, labels: { rotate: -30 } },
       colors: ['#3b82f6'],
       plotOptions: { bar: { borderRadius: 4, horizontal: false } },
-      dataLabels: { enabled: true, formatter: (v: number) => v + '%' },
+      dataLabels: {
+        enabled: true,
+        formatter: (v: number) => v + '%',
+        style: { colors: [dark ? '#e2e8f0' : '#0f172a'] },
+      },
       yaxis: { max: 100, labels: { formatter: (v: number) => v + '%' } },
       tooltip: { y: { formatter: (v: number) => v + '%' } },
-    }).render()
+    })
+    grafico.render()
+    this.graficos.push(grafico)
   }
 }

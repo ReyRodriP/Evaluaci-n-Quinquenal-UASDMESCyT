@@ -8,12 +8,14 @@
       [stateOptions]="[]"
       [showCreate]="false"
       [showState]="false"
-      (search)="onSearch($event)">
+      [pageSize]="pageSize"
+      (search)="onSearch($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
     </app-search-bar>
 
     <app-crud-table
       [columnas]="['Departamento', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
-      [datos]="rowsFiltrados"
+      [datos]="rowsPaginados"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
       <ng-template #acciones let-row>
         <div class="action-group">
@@ -38,6 +40,13 @@
         </div>
       </ng-template>
     </app-crud-table>
+
+    <app-pagination
+      [total]="rowsFiltrados.length"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage"
+      (pageChange)="onPageChange($event)">
+    </app-pagination>
 
     <div *ngIf="!rowsFiltrados.length && !loading" class="state-message">No hay asignaciones disponibles para gestionar evidencias.</div>
   </ng-container>

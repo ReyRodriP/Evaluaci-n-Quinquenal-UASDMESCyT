@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -249,7 +250,18 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         )
         return Response({"estado": EstadoAsignacion.OBSERVADA})
 
+    def _validar_departamento_permitido(self, validated_data):
+        departamento = validated_data.get('departamento')
+        if not departamento:
+            return
+        permitidos = departamentos_permitidos(self.request)
+        if permitidos is not None and departamento.pk not in permitidos:
+            raise ValidationError({
+                'departamento': 'No tiene permiso para asignar indicadores a este departamento.'
+            })
+
     def perform_create(self, serializer):
+        self._validar_departamento_permitido(serializer.validated_data)
         instance = serializer.save()
         registrar_auditoria(
             usuario=self.request.user,
@@ -269,6 +281,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        self._validar_departamento_permitido(serializer.validated_data)
         old_estado = self.get_object().estado
         instance = serializer.save()
 
