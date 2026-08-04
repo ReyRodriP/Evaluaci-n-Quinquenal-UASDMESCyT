@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
@@ -18,12 +18,12 @@ export class Criterios implements OnInit {
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
-  paginados: any[] = [];
-  page = 1;
-  pageSize = 10;
+  datosPaginados: any[] = [];
   periodos: any[] = [];
   searchTerm = '';
   selectedState = 'Todas';
+  currentPage = 1;
+  pageSize = 10;
 
   showModal: boolean = false;
   selectedItem: any = null;
@@ -134,19 +134,24 @@ export class Criterios implements OnInit {
         || (this.selectedState === 'Inactivos' && !item.activo);
       return matchesSearch && matchesState;
     });
-    const maxPagina = Math.max(1, Math.ceil(this.datosFiltrados.length / this.pageSize));
-    if (this.page > maxPagina) this.page = maxPagina;
-    this.aplicarPagina();
+    this.currentPage = 1;
+    this.actualizarPagina();
   }
 
-  cambiarPagina(pagina: number): void {
-    this.page = pagina;
-    this.aplicarPagina();
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.datosFiltrados.slice(start, start + this.pageSize);
   }
 
-  private aplicarPagina(): void {
-    const inicio = (this.page - 1) * this.pageSize;
-    this.paginados = this.datosFiltrados.slice(inicio, inicio + this.pageSize);
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 
   onModalClose() {

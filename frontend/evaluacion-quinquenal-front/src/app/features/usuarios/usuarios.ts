@@ -21,13 +21,13 @@ export class Usuarios implements OnInit {
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
-  paginados: any[] = [];
-  page = 1;
-  pageSize = 10;
+  datosPaginados: any[] = [];
   departamentos: any[] = [];
   roles: any[] = [];
   searchTerm = '';
   selectedState = 'Todos';
+  currentPage = 1;
+  pageSize = 10;
 
   showModal = false;
   selectedItem: any = null;
@@ -37,8 +37,8 @@ export class Usuarios implements OnInit {
     { label: 'Contraseña', name: 'password', type: 'password', placeholder: 'Dejar en blanco para no cambiar', defaultValue: '' },
     { label: 'Nombre', name: 'first_name', type: 'text', placeholder: 'Nombre del usuario', defaultValue: '' },
     { label: 'Correo', name: 'email', type: 'email', placeholder: 'correo@dominio.com', defaultValue: '' },
-    { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '' },
-    { label: 'Rol', name: 'rol', type: 'select', options: ['Administrador', 'Consulta', 'Responsable', 'Coordinador'], defaultValue: 'Consulta' },
+    { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '', allowClear: true, searchable: true },
+    { label: 'Rol', name: 'rol', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
 
@@ -79,7 +79,7 @@ export class Usuarios implements OnInit {
       username: item.username ?? '',
       first_name: item.first_name ?? item.username ?? '',
       departamento: item.departamentoId ?? item.departamento ?? '',
-      rol: item.rol ?? 'Consulta',
+      rol: item.rol ?? '',
       estado: item.is_active ? 'Activo' : 'Inactivo'
     };
     this.showModal = true;
@@ -108,7 +108,7 @@ export class Usuarios implements OnInit {
             first_name: item.first_name || item.username || '',
             departamento: profile?.departamento_nombre || item.departamento_nombre || item.departamento || '',
             departamentoId,
-            rol: item.rol || 'Consulta',
+            rol: item.rol || 'Sin rol',
             is_active: item.is_active ?? true,
             estado: item.is_active ? 'Activo' : 'Inactivo'
           };
@@ -164,12 +164,7 @@ export class Usuarios implements OnInit {
       },
       error: (err) => {
         console.error('Error cargando roles', err);
-        this.roles = [
-          { value: 'Administrador', label: 'Administrador', id: null },
-          { value: 'Consulta', label: 'Consulta', id: null },
-          { value: 'Responsable', label: 'Responsable', id: null },
-          { value: 'Coordinador', label: 'Coordinador', id: null }
-        ];
+        this.roles = [];
       }
     });
   }
@@ -196,19 +191,24 @@ export class Usuarios implements OnInit {
 
       return matchesSearch && matchesState;
     });
-    const maxPagina = Math.max(1, Math.ceil(this.datosFiltrados.length / this.pageSize));
-    if (this.page > maxPagina) this.page = maxPagina;
-    this.aplicarPagina();
+    this.currentPage = 1;
+    this.actualizarPagina();
   }
 
-  cambiarPagina(pagina: number): void {
-    this.page = pagina;
-    this.aplicarPagina();
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.datosFiltrados.slice(start, start + this.pageSize);
   }
 
-  private aplicarPagina(): void {
-    const inicio = (this.page - 1) * this.pageSize;
-    this.paginados = this.datosFiltrados.slice(inicio, inicio + this.pageSize);
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 
   onModalClose(): void {
@@ -217,17 +217,12 @@ export class Usuarios implements OnInit {
   }
 
   private syncPerfilUsuario(userId: any, departamento: any, onSuccess: () => void, onError: (err: any) => void): void {
-    if (!departamento) {
-      onSuccess();
-      return;
-    }
-
     this.authService.listarPerfiles().subscribe({
       next: (perfiles) => {
         const profile = perfiles.find((perfil: any) => perfil.usuario === userId || perfil.usuario?.id === userId);
 
         if (profile && profile.id) {
-          this.authService.actualizarPerfil(profile.id, { departamento }).subscribe({
+          this.authService.actualizarPerfil(profile.id, { departamento: departamento || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error actualizando perfil de usuario', err);
@@ -235,7 +230,7 @@ export class Usuarios implements OnInit {
             }
           });
         } else {
-          this.authService.crearPerfil({ usuario: userId, departamento }).subscribe({
+          this.authService.crearPerfil({ usuario: userId, departamento: departamento || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error creando perfil de usuario', err);

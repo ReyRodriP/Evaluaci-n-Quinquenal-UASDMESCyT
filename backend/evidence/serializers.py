@@ -57,6 +57,22 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
             return obj.archivo.name.split('/')[-1]
         return None
 
+class EditarVersionSerializer(serializers.Serializer):
+    archivo = serializers.FileField(required=False, allow_null=True)
+    comentario = serializers.CharField(required=False, allow_blank=True)
+
+    def update(self, instance, validated_data):
+        archivo = validated_data.get('archivo')
+        comentario = validated_data.get('comentario')
+
+        if archivo:
+            instance.archivo = archivo
+        if comentario is not None:
+            instance.comentario = comentario
+
+        instance.save()
+        return instance
+
 class EvidenciaSerializer(serializers.ModelSerializer):
     versiones = VersionEvidenciaSerializer(many=True, read_only=True)
     ultima_version = serializers.SerializerMethodField()

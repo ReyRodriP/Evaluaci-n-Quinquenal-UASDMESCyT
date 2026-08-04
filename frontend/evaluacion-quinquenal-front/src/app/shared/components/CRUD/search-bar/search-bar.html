@@ -25,10 +25,10 @@
             <option *ngFor="let option of stateOptions" [value]="option">{{ option }}</option>
         </select>
 
-        <select>
-            <option>10 registros</option>
-            <option>25 registros</option>
-            <option>50 registros</option>
+        <select [value]="pageSize" (change)="onPageSizeChange($event)">
+            <option value="10">10 registros</option>
+            <option value="25">25 registros</option>
+            <option value="50">50 registros</option>
         </select>
 
     </div>

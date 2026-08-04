@@ -1,8 +1,8 @@
 <div class="crud-container">
     <div class="crud-header">
-        <app-search-bar [titulo]="'Facultades'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todas', 'Activas', 'Inactivas']" [showCreate]="puedeCrear" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)"></app-search-bar>
-    <app-crud-table [columnas]="columnas" [datos]="paginados" [ocultarAcciones]="ocultarAcciones" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
-    <app-pagination [total]="datosFiltrados.length" [page]="page" [pageSize]="pageSize" (pageChange)="cambiarPagina($event)"></app-pagination>
+        <app-search-bar [titulo]="'Facultades'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todas', 'Activas', 'Inactivas']" [showCreate]="puedeCrear" [pageSize]="pageSize" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)" (pageSizeChange)="onPageSizeChange($event)"></app-search-bar>
+    <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
+    <app-pagination [total]="datosFiltrados.length" [pageSize]="pageSize" [currentPage]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
 
     <app-modal
       [open]="showModal"

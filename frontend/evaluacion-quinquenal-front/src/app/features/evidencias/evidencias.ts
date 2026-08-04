@@ -7,18 +7,22 @@ import { AuthService } from '../../core/services/auth.service';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
+import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-evidencias',
-  imports: [CommonModule, SearchBar, CrudTable, Modal],
+  imports: [CommonModule, SearchBar, CrudTable, Modal, Pagination],
   templateUrl: './evidencias.html',
   styleUrl: './evidencias.css',
 })
 export class Evidencias implements OnInit {
   rows: any[] = [];
   rowsFiltrados: any[] = [];
+  rowsPaginados: any[] = [];
   searchTerm = '';
+  currentPage = 1;
+  pageSize = 10;
   loading = false;
 
   historialAbierto = false;
@@ -99,19 +103,37 @@ export class Evidencias implements OnInit {
     const term = this.searchTerm.toLowerCase().trim();
     if (!term) {
       this.rowsFiltrados = [...this.rows];
-      return;
+    } else {
+      this.rowsFiltrados = this.rows.filter((row) => {
+        const campos = [
+          row.indicador_nombre,
+          row.departamento_nombre,
+          row.periodo_nombre,
+          row.archivoNombre,
+          row.estado,
+          row.observacionesTexto,
+        ];
+        return campos.some((c) => c && c.toLowerCase().includes(term));
+      });
     }
-    this.rowsFiltrados = this.rows.filter((row) => {
-      const campos = [
-        row.indicador_nombre,
-        row.departamento_nombre,
-        row.periodo_nombre,
-        row.archivoNombre,
-        row.estado,
-        row.observacionesTexto,
-      ];
-      return campos.some((c) => c && c.toLowerCase().includes(term));
-    });
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
+  }
+
+  private actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.rowsPaginados = this.rowsFiltrados.slice(start, start + this.pageSize);
   }
 
   onEdit(row: any): void {

@@ -6,7 +6,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   margin-bottom: 24px;
-  color: #1e293b;
+  color: var(--heading-color);
 }
 
 .stats-grid {
@@ -17,14 +17,14 @@
 }
 
 .stat-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--table-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--table-shadow);
 }
 
 .stat-icon {
@@ -38,25 +38,10 @@
   flex-shrink: 0;
 }
 
-.stat-icon.total {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.stat-icon.users {
-  background: #f0fdf4;
-  color: #22c55e;
-}
-
-.stat-icon.approved {
-  background: #fef3c7;
-  color: #f59e0b;
-}
-
-.stat-icon.observed {
-  background: #fef2f2;
-  color: #ef4444;
-}
+.stat-icon.total     { background: #eff6ff; color: #3b82f6; }
+.stat-icon.users     { background: #f0fdf4; color: #22c55e; }
+.stat-icon.approved  { background: #fef3c7; color: #f59e0b; }
+.stat-icon.observed  { background: #fef2f2; color: #ef4444; }
 
 .stat-body {
   display: flex;
@@ -67,26 +52,26 @@
   font-size: 1.75rem;
   font-weight: 800;
   line-height: 1.2;
-  color: #0f172a;
+  color: var(--heading-color);
 }
 
 .stat-label {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 
 .auditoria-table-section {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--table-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--table-shadow);
 }
 
 .state-message {
   text-align: center;
   padding: 32px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }

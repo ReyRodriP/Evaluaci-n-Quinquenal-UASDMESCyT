@@ -718,6 +718,112 @@
   RESPONSIVE
 ==========================*/
 
+.edit-info-form {
+    width: 100%;
+}
+
+.edit-info-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.locked-section {
+    text-align: center;
+    opacity: .85;
+}
+
+.locked-section h4 {
+    color: var(--text-title-color);
+}
+
+.locked-msg {
+    color: var(--text-color);
+    font-size: .9rem;
+    margin-top: 8px;
+}
+
+.version-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.latest-badge {
+    font-size: .75rem;
+    font-weight: 500;
+    color: var(--primary-color);
+    margin-left: 6px;
+}
+
+.edit-version-form {
+    margin-top: 15px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background-hover);
+}
+
+.current-file {
+    display: block;
+    font-size: .8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.secondary-btn.small {
+    font-size: .82rem;
+    padding: 6px 12px;
+}
+
+.confirm-upload {
+    padding: 16px;
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    background: var(--background-selected);
+}
+
+.confirm-msg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--text-title-color);
+    margin-bottom: 12px;
+}
+
+.confirm-msg i {
+    font-size: 1.3rem;
+    color: var(--primary-color);
+}
+
+.confirm-details {
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: var(--table-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.confirm-detail {
+    font-size: .9rem;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.confirm-detail:last-child {
+    margin-bottom: 0;
+}
+
+.confirm-detail strong {
+    color: var(--text-title-color);
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+}
+
 @media(max-width:900px){
 
     .detalle-grid{

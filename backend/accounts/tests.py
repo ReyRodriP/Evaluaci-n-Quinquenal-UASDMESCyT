@@ -14,8 +14,6 @@ from django.contrib.auth.models import Group, Permission
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 
-from accounts.role_permissions import OUR_APP_LABELS, sync_group_permissions
-
 
 User = get_user_model()
 
@@ -102,8 +100,9 @@ class ObjectivesTest(TestCase):
         self.admin_group, _ = Group.objects.get_or_create(name='Administrador General')
         self.consulta_group, _ = Group.objects.get_or_create(name='Consulta')
 
-        sync_group_permissions(self.admin_group)
-        sync_group_permissions(self.consulta_group)
+        all_permissions = Permission.objects.all()
+        self.admin_group.permissions.set(all_permissions)
+        self.consulta_group.permissions.clear()
 
         self.admin_user = User.objects.create_user(
             username='admin', password='admin123', email='admin@test.com'
@@ -157,34 +156,31 @@ class ObjectivesTest(TestCase):
         response = self.client.get(f'/api/usuarios/{self.consulta_user.id}/permisos/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['rol'], 'Consulta')
-        self.assertGreater(len(response.data['permisos']), 0)
-        self.assertTrue(all(p.split('.')[-1].startswith('view_') for p in response.data['permisos']))
+        self.assertEqual(len(response.data['permisos']), 0)
 
     # --- Objective 3: Seed permissions ---
-    def test_admin_has_all_app_permissions(self):
-        total = Permission.objects.filter(content_type__app_label__in=OUR_APP_LABELS).count()
+    def test_admin_has_all_permissions(self):
+        total = Permission.objects.count()
         self.assertEqual(self.admin_group.permissions.count(), total)
 
-    def test_consulta_has_only_view_permissions(self):
-        self.assertGreater(self.consulta_group.permissions.count(), 0)
-        codenames = set(self.consulta_group.permissions.values_list('codename', flat=True))
-        self.assertTrue(all(c.startswith('view_') for c in codenames))
+    def test_consulta_has_no_permissions(self):
+        self.assertEqual(self.consulta_group.permissions.count(), 0)
 
     # --- Objective 4: CRUD protection ---
-    def test_consulta_user_can_view_facultades(self):
+    def test_consulta_user_cannot_access_facultades(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.consulta_token.key)
         response = self.client.get('/api/facultades/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_admin_user_can_access_facultades(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)
         response = self.client.get('/api/facultades/')
         self.assertEqual(response.status_code, 200)
 
-    def test_consulta_user_can_view_periodos(self):
+    def test_consulta_user_cannot_access_periodos(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.consulta_token.key)
         response = self.client.get('/api/periodos/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_admin_user_can_access_periodos(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)

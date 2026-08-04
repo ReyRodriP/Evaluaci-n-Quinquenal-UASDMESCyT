@@ -1,12 +1,15 @@
-<!-- Paginación -->
 <div class="pagination" *ngIf="total > 0">
-    <span>
-        Mostrando {{ startItem }}-{{ endItem }} de {{ total }} registros
-    </span>
+  <span>
+    Mostrando {{ from }}-{{ to }} de {{ total }} registros
+  </span>
 
-    <div class="pages">
-        <button (click)="ir(page - 1)" [disabled]="page <= 1">◀</button>
-        <button *ngFor="let p of pages" (click)="ir(p)" [class.current]="p === page">{{ p }}</button>
-        <button (click)="ir(page + 1)" [disabled]="page >= totalPages">▶</button>
-    </div>
+  <div class="pages">
+    <button (click)="goTo(currentPage - 1)" [class.disabled]="currentPage === 1">◀</button>
+    <button
+      *ngFor="let p of pages"
+      (click)="goTo(p)"
+      [class.current]="p === currentPage"
+    >{{ p }}</button>
+    <button (click)="goTo(currentPage + 1)" [class.disabled]="currentPage === totalPages">▶</button>
+  </div>
 </div>

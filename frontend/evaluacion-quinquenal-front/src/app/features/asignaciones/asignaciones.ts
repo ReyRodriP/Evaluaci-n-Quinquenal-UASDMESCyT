@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
@@ -19,12 +19,12 @@ export class Asignaciones implements OnInit {
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
-  paginados: any[] = [];
-  page = 1;
-  pageSize = 10;
+  datosPaginados: any[] = [];
   indicadores: any[] = [];
   searchTerm = '';
   selectedState = 'Todos';
+  currentPage = 1;
+  pageSize = 10;
   departamentos: any[] = [];
   periodos: any[] = [];
 
@@ -149,8 +149,8 @@ export class Asignaciones implements OnInit {
         });
       },
       error: (err) => {
-        console.error('Error cargando periodos', err);
-        this.toast.error('No se pudieron cargar los periodos');
+        console.error('Error cargando períodos', err);
+        this.toast.error('No se pudieron cargar los períodos');
       }
     });
   }
@@ -217,19 +217,24 @@ export class Asignaciones implements OnInit {
         || (this.selectedState === item.estado);
       return matchesSearch && matchesState;
     });
-    const maxPagina = Math.max(1, Math.ceil(this.datosFiltrados.length / this.pageSize));
-    if (this.page > maxPagina) this.page = maxPagina;
-    this.aplicarPagina();
+    this.currentPage = 1;
+    this.actualizarPagina();
   }
 
-  cambiarPagina(pagina: number): void {
-    this.page = pagina;
-    this.aplicarPagina();
+  actualizarPagina(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.datosPaginados = this.datosFiltrados.slice(start, start + this.pageSize);
   }
 
-  private aplicarPagina(): void {
-    const inicio = (this.page - 1) * this.pageSize;
-    this.paginados = this.datosFiltrados.slice(inicio, inicio + this.pageSize);
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.actualizarPagina();
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.actualizarPagina();
   }
 
   onModalClose() {

@@ -2,49 +2,255 @@
   <h2 class="page-title">Reportes</h2>
 
   <div class="reportes-tabs">
-    <button
-      class="tab"
-      [class.active]="pestanaActiva === 'observaciones'"
-      (click)="cambiarPestana('observaciones')">
-      <i class="bx bx-message-square-error"></i>
-      Observaciones
+    <button class="tab" [class.active]="pestanaActiva === 'general'" (click)="cambiarPestana('general')">
+      <i class="bx bx-line-chart"></i> General
     </button>
-    <button
-      class="tab"
-      [class.active]="pestanaActiva === 'auditoria'"
-      (click)="cambiarPestana('auditoria')">
-      <i class="bx bx-history"></i>
-      Auditoría
+    <button class="tab" [class.active]="pestanaActiva === 'facultad'" (click)="cambiarPestana('facultad')">
+      <i class="bx bx-arch"></i> Por facultad
     </button>
-    <button
-      class="tab"
-      [class.active]="pestanaActiva === 'usuarios'"
-      (click)="cambiarPestana('usuarios')">
-      <i class="bx bx-user"></i>
-      Usuarios
+    <button class="tab" [class.active]="pestanaActiva === 'departamento'" (click)="cambiarPestana('departamento')">
+      <i class="bx bx-building"></i> Por departamento
+    </button>
+    <button class="tab" [class.active]="pestanaActiva === 'evidencias'" (click)="cambiarPestana('evidencias')">
+      <i class="bx bx-file"></i> Evidencias
+    </button>
+    <button class="tab" [class.active]="pestanaActiva === 'observaciones'" (click)="cambiarPestana('observaciones')">
+      <i class="bx bx-message-square-error"></i> Observaciones
+    </button>
+    <button *ngIf="puedeVerReportesCompletos" class="tab" [class.active]="pestanaActiva === 'auditoria'" (click)="cambiarPestana('auditoria')">
+      <i class="bx bx-history"></i> Auditoría
+    </button>
+    <button *ngIf="puedeVerReportesCompletos" class="tab" [class.active]="pestanaActiva === 'usuarios'" (click)="cambiarPestana('usuarios')">
+      <i class="bx bx-user"></i> Usuarios
     </button>
   </div>
+
+  <!-- ===================== REPORTE GENERAL DEL PERIODO ===================== -->
+  <section *ngIf="pestanaActiva === 'general'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Período
+        <select [(ngModel)]="genFiltros.periodo" (change)="cargarGeneral()">
+          <option value="">Último período</option>
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </label>
+      <button class="btn-limpiar" (click)="limpiarFiltrosGeneral()">
+        <i class="bx bx-reset"></i> Limpiar filtros
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <div class="reporte-resumen" *ngIf="!loading">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.periodo || 'Sin período' }}</span>
+        <span class="resumen-etiqueta">Período</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.total_departamentos }}</span>
+        <span class="resumen-etiqueta">Departamentos</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.total_indicadores }}</span>
+        <span class="resumen-etiqueta">Indicadores</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.total_asignaciones }}</span>
+        <span class="resumen-etiqueta">Asignaciones</span>
+      </div>
+    </div>
+
+    <div class="reporte-resumen" *ngIf="!loading">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.pendientes }}</span>
+        <span class="resumen-etiqueta">Pendientes</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.en_revision }}</span>
+        <span class="resumen-etiqueta">En revisión</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.observadas }}</span>
+        <span class="resumen-etiqueta">Observadas</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.aprobadas }}</span>
+        <span class="resumen-etiqueta">Aprobadas</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ genData.rechazadas }}</span>
+        <span class="resumen-etiqueta">Rechazadas</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== REPORTE POR FACULTAD ===================== -->
+  <section *ngIf="pestanaActiva === 'facultad'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Facultad
+        <select [(ngModel)]="facId" (change)="cargarFacultad()">
+          <option value="">Seleccione una facultad</option>
+          <option *ngFor="let f of facultades" [value]="f.id">{{ f.nombre }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <div class="reporte-resumen" *ngIf="!loading && facId">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ facData.pendientes }}</span>
+        <span class="resumen-etiqueta">Pendientes</span>
+      </div>
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ facData.aprobadas }}</span>
+        <span class="resumen-etiqueta">Aprobadas</span>
+      </div>
+    </div>
+
+    <app-crud-table
+      *ngIf="!loading && facData.departamentos.length"
+      [columnas]="facColumnas"
+      [datos]="facData.departamentos"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <div *ngIf="!loading && facId && !facData.departamentos.length" class="state-message">
+      La facultad seleccionada no tiene departamentos visibles.
+    </div>
+    <div *ngIf="!loading && !facId" class="state-message">
+      Seleccione una facultad para ver el reporte.
+    </div>
+  </section>
+
+  <!-- ===================== REPORTE POR DEPARTAMENTO ===================== -->
+  <section *ngIf="pestanaActiva === 'departamento'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Departamento
+        <select [(ngModel)]="depId" (change)="depPage = 1; cargarDepartamento()">
+          <option value="">Seleccione un departamento</option>
+          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <app-crud-table
+      *ngIf="!loading && depRows.length"
+      [columnas]="depColumnas"
+      [datos]="depRows"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <app-pagination
+      *ngIf="!loading && depRows.length"
+      [total]="depTotal"
+      [pageSize]="pageSize"
+      [currentPage]="depPage"
+      (pageChange)="cambiarPaginaDepartamento($event)">
+    </app-pagination>
+
+    <div *ngIf="!loading && depId && !depRows.length" class="state-message">
+      No hay asignaciones registradas para este departamento.
+    </div>
+    <div *ngIf="!loading && !depId" class="state-message">
+      Seleccione un departamento para ver el reporte.
+    </div>
+  </section>
+
+  <!-- ===================== REPORTE DE EVIDENCIAS ===================== -->
+  <section *ngIf="pestanaActiva === 'evidencias'" class="reporte-section">
+    <div class="reporte-filtros">
+      <label>
+        Estado
+        <select [(ngModel)]="evFiltros.estado" (change)="evPage = 1; cargarEvidencias()">
+          <option value="">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="en_progreso">En revisión</option>
+          <option value="observada">Observada</option>
+          <option value="aprobado">Aprobado</option>
+          <option value="rechazado">Rechazado</option>
+        </select>
+      </label>
+      <label>
+        Departamento
+        <select [(ngModel)]="evFiltros.departamento" (change)="evPage = 1; cargarEvidencias()">
+          <option value="">Todos</option>
+          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        Período
+        <select [(ngModel)]="evFiltros.periodo" (change)="evPage = 1; cargarEvidencias()">
+          <option value="">Todos</option>
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </label>
+      <label>
+        Criterio
+        <select [(ngModel)]="evFiltros.criterio" (change)="evPage = 1; cargarEvidencias()">
+          <option value="">Todos</option>
+          <option *ngFor="let c of criterios" [value]="c.id">{{ c.nombre }}</option>
+        </select>
+      </label>
+      <button class="btn-limpiar" (click)="limpiarFiltrosEvidencias()">
+        <i class="bx bx-reset"></i> Limpiar filtros
+      </button>
+    </div>
+
+    <div class="reporte-resumen" *ngIf="!loading">
+      <div class="resumen-item">
+        <span class="resumen-valor">{{ evTotal }}</span>
+        <span class="resumen-etiqueta">Evidencias encontradas</span>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="state-message">Cargando reporte...</div>
+
+    <app-crud-table
+      *ngIf="!loading && evRows.length"
+      [columnas]="evColumnas"
+      [datos]="evRows"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+    </app-crud-table>
+
+    <app-pagination
+      *ngIf="!loading && evRows.length"
+      [total]="evTotal"
+      [pageSize]="pageSize"
+      [currentPage]="evPage"
+      (pageChange)="cambiarPaginaEvidencias($event)">
+    </app-pagination>
+
+    <div *ngIf="!loading && !evRows.length" class="state-message">
+      No hay evidencias con los filtros seleccionados.
+    </div>
+  </section>
 
   <!-- ===================== REPORTE DE OBSERVACIONES ===================== -->
   <section *ngIf="pestanaActiva === 'observaciones'" class="reporte-section">
     <div class="reporte-filtros">
       <label>
         Período
-        <select [(ngModel)]="obsFiltros.periodo" (change)="cargarObservaciones()">
+        <select [(ngModel)]="obsFiltros.periodo" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
         </select>
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="obsFiltros.departamento" (change)="cargarObservaciones()">
+        <select [(ngModel)]="obsFiltros.departamento" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Observador
-        <select [(ngModel)]="obsFiltros.usuario" (change)="cargarObservaciones()">
+        <select [(ngModel)]="obsFiltros.usuario" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
@@ -77,9 +283,9 @@
     <app-pagination
       *ngIf="!loading && obsRows.length"
       [total]="obsResumen.total"
-      [page]="obsPage"
       [pageSize]="pageSize"
-      (pageChange)="cambiarPagina($event)">
+      [currentPage]="obsPage"
+      (pageChange)="cambiarPaginaObservaciones($event)">
     </app-pagination>
 
     <div *ngIf="!loading && !obsRows.length" class="state-message">
@@ -92,18 +298,18 @@
     <div class="reporte-filtros">
       <label>
         Usuario
-        <select [(ngModel)]="audFiltros.usuario" (change)="cargarAuditoria()">
+        <select [(ngModel)]="audFiltros.usuario" (change)="audPage = 1; cargarAuditoria()">
           <option value="">Todos</option>
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
       </label>
       <label>
         Desde
-        <input type="date" [(ngModel)]="audFiltros.fecha_desde" (change)="cargarAuditoria()" />
+        <input type="date" [(ngModel)]="audFiltros.fecha_desde" (change)="audPage = 1; cargarAuditoria()" />
       </label>
       <label>
         Hasta
-        <input type="date" [(ngModel)]="audFiltros.fecha_hasta" (change)="cargarAuditoria()" />
+        <input type="date" [(ngModel)]="audFiltros.fecha_hasta" (change)="audPage = 1; cargarAuditoria()" />
       </label>
       <label>
         Modelo
@@ -137,9 +343,9 @@
     <app-pagination
       *ngIf="!loading && audRows.length"
       [total]="audTotal"
-      [page]="audPage"
       [pageSize]="pageSize"
-      (pageChange)="cambiarPagina($event)">
+      [currentPage]="audPage"
+      (pageChange)="cambiarPaginaAuditoria($event)">
     </app-pagination>
 
     <div *ngIf="!loading && !audRows.length" class="state-message">
@@ -152,21 +358,21 @@
     <div class="reporte-filtros">
       <label>
         Rol
-        <select [(ngModel)]="usrFiltros.rol" (change)="cargarUsuarios()">
+        <select [(ngModel)]="usrFiltros.rol" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
           <option *ngFor="let r of roles" [value]="r.name">{{ r.name }}</option>
         </select>
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="usrFiltros.departamento" (change)="cargarUsuarios()">
+        <select [(ngModel)]="usrFiltros.departamento" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Estado
-        <select [(ngModel)]="usrFiltros.estado" (change)="cargarUsuarios()">
+        <select [(ngModel)]="usrFiltros.estado" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
@@ -204,9 +410,9 @@
     <app-pagination
       *ngIf="!loading && usrRows.length"
       [total]="usrResumen.total"
-      [page]="usrPage"
       [pageSize]="pageSize"
-      (pageChange)="cambiarPagina($event)">
+      [currentPage]="usrPage"
+      (pageChange)="cambiarPaginaUsuarios($event)">
     </app-pagination>
 
     <div *ngIf="!loading && !usrRows.length" class="state-message">

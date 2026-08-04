@@ -8,6 +8,7 @@ import { Register } from './features/auth/pages/register/register';
 import { Login } from './features/auth/pages/login/login';
 import { ForgotPassword } from './features/auth/pages/forgot-password/forgot-password';
 import { ResetPassword } from './features/auth/pages/reset-password/reset-password';
+import { Espera } from './features/auth/pages/espera/espera';
 import { Facultades } from './features/facultades/facultades';
 import { Departamentos } from './features/departamentos/departamentos';
 import { Periodos } from './features/periodos/periodos';
@@ -48,6 +49,10 @@ export const routes: Routes = [
             {
                 path: 'reset-password',
                 component: ResetPassword
+            },
+            {
+                path: 'espera',
+                component: Espera
             }
         ]
     },

@@ -13,11 +13,6 @@
         Cambiar foto
       </label>
       <input id="photoInput" type="file" accept="image/*" hidden (change)="onPhotoSelected($event)" />
-
-      <button class="delete-photo" type="button" *ngIf="hasPhoto()" (click)="onBorrarFoto()">
-        <i class="bx bx-trash"></i>
-        Borrar foto
-      </button>
     </div>
 
     <div class="profile-form">

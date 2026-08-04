@@ -121,6 +121,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
 ] #Aqui le damos acceso a la ruta del front, cambialo si usas otro puerto
 
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:4200')
+
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend',

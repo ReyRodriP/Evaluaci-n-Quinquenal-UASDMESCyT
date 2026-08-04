@@ -21,6 +21,7 @@ export class Modal implements OnChanges {
   @Output() save = new EventEmitter<any>();
 
   model: any = {};
+  searchTexts: { [key: string]: string } = {};
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['fields'] || changes['data'] || (changes['open'] && this.open)) {
@@ -52,6 +53,16 @@ export class Modal implements OnChanges {
       return this.editTitle || `Editar ${this.title}`;
     }
     return this.newTitle || `Nueva ${this.title}`;
+  }
+
+  getFilteredOptions(field: any): any[] {
+    if (!field.searchable || !this.searchTexts[field.name]) {
+      return field.options || [];
+    }
+    const term = this.searchTexts[field.name].toLowerCase().trim();
+    return (field.options || []).filter((opt: any) =>
+      (opt.label ?? opt).toLowerCase().includes(term)
+    );
   }
 
   onCancel() {

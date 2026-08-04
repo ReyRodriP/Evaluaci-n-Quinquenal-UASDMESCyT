@@ -120,6 +120,10 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/evidencias/${id}/subir_version/`, payload);
   }
 
+  editarVersionEvidencia(id: number, payload: FormData): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/evidencias/${id}/editar_version/`, payload);
+  }
+
   detalleEvidencia(id: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/evidencias/${id}/detalle/`);
   }
@@ -189,24 +193,23 @@ export class AuthService {
     return this.http.get<any[]>(`${this.apiUrl}/roles/`);
   }
 
-  // Dashboard
-  obtenerResumen(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/dashboard/resumen/`);
-  }
-
-  obtenerAvance(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/dashboard/avance/`);
-  }
-
-  obtenerDashboardDepartamento(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/dashboard/departamento/${id}/`);
-  }
-
-  obtenerDashboardPeriodo(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/dashboard/periodo/${id}/`);
-  }
-
   // Reportes
+  reporteGeneral(params: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/general/`, { params });
+  }
+
+  reporteFacultad(id: number, params: any = {}): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/facultad/${id}/`, { params });
+  }
+
+  reporteDepartamento(id: number, params: any = {}): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/departamento/${id}/`, { params });
+  }
+
+  reporteEvidencias(params: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/reportes/evidencias/`, { params });
+  }
+
   reporteObservaciones(params: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/reportes/observaciones/`, { params });
   }
@@ -224,5 +227,22 @@ export class AuthService {
       params: { ...params, formato },
       responseType: 'blob',
     });
+  }
+
+  // Dashboard
+  obtenerResumen(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/dashboard/resumen/`);
+  }
+
+  obtenerAvance(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/dashboard/avance/`);
+  }
+
+  obtenerDashboardDepartamento(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/dashboard/departamento/${id}/`);
+  }
+
+  obtenerDashboardPeriodo(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/dashboard/periodo/${id}/`);
   }
 }

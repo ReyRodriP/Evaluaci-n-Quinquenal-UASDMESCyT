@@ -4,13 +4,14 @@ from rest_framework.authentication import TokenAuthentication
 
 from .models import Auditoria
 from .serializers import AuditoriaSerializer
+from accounts.permissions import PuedeVerAuditoria
 
 
 class AuditoriaViewSet(mixins.ListModelMixin,
                        mixins.RetrieveModelMixin,
                        viewsets.GenericViewSet):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PuedeVerAuditoria]
     queryset = Auditoria.objects.all()
     serializer_class = AuditoriaSerializer
     ordering = ['-fecha']

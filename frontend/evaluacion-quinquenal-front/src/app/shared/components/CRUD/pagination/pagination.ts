@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-pagination',
@@ -8,47 +8,46 @@ import { CommonModule } from '@angular/common';
   styleUrl: './pagination.css',
 })
 export class Pagination {
-  @Input() total = 0;
-  @Input() page = 1;
-  @Input() pageSize = 10;
+  @Input() total: number = 0;
+  @Input() pageSize: number = 10;
+  @Input() currentPage: number = 1;
 
   @Output() pageChange = new EventEmitter<number>();
 
   get totalPages(): number {
-    return this.total > 0 ? Math.ceil(this.total / this.pageSize) : 1;
-  }
-
-  get startItem(): number {
-    return this.total === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
-  }
-
-  get endItem(): number {
-    return Math.min(this.page * this.pageSize, this.total);
+    return Math.max(1, Math.ceil(this.total / this.pageSize));
   }
 
   get pages(): number[] {
     const total = this.totalPages;
-    const current = this.page;
-
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => i + 1);
+    const current = this.currentPage;
+    const range: number[] = [];
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, current + 2);
+    if (end - start < 4) {
+      if (start === 1) {
+        end = Math.min(total, start + 4);
+      } else {
+        start = Math.max(1, end - 4);
+      }
     }
-
-    let inicio = Math.max(1, current - 2);
-    let fin = Math.min(total, inicio + 4);
-    inicio = Math.max(1, fin - 4);
-
-    const pages: number[] = [];
-    for (let i = inicio; i <= fin; i++) {
-      pages.push(i);
+    for (let i = start; i <= end; i++) {
+      range.push(i);
     }
-    return pages;
+    return range;
   }
 
-  ir(pagina: number): void {
-    if (pagina < 1 || pagina > this.totalPages || pagina === this.page) {
-      return;
-    }
-    this.pageChange.emit(pagina);
+  get from(): number {
+    if (this.total === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get to(): number {
+    return Math.min(this.currentPage * this.pageSize, this.total);
+  }
+
+  goTo(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.pageChange.emit(page);
   }
 }

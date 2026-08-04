@@ -1,9 +1,13 @@
 from rest_framework.permissions import DjangoModelPermissions, BasePermission, SAFE_METHODS
 from organization.models import PerfilUsuario
 
-ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal'}
+ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal', 'Evaluador Externo'}
 
 ROLES_REPORTES = {'Administrador General', 'Coordinador Quinquenal', 'Revisor Institucional'}
+
+ROLES_REPORTES_COMPLETOS = {'Administrador General', 'Coordinador Quinquenal'}
+
+ROLES_AUDITORIA = {'Administrador General', 'Coordinador Quinquenal'}
 
 
 def _grupos_usuario(user):
@@ -14,10 +18,9 @@ def filtrar_por_rol(queryset, request, dept_field='departamento'):
     """
     Filtra un queryset según el rol y departamento del usuario.
 
-    - Administrador General / Coordinador Quinquenal: sin filtro.
+    - Administrador General / Coordinador Quinquenal / Evaluador Externo: sin filtro.
     - Responsable Departamental: solo su departamento.
-    - Revisor Institucional: su facultad completa.
-    - Otros (Consulta, Evaluador Externo): su departamento.
+    - Revisor Institucional / Consulta: su facultad completa.
     """
     user = request.user
     if user.is_superuser:
@@ -35,7 +38,7 @@ def filtrar_por_rol(queryset, request, dept_field='departamento'):
     if not perfil.departamento:
         return queryset.none()
 
-    if 'Revisor Institucional' in grupos:
+    if 'Revisor Institucional' in grupos or 'Consulta' in grupos:
         facultad_id = perfil.departamento.facultad_id
         return queryset.filter(**{f'{dept_field}__facultad_id': facultad_id})
 
@@ -60,13 +63,34 @@ def departamentos_permitidos(request):
     if not perfil.departamento:
         return []
 
-    if 'Revisor Institucional' in grupos:
+    if 'Revisor Institucional' in grupos or 'Consulta' in grupos:
         from organization.models import Departamento
         return list(Departamento.objects.filter(
             facultad_id=perfil.departamento.facultad_id
         ).values_list('pk', flat=True))
 
     return [perfil.departamento_id]
+
+
+def facultades_permitidas(request):
+    """Devuelve una lista de IDs de facultad que el usuario puede ver."""
+    user = request.user
+    if user.is_superuser:
+        return None
+
+    grupos = _grupos_usuario(user)
+    if ROLES_SIN_RESTRICCION & grupos:
+        return None
+
+    try:
+        perfil = user.perfilusuario
+    except PerfilUsuario.DoesNotExist:
+        return []
+
+    if not perfil.departamento:
+        return []
+
+    return [perfil.departamento.facultad_id]
 
 
 class CustomModelPermissions(DjangoModelPermissions):
@@ -111,3 +135,21 @@ class PuedeVerReportes(BasePermission):
         if request.user.is_superuser:
             return True
         return bool(_grupos_usuario(request.user) & ROLES_REPORTES)
+
+
+class PuedeVerReportesCompletos(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        return bool(_grupos_usuario(request.user) & ROLES_REPORTES_COMPLETOS)
+
+
+class PuedeVerAuditoria(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        return bool(_grupos_usuario(request.user) & ROLES_AUDITORIA)

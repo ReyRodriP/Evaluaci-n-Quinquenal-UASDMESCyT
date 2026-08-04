@@ -8,13 +8,13 @@ router.register(r'permisos', views.PermissionViewSet)
 router.register(r'usuarios', views.UserViewSet)
 
 urlpatterns = [
-    re_path('login', views.login),
-    re_path('register', views.register),
-    re_path('logout', views.logout),
-    re_path('me', views.me),
-    re_path('profile', views.profile),
-    re_path('change_password', views.change_password),
-    re_path('forgot_password', views.forgot_password),
-    re_path('reset_password', views.reset_password),
+    re_path(r'^login$', views.login),
+    re_path(r'^register$', views.register),
+    re_path(r'^logout$', views.logout),
+    re_path(r'^me$', views.me),
+    re_path(r'^profile$', views.profile),
+    re_path(r'^change_password$', views.change_password),
+    re_path(r'^forgot_password$', views.forgot_password),
+    re_path(r'^reset_password$', views.reset_password),
     path('', include(router.urls)),
 ]

@@ -3,10 +3,18 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../core/services/auth.service';
+import { PermisosService } from '../../core/services/permisos.service';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 
-type Pestana = 'observaciones' | 'auditoria' | 'usuarios';
+type Pestana =
+  | 'general'
+  | 'facultad'
+  | 'departamento'
+  | 'evidencias'
+  | 'observaciones'
+  | 'auditoria'
+  | 'usuarios';
 
 @Component({
   selector: 'app-reportes',
@@ -15,40 +23,72 @@ type Pestana = 'observaciones' | 'auditoria' | 'usuarios';
   styleUrl: './reportes.css',
 })
 export class Reportes implements OnInit, OnDestroy {
-  pestanaActiva: Pestana = 'observaciones';
+  pestanaActiva: Pestana = 'general';
   loading = false;
   pageSize = 10;
 
   periodos: any[] = [];
+  facultades: any[] = [];
   departamentos: any[] = [];
+  criterios: any[] = [];
   usuarios: any[] = [];
   roles: any[] = [];
 
-  // Reporte de Observaciones
+  // Reporte 1: General del periodo
+  genFiltros = { periodo: '' };
+  genData: any = {};
+
+  // Reporte 2: Por facultad
+  facId = '';
+  facData: any = { departamentos: [], pendientes: 0, aprobadas: 0 };
+  facColumnas = ['Departamento', 'Total Asignaciones', 'Evidencias', 'Pendientes', 'Aprobadas'];
+
+  // Reporte 3: Por departamento
+  depId = '';
+  depRows: any[] = [];
+  depPage = 1;
+  depTotal = 0;
+  depColumnas = ['Indicador', 'Estado', 'Fecha Modificación', 'Responsable', 'Última Versión'];
+
+  // Reporte 4: Evidencias
+  evFiltros = { estado: '', departamento: '', periodo: '', criterio: '' };
+  evRows: any[] = [];
+  evPage = 1;
+  evTotal = 0;
+  evColumnas = ['Indicador', 'Evidencia', 'Departamento', 'Criterio', 'Periodo', 'Estado', 'Fecha'];
+
+  // Reporte 5: Observaciones
   obsFiltros = { periodo: '', departamento: '', usuario: '' };
   obsRows: any[] = [];
   obsPage = 1;
   obsResumen = { total: 0, evidencias: 0 };
   obsColumnas = ['Evidencia', 'Indicador', 'Departamento', 'Periodo', 'Versión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones'];
 
-  // Reporte de Auditoría
+  // Reporte 6: Auditoría
   audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
   audRows: any[] = [];
   audPage = 1;
   audTotal = 0;
   audColumnas = ['Usuario', 'Acción', 'Modelo', 'Registro ID', 'Descripción', 'Fecha'];
 
-  // Reporte de Usuarios
+  // Reporte 7: Usuarios
   usrFiltros = { rol: '', departamento: '', estado: '' };
   usrRows: any[] = [];
   usrPage = 1;
   usrResumen = { total: 0, activos: 0, inactivos: 0 };
-  usrColumnas = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Último acceso', 'Estado'];
+  usrColumnas = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Último Acceso', 'Estado'];
 
   constructor(
     private authService: AuthService,
+    private permisos: PermisosService,
     private toast: ToastrService
   ) {}
+
+  get puedeVerReportesCompletos(): boolean {
+    return this.permisos.esSuperuser
+      || this.permisos.tieneGrupo('Administrador General')
+      || this.permisos.tieneGrupo('Coordinador Quinquenal');
+  }
 
   private debounceTimer: any;
 
@@ -63,19 +103,19 @@ export class Reportes implements OnInit, OnDestroy {
     }
   }
 
-  onTextoAuditoria(): void {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-    this.debounceTimer = setTimeout(() => this.cargarAuditoria(), 300);
-  }
-
   cambiarPestana(pestana: Pestana): void {
+    if ((pestana === 'auditoria' || pestana === 'usuarios') && !this.puedeVerReportesCompletos) {
+      return;
+    }
     this.pestanaActiva = pestana;
     this.cargarReporteActual();
   }
 
   cargarReporteActual(): void {
+    if (this.pestanaActiva === 'general') this.cargarGeneral();
+    if (this.pestanaActiva === 'facultad' && this.facId) this.cargarFacultad();
+    if (this.pestanaActiva === 'departamento' && this.depId) this.cargarDepartamento();
+    if (this.pestanaActiva === 'evidencias') this.cargarEvidencias();
     if (this.pestanaActiva === 'observaciones') this.cargarObservaciones();
     if (this.pestanaActiva === 'auditoria') this.cargarAuditoria();
     if (this.pestanaActiva === 'usuarios') this.cargarUsuarios();
@@ -83,7 +123,9 @@ export class Reportes implements OnInit, OnDestroy {
 
   private loadSelectores(): void {
     this.authService.listarPeriodos().subscribe((data) => (this.periodos = data));
+    this.authService.listarFacultades().subscribe((data) => (this.facultades = data));
     this.authService.listarDepartamentos().subscribe((data) => (this.departamentos = data));
+    this.authService.listarCriterios().subscribe((data) => (this.criterios = data));
     this.authService.listarUsuarios().subscribe((data) => (this.usuarios = data));
     this.authService.listarRoles().subscribe((data) => (this.roles = data));
   }
@@ -98,24 +140,95 @@ export class Reportes implements OnInit, OnDestroy {
     return params;
   }
 
-  limpiarFiltrosObservaciones(): void {
-    this.obsFiltros = { periodo: '', departamento: '', usuario: '' };
-    this.obsPage = 1;
-    this.cargarObservaciones();
+  // ===================== GENERAL =====================
+  cargarGeneral(): void {
+    this.loading = true;
+    const params = this.limpiarParametros(this.genFiltros);
+    this.authService.reporteGeneral(params).subscribe({
+      next: (data) => {
+        this.genData = data;
+        this.loading = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo cargar el reporte general');
+        this.loading = false;
+      },
+    });
   }
 
-  limpiarFiltrosAuditoria(): void {
-    this.audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
-    this.audPage = 1;
-    this.cargarAuditoria();
+  limpiarFiltrosGeneral(): void {
+    this.genFiltros = { periodo: '' };
+    this.cargarGeneral();
   }
 
-  limpiarFiltrosUsuarios(): void {
-    this.usrFiltros = { rol: '', departamento: '', estado: '' };
-    this.usrPage = 1;
-    this.cargarUsuarios();
+  // ===================== FACULTAD =====================
+  cargarFacultad(): void {
+    if (!this.facId) return;
+    this.loading = true;
+    this.authService.reporteFacultad(Number(this.facId)).subscribe({
+      next: (data) => {
+        this.facData = data;
+        this.loading = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo cargar el reporte por facultad');
+        this.loading = false;
+      },
+    });
   }
 
+  // ===================== DEPARTAMENTO =====================
+  cargarDepartamento(): void {
+    if (!this.depId) return;
+    this.loading = true;
+    const params = { page: this.depPage, page_size: this.pageSize };
+    this.authService.reporteDepartamento(Number(this.depId), params).subscribe({
+      next: (data) => {
+        this.depRows = data.rows;
+        this.depTotal = data.total;
+        this.loading = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo cargar el reporte por departamento');
+        this.loading = false;
+      },
+    });
+  }
+
+  cambiarPaginaDepartamento(pagina: number): void {
+    this.depPage = pagina;
+    this.cargarDepartamento();
+  }
+
+  // ===================== EVIDENCIAS =====================
+  cargarEvidencias(): void {
+    this.loading = true;
+    const params = { ...this.limpiarParametros(this.evFiltros), page: this.evPage, page_size: this.pageSize };
+    this.authService.reporteEvidencias(params).subscribe({
+      next: (data) => {
+        this.evRows = data.rows;
+        this.evTotal = data.total;
+        this.loading = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo cargar el reporte de evidencias');
+        this.loading = false;
+      },
+    });
+  }
+
+  limpiarFiltrosEvidencias(): void {
+    this.evFiltros = { estado: '', departamento: '', periodo: '', criterio: '' };
+    this.evPage = 1;
+    this.cargarEvidencias();
+  }
+
+  cambiarPaginaEvidencias(pagina: number): void {
+    this.evPage = pagina;
+    this.cargarEvidencias();
+  }
+
+  // ===================== OBSERVACIONES =====================
   cargarObservaciones(): void {
     this.loading = true;
     const params = { ...this.limpiarParametros(this.obsFiltros), page: this.obsPage, page_size: this.pageSize };
@@ -130,6 +243,25 @@ export class Reportes implements OnInit, OnDestroy {
         this.loading = false;
       },
     });
+  }
+
+  limpiarFiltrosObservaciones(): void {
+    this.obsFiltros = { periodo: '', departamento: '', usuario: '' };
+    this.obsPage = 1;
+    this.cargarObservaciones();
+  }
+
+  cambiarPaginaObservaciones(pagina: number): void {
+    this.obsPage = pagina;
+    this.cargarObservaciones();
+  }
+
+  // ===================== AUDITORÍA =====================
+  onTextoAuditoria(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    this.debounceTimer = setTimeout(() => this.cargarAuditoria(), 300);
   }
 
   cargarAuditoria(): void {
@@ -148,6 +280,18 @@ export class Reportes implements OnInit, OnDestroy {
     });
   }
 
+  limpiarFiltrosAuditoria(): void {
+    this.audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
+    this.audPage = 1;
+    this.cargarAuditoria();
+  }
+
+  cambiarPaginaAuditoria(pagina: number): void {
+    this.audPage = pagina;
+    this.cargarAuditoria();
+  }
+
+  // ===================== USUARIOS =====================
   cargarUsuarios(): void {
     this.loading = true;
     const params = { ...this.limpiarParametros(this.usrFiltros), page: this.usrPage, page_size: this.pageSize };
@@ -164,36 +308,59 @@ export class Reportes implements OnInit, OnDestroy {
     });
   }
 
-  cambiarPagina(pagina: number): void {
-    if (this.pestanaActiva === 'observaciones') {
-      this.obsPage = pagina;
-      this.cargarObservaciones();
-    } else if (this.pestanaActiva === 'auditoria') {
-      this.audPage = pagina;
-      this.cargarAuditoria();
-    } else {
-      this.usrPage = pagina;
-      this.cargarUsuarios();
-    }
+  limpiarFiltrosUsuarios(): void {
+    this.usrFiltros = { rol: '', departamento: '', estado: '' };
+    this.usrPage = 1;
+    this.cargarUsuarios();
   }
 
+  cambiarPaginaUsuarios(pagina: number): void {
+    this.usrPage = pagina;
+    this.cargarUsuarios();
+  }
+
+  // ===================== EXPORTAR =====================
   exportar(formato: 'pdf' | 'xlsx'): void {
     let reporte: string;
     let filtros: any;
     let nombre: string;
 
-    if (this.pestanaActiva === 'observaciones') {
-      reporte = 'observaciones';
-      filtros = this.limpiarParametros(this.obsFiltros);
-      nombre = 'reporte_observaciones';
-    } else if (this.pestanaActiva === 'auditoria') {
-      reporte = 'auditoria';
-      filtros = this.limpiarParametros(this.audFiltros);
-      nombre = 'reporte_auditoria';
-    } else {
-      reporte = 'usuarios';
-      filtros = this.limpiarParametros(this.usrFiltros);
-      nombre = 'reporte_usuarios';
+    switch (this.pestanaActiva) {
+      case 'general':
+        reporte = 'general';
+        filtros = this.limpiarParametros(this.genFiltros);
+        nombre = 'reporte_general';
+        break;
+      case 'facultad':
+        reporte = `facultad/${this.facId}`;
+        filtros = {};
+        nombre = `reporte_facultad_${this.facId}`;
+        break;
+      case 'departamento':
+        reporte = `departamento/${this.depId}`;
+        filtros = {};
+        nombre = `reporte_departamento_${this.depId}`;
+        break;
+      case 'evidencias':
+        reporte = 'evidencias';
+        filtros = this.limpiarParametros(this.evFiltros);
+        nombre = 'reporte_evidencias';
+        break;
+      case 'observaciones':
+        reporte = 'observaciones';
+        filtros = this.limpiarParametros(this.obsFiltros);
+        nombre = 'reporte_observaciones';
+        break;
+      case 'auditoria':
+        reporte = 'auditoria';
+        filtros = this.limpiarParametros(this.audFiltros);
+        nombre = 'reporte_auditoria';
+        break;
+      default:
+        reporte = 'usuarios';
+        filtros = this.limpiarParametros(this.usrFiltros);
+        nombre = 'reporte_usuarios';
+        break;
     }
 
     this.authService.exportarReporte(reporte, formato, filtros).subscribe({

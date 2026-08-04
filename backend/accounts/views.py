@@ -5,7 +5,8 @@ from .serializers import (
     AdminUsuarioSerializer, GroupSerializer, PermissionSerializer,
     UsuarioProfileSerializer
 )
-from rest_framework.authtoken.models import Token
+from .role_permissions import OUR_APP_LABELS
+from rest_framework.authtoken.models import Token 
 from rest_framework import status, viewsets, mixins
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -17,9 +18,9 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
-from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils import timezone
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 
@@ -52,8 +53,14 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
+    def get_queryset(self):
+        return Permission.objects.filter(
+            content_type__app_label__in=OUR_APP_LABELS
+        ).order_by('content_type__app_label', 'codename')
 
-class UserViewSet(mixins.ListModelMixin,
+
+class UserViewSet(mixins.CreateModelMixin,
+                  mixins.ListModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
                   viewsets.GenericViewSet):
@@ -66,9 +73,12 @@ class UserViewSet(mixins.ListModelMixin,
             return UsuarioListSerializer
         if self.action == 'permisos':
             return UsuarioPermisosSerializer
-        if self.action in ['update', 'partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return AdminUsuarioSerializer
         return UsuarioSerializer
+
+    def perform_create(self, serializer):
+        serializer.save()
 
     def perform_update(self, serializer):
         old_groups = list(self.get_object().groups.all())
@@ -252,9 +262,7 @@ def forgot_password(request):
         if user and user.email:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            reset_url = request.build_absolute_uri(
-                f"/reset-password?uid={uid}&token={token}"
-            )
+            reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?uid={uid}&token={token}"
 
             try:
                 send_mail(
