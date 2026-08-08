@@ -217,6 +217,11 @@
                         <div class="field-group">
                             <label>Archivo (dejar vacío para mantener el actual)</label>
                             <input type="file" (change)="onVersionEditFileChange($event)" />
+                            <small class="file-limit">Tamaño máximo permitido: {{ MAX_ARCHIVO_MB }} MB</small>
+                            <div *ngIf="versionEditFileError" class="file-error">
+                                <i class="bx bx-error-circle"></i>
+                                {{ versionEditFileError }}
+                            </div>
                             <small class="current-file">Archivo actual: {{ version.nombre_archivo }}</small>
                         </div>
 
@@ -337,6 +342,13 @@
                         <input
                             type="file"
                             (change)="onFileChange($event)">
+
+                        <small class="file-limit">Tamaño máximo permitido: {{ MAX_ARCHIVO_MB }} MB</small>
+
+                        <div *ngIf="archivoError" class="file-error">
+                            <i class="bx bx-error-circle"></i>
+                            {{ archivoError }}
+                        </div>
 
                     </div>
 

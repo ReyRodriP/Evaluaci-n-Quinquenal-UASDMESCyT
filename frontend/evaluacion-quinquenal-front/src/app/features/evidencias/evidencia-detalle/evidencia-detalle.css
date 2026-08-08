@@ -771,6 +771,26 @@
     margin-top: 4px;
 }
 
+.file-limit {
+    display: block;
+    font-size: .8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.file-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(220, 38, 38, .12);
+    color: var(--danger-color, #dc2626);
+    font-size: .82rem;
+    font-weight: 500;
+}
+
 .secondary-btn.small {
     font-size: .82rem;
     padding: 6px 12px;

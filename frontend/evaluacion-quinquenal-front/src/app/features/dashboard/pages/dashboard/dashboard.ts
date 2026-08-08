@@ -98,25 +98,28 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     const el = document.getElementById('chart-avance')
     if (!el || !this.avance.length) return
     const dark = this.esOscuro()
-    const facultades = this.avance.map(a => a.facultad)
-    const porcentajes = this.avance.map(a => Math.round(a.porcentaje * 100) / 100)
+    const ordenado = [...this.avance].sort((a, b) => b.porcentaje - a.porcentaje)
+    const facultades = ordenado.map(a => a.facultad)
+    const porcentajes = ordenado.map(a => Math.round(a.porcentaje * 100) / 100)
+    const altura = Math.max(280, facultades.length * 42 + 60)
     const grafico = new ApexCharts(el, {
       chart: {
         type: 'bar',
         fontFamily: 'inherit',
         toolbar: { show: false },
         foreColor: dark ? '#cbd5e1' : '#475569',
+        height: altura,
       },
       series: [{ name: 'Avance (%)', data: porcentajes }],
-      xaxis: { categories: facultades, labels: { rotate: -30 } },
       colors: ['#3b82f6'],
-      plotOptions: { bar: { borderRadius: 4, horizontal: false } },
+      plotOptions: { bar: { borderRadius: 4, horizontal: true } },
       dataLabels: {
         enabled: true,
         formatter: (v: number) => v + '%',
-        style: { colors: [dark ? '#e2e8f0' : '#0f172a'] },
+        style: { colors: [dark ? '#e2e8f0' : '#0f172a'], fontSize: '11px' },
       },
-      yaxis: { max: 100, labels: { formatter: (v: number) => v + '%' } },
+      xaxis: { categories: facultades, max: 100, labels: { formatter: (v: number) => v + '%' } },
+      yaxis: { labels: { style: { fontSize: '11px' } } },
       tooltip: { y: { formatter: (v: number) => v + '%' } },
     })
     grafico.render()
