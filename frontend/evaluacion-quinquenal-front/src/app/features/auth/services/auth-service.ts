@@ -34,8 +34,8 @@ export class AuthService {
     return this.http.post(`${this.baseUrl}logout`, {});
   }
 
-  saveToken(token:string): void {
-    localStorage.setItem('auth_token', token);
+  saveToken(token: string): void {
+    document.cookie = `access_token=${token}; path=/; max-age=1800; SameSite=Lax; ${window.location.protocol === 'https:' ? 'Secure;' : ''}`;
   }
 
   saveUser(user: any): void {
@@ -64,11 +64,12 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
   }
 
   removeToken(): void {
-    localStorage.removeItem('auth_token');
+    document.cookie = 'access_token=; path=/; max-age=0';
   }
 
   isLoggedIn(): boolean {

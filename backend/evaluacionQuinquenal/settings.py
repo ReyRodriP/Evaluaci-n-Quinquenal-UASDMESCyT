@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "dashboard",
     "search",
     "reportes",
+    "drf_spectacular",
 ]
 
 
@@ -251,6 +252,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "MAX_PAGE_SIZE": 200,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Evaluacion Quinquenal UASD-MESCyT API",
+    "DESCRIPTION": "API para la gestion de evidencias de evaluacion quinquenal",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 
@@ -396,3 +405,42 @@ LOGGING = {
         },
     },
 }
+
+
+# =============================================================================
+# CACHE
+# =============================================================================
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "",
+    }
+}
+if os.getenv("REDIS_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.redis.cache.RedisCache",
+            "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        }
+    }
+
+
+# =============================================================================
+# SENTRY
+# =============================================================================
+
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=0.1,
+            send_default_pii=True,
+        )
+    except ImportError:
+        pass
