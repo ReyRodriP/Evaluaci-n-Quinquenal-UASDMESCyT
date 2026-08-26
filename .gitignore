@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables (NUNCA commitear)
+.env
+.env.local
+.env.production
+.env.staging
+
+# Base de datos
+db.sqlite3
+db.sqlite3-journal
+
+# Media uploads
+media/
+!media/.gitkeep
+
+# Django static
+staticfiles/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker secrets
+docker-compose.override.yml
+*.secret
+*.key
+*.pem
+
+# Kubernetes secrets
+k8s/*-secrets.yaml
+k8s/secrets/
+
+# Frontend
+frontend/node_modules/
+frontend/package-lock.json
+frontend/dist/
+frontend/.angular/
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*.bak

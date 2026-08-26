@@ -3,12 +3,16 @@
 @brief Serializers para la serializacion y deserializacion de datos de usuario
 @details Define serializers para el modelo Usuario, grupo, permisos y perfil,
 incluyendo validacion de creacion y actualizacion de usuarios.
+Implementa validaciones de seguridad para campos sensibles.
 """
+import re
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.core.validators import validate_email
 
 User = get_user_model()
+
 
 class PermissionSerializer(serializers.ModelSerializer):
     """
@@ -31,6 +35,7 @@ class PermissionSerializer(serializers.ModelSerializer):
         """
         return obj.content_type.app_label
 
+
 class GroupSerializer(serializers.ModelSerializer):
     """
     @class GroupSerializer
@@ -50,12 +55,14 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = ['id', 'name', 'permissions', 'permission_ids']
 
+
 class UsuarioSerializer(serializers.ModelSerializer):
     """
     @class UsuarioSerializer
     @brief Serializer para creacion y lectura de usuarios
     @details Serializa datos basicos del usuario incluyendo grupos, rol y foto de perfil.
     El password es write_only para no exponerlo en respuestas.
+    Implementa validaciones de seguridad para campos sensibles.
     """
 
     groups = GroupSerializer(many=True, read_only=True)
@@ -78,8 +85,70 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'groups']
 
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True, 'min_length': 8},
+            'email': {'required': True},
         }
+
+    def validate_username(self, value):
+        """
+        @brief Valida que el username solo contenga caracteres seguros
+        @param value Valor del username a validar
+        @return Username validado
+        @raises ValidationError Si el username contiene caracteres no permitidos
+        """
+        if not re.match(r'^[a-zA-Z0-9_]+$', value):
+            raise serializers.ValidationError(
+                "El nombre de usuario solo puede contener letras, numeros y guiones bajos."
+            )
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "El nombre de usuario debe tener al menos 3 caracteres."
+            )
+        return value
+
+    def validate_email(self, value):
+        """
+        @brief Valida el formato del correo electronico
+        @param value Valor del email a validar
+        @return Email validado
+        @raises ValidationError Si el formato del email es invalido
+        """
+        validate_email(value)
+        return value.lower()
+
+    def validate_password(self, value):
+        """
+        @brief Valida la fortaleza de la contrasena
+        @param value Valor de la contrasena a validar
+        @return Contrasena validada
+        @raises ValidationError Si la contrasena no cumple requisitos de seguridad
+        """
+        if len(value) < 8:
+            raise serializers.ValidationError(
+                "La contrasena debe tener al menos 8 caracteres."
+            )
+        if value.isdigit():
+            raise serializers.ValidationError(
+                "La contrasena no puede ser solo numeros."
+            )
+        return value
+
+    def validate_telefono(self, value):
+        """
+        @brief Valida el formato del telefono
+        @param value Valor del telefono a validar
+        @return Telefono validado
+        @raises ValidationError Si el telefono contiene caracteres no permitidos
+        """
+        if value and not re.match(r'^[\d\-\+\(\)\s]+$', value):
+            raise serializers.ValidationError(
+                "El telefono solo puede contener numeros, espacios y guiones."
+            )
+        if value and len(value.replace(' ', '').replace('-', '')) < 8:
+            raise serializers.ValidationError(
+                "El telefono debe tener al menos 8 digitos."
+            )
+        return value
 
     def get_rol(self, obj):
         """
@@ -103,7 +172,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            telefono=validated_data.get('telefono',''),
+            telefono=validated_data.get('telefono', ''),
             foto_perfil=validated_data.get('foto_perfil')
         )
         return user
@@ -137,6 +206,7 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
             'rol',
             'permisos',
         ]
+        read_only_fields = ['id', 'username', 'is_superuser']
 
     def get_rol(self, obj):
         """
@@ -262,6 +332,7 @@ class AdminUsuarioSerializer(UsuarioSerializer):
         if groups is not None:
             instance.groups.set(groups)
         return instance
+
 
 class UsuarioListSerializer(serializers.ModelSerializer):
     """

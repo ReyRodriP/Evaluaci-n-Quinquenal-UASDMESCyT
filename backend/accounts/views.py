@@ -207,17 +207,38 @@ def login(request):
     @param request Request HTTP con campos username y password
     @return Response con token de autenticacion y datos del usuario
     @raises ValidationError Si las credenciales son invalidas
+    @details Implementa rate limiting para prevenir ataques de fuerza bruta.
     """
+    from rest_framework.throttling import AnonRateThrottle
 
-    user = authenticate(
-        username=request.data['username'],
-        password=request.data['password']
-    ) #Mejorar a futuro, logear con correo
+    throttle = AnonRateThrottle()
+    if not throttle.allow_request(request, None):
+        return Response(
+            {"error": "Demasiados intentos. Espere un momento."},
+            status=status.HTTP_429_TOO_MANY_REQUESTS
+        )
+
+    username = request.data.get('username', '').strip()
+    password = request.data.get('password', '')
+
+    if not username or not password:
+        return Response(
+            {"error": "Usuario y contrasena son requeridos"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = authenticate(username=username, password=password)
 
     if user is None:
         return Response(
-            {"error": "Credenciales inválidas"},
+            {"error": "Credenciales invalidas"},
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not user.is_active:
+        return Response(
+            {"error": "Cuenta desactivada. Contacte al administrador."},
+            status=status.HTTP_403_FORBIDDEN
         )
 
     token, created = Token.objects.get_or_create(user=user)
@@ -229,10 +250,10 @@ def login(request):
 
     registrar_auditoria(
         usuario=user,
-        accion="Inicio de sesión",
+        accion="Inicio de sesion",
         modelo="Usuario",
         registro_id=user.pk,
-        descripcion=f"El usuario {user.username} inició sesión"
+        descripcion=f"El usuario {user.username} inicio sesion"
     )
 
     return Response(
@@ -252,12 +273,22 @@ def register(request):
     @param request Request HTTP con datos del usuario a registrar
     @return Response con token de autenticacion y datos del usuario creado
     @raises ValidationError Si los datos de validacion son invalidos
+    @details Valida formato de email, fortaleza de contrasena y
+    unicidad de username antes de crear el usuario.
     """
+    from rest_framework.throttling import AnonRateThrottle
+
+    throttle = AnonRateThrottle()
+    if not throttle.allow_request(request, None):
+        return Response(
+            {"error": "Demasiados registros. Espere un momento."},
+            status=status.HTTP_429_TOO_MANY_REQUESTS
+        )
+
     serializer = UsuarioSerializer(data=request.data)
 
     if serializer.is_valid():
         user = serializer.save()
-
         token = Token.objects.create(user=user)
 
         registrar_auditoria(
@@ -265,10 +296,13 @@ def register(request):
             accion="Crear usuario",
             modelo="Usuario",
             registro_id=user.pk,
-            descripcion=f"Se registró el usuario {user.username} con email {user.email}"
+            descripcion=f"Se registro el usuario {user.username} con email {user.email}"
         )
 
-        return Response({'token': token.key, "user": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(
+            {'token': token.key, "user": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -373,8 +407,32 @@ def forgot_password(request):
     @return Response con mensaje generico por seguridad
     @details Genera un token de recuperacion y envia un correo con el enlace.
     Siempre retorna el mismo mensaje para no revelar si el correo existe.
+    Implementa rate limiting para prevenir abuso.
     """
+    from rest_framework.throttling import AnonRateThrottle
+
+    throttle = AnonRateThrottle()
+    if not throttle.allow_request(request, None):
+        return Response(
+            {"error": "Demasiadas solicitudes. Espere un momento."},
+            status=status.HTTP_429_TOO_MANY_REQUESTS
+        )
+
     email = (request.data.get('email') or '').strip()
+
+    if not email:
+        return Response(
+            {"error": "El correo es requerido"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    import re
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, email):
+        return Response(
+            {"error": "Formato de correo invalido"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if email:
         user_model = get_user_model()
@@ -387,10 +445,10 @@ def forgot_password(request):
 
             try:
                 send_mail(
-                    subject='Restablecimiento de contraseña',
+                    subject='Restablecimiento de contrasena',
                     message=(
                         f'Hola {user.first_name or user.username},\n\n'
-                        'Recibimos una solicitud para restablecer tu contraseña. '
+                        'Recibimos una solicitud para restablecer tu contrasena. '
                         f'Puedes hacerlo usando este enlace:\n{reset_url}\n\n'
                         'Si no solicitaste este cambio, puedes ignorar este correo.'
                     ),
@@ -399,11 +457,10 @@ def forgot_password(request):
                     fail_silently=False,
                 )
             except Exception:
-                # Evitar que un fallo de SMTP haga explotar la petición de recuperación.
                 pass
 
     return Response(
-        {"message": "Si el correo existe, recibirás instrucciones para recuperar tu contraseña."},
+        {"message": "Si el correo existe, recibiras instrucciones para recuperar tu contrasena."},
         status=status.HTTP_200_OK
     )
 
