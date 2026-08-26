@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Facultad, Departamento, PerfilUsuario
+
+from .models import Departamento, Facultad, PerfilUsuario
 
 admin.site.register(Facultad)
 admin.site.register(Departamento)

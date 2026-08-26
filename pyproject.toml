@@ -1,0 +1,78 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+src = ["backend"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+    "DJ",   # flake8-django
+    "S",    # flake8-bandit (security)
+    "T20",  # flake8-print
+    "COM",  # flake8-commas
+    "C4",   # flake8-comprehensions
+    "PT",   # flake8-pytest-style
+    "RET",  # flake8-return
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "EM",   # flake8-errmsg
+    "TRY",  # tryceratops
+    "TCH",  # flake8-type-checking
+]
+
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default argument (Django pattern)
+    "RUF012", # mutable class attribute (Django pattern - false positive)
+    "DJ001",  # nullable field (Django pattern)
+    "DJ006",  # model without __str__
+    "DJ007",  # __str__ not defined
+    "DJ008",  # model without __str__
+    "DJ012",  # model field ordering
+    "COM812", # trailing comma (conflicts with formatter)
+    "ISC001", # implicit string concatenation (conflicts with formatter)
+    "T201",   # print found (allow in management commands)
+    "S101",   # assert used (allow in tests)
+    "ARG001", # unused argument (Django pattern)
+    "ARG002", # unused method argument
+    "PTH123", # open() (allow built-in open)
+    "EM101",  # string in exception
+    "EM102",  # f-string in exception
+    "TRY003", # long message in exception
+    "S106",   # hardcoded password in tests (false positive)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests.py" = ["S101", "ARG", "PT", "TRY"]
+"*/test_*.py" = ["S101", "ARG", "PT", "TRY"]
+"*/management/commands/*.py" = ["T20"]
+"*/migrations/*.py" = ["E501", "N", "UP"]
+"manage.py" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "accounts",
+    "auditoria",
+    "dashboard",
+    "evaluation",
+    "evidence",
+    "evidencias",
+    "notificaciones",
+    "organization",
+    "reportes",
+    "search",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true

@@ -7,16 +7,15 @@ personalizados y registro de auditoría.
 """
 
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-from .models import Facultad, Departamento, PerfilUsuario
-from .serializers import (
-    FacultadSerializer,
-    DepartamentoSerializer,
-    PerfilUsuarioSerializer
-)
+from rest_framework.permissions import IsAuthenticated
+
 from accounts.permissions import CustomModelPermissions, departamentos_permitidos, facultades_permitidas
 from auditoria.utils import registrar_auditoria
+
+from .models import Departamento, Facultad, PerfilUsuario
+from .serializers import DepartamentoSerializer, FacultadSerializer, PerfilUsuarioSerializer
+
 
 class FacultadViewSet(viewsets.ModelViewSet):
     """@class FacultadViewSet
@@ -27,7 +26,7 @@ class FacultadViewSet(viewsets.ModelViewSet):
     """
 
     authentication_classes = [TokenAuthentication]
-    queryset = Facultad.objects.all().order_by('nombre')
+    queryset = Facultad.objects.all().order_by("nombre")
     serializer_class = FacultadSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
@@ -35,7 +34,7 @@ class FacultadViewSet(viewsets.ModelViewSet):
         """@brief Obtiene el queryset filtrado por facultades permitidas.
         @return QuerySet de Facultad filtrado según permisos del usuario.
         """
-        queryset = Facultad.objects.all().order_by('nombre')
+        queryset = Facultad.objects.all().order_by("nombre")
         permitidas = facultades_permitidas(self.request)
         if permitidas is not None:
             queryset = queryset.filter(pk__in=permitidas)
@@ -50,7 +49,7 @@ class FacultadViewSet(viewsets.ModelViewSet):
             accion="Eliminar registro",
             modelo="Facultad",
             registro_id=instance.pk,
-            descripcion=f"Se eliminó la facultad '{instance.nombre}'"
+            descripcion=f"Se eliminó la facultad '{instance.nombre}'",
         )
         instance.delete()
 
@@ -64,7 +63,7 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
     """
 
     authentication_classes = [TokenAuthentication]
-    queryset = Departamento.objects.all().order_by('nombre')
+    queryset = Departamento.objects.all().order_by("nombre")
     serializer_class = DepartamentoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
@@ -72,7 +71,7 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
         """@brief Obtiene el queryset filtrado por departamentos permitidos.
         @return QuerySet de Departamento filtrado según permisos del usuario.
         """
-        queryset = Departamento.objects.all().order_by('nombre')
+        queryset = Departamento.objects.all().order_by("nombre")
         permitidos = departamentos_permitidos(self.request)
         if permitidos is not None:
             queryset = queryset.filter(pk__in=permitidos)
@@ -87,7 +86,7 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
             accion="Eliminar registro",
             modelo="Departamento",
             registro_id=instance.pk,
-            descripcion=f"Se eliminó el departamento '{instance.nombre}'"
+            descripcion=f"Se eliminó el departamento '{instance.nombre}'",
         )
         instance.delete()
 
@@ -109,9 +108,9 @@ class PerfilUsuarioViewSet(viewsets.ModelViewSet):
         """@brief Obtiene el queryset filtrado por departamento si se especifica.
         @return QuerySet de PerfilUsuario, opcionalmente filtrado por departamento.
         """
-        queryset = PerfilUsuario.objects.all().order_by('usuario__username')
+        queryset = PerfilUsuario.objects.all().order_by("usuario__username")
 
-        departamento_id = self.request.query_params.get('departamento')
+        departamento_id = self.request.query_params.get("departamento")
 
         if departamento_id:
             queryset = queryset.filter(departamento_id=departamento_id)

@@ -5,34 +5,40 @@
 gestion de perfil, cambio de contrasena, recuperacion de contrasena,
 y ViewSets para usuarios, grupos y permisos.
 """
-from rest_framework.decorators import api_view, action, permission_classes, authentication_classes
-from rest_framework.response import Response
-from .serializers import (
-    UsuarioSerializer, UsuarioListSerializer, UsuarioPermisosSerializer,
-    AdminUsuarioSerializer, GroupSerializer, PermissionSerializer,
-    UsuarioProfileSerializer
-)
-from .role_permissions import OUR_APP_LABELS
-from rest_framework.authtoken.models import Token
-from rest_framework import status, viewsets, mixins
-from rest_framework.exceptions import ValidationError
-from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.authentication import TokenAuthentication
-from django.contrib.auth.models import Group, Permission
-from .permissions import CustomModelPermissions, IsAdminGroup, IsAdminOrReadOnly
 
-from django.contrib.auth import get_user_model, authenticate
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.conf import settings
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils import timezone
+from rest_framework import mixins, status, viewsets
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+
 from auditoria.utils import registrar_auditoria
 from notificaciones.utils import crear_notificacion
 
+from .permissions import CustomModelPermissions, IsAdminOrReadOnly
+from .role_permissions import OUR_APP_LABELS
+from .serializers import (
+    AdminUsuarioSerializer,
+    GroupSerializer,
+    PermissionSerializer,
+    UsuarioListSerializer,
+    UsuarioPermisosSerializer,
+    UsuarioProfileSerializer,
+    UsuarioSerializer,
+)
+
 User = get_user_model()
+
 
 class GroupViewSet(viewsets.ModelViewSet):
     """
@@ -55,12 +61,12 @@ class GroupViewSet(viewsets.ModelViewSet):
         """
         if not Group.objects.exists():
             default_roles = [
-                'Administrador General',
-                'Consulta',
-                'Responsable Departamental',
-                'Revisor Institucional',
-                'Coordinador Quinquenal',
-                'Evaluador Externo'
+                "Administrador General",
+                "Consulta",
+                "Responsable Departamental",
+                "Revisor Institucional",
+                "Coordinador Quinquenal",
+                "Evaluador Externo",
             ]
             for role_name in default_roles:
                 Group.objects.get_or_create(name=role_name)
@@ -84,17 +90,19 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
         @brief Retorna permisos filtrados por las apps del proyecto
         @return QuerySet de Permission filtrado por OUR_APP_LABELS
         """
-        return Permission.objects.filter(
-            content_type__app_label__in=OUR_APP_LABELS
-        ).order_by('content_type__app_label', 'codename')
+        return Permission.objects.filter(content_type__app_label__in=OUR_APP_LABELS).order_by(
+            "content_type__app_label", "codename"
+        )
 
 
-class UserViewSet(mixins.CreateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet):
+class UserViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     """
     @class UserViewSet
     @brief ViewSet para la gestion completa de usuarios
@@ -112,11 +120,11 @@ class UserViewSet(mixins.CreateModelMixin,
         @brief Selecciona el serializer adecuado segun la accion
         @return Clase del serializer a utilizar
         """
-        if self.action == 'list':
+        if self.action == "list":
             return UsuarioListSerializer
-        if self.action == 'permisos':
+        if self.action == "permisos":
             return UsuarioPermisosSerializer
-        if self.action in ['create', 'update', 'partial_update']:
+        if self.action in ["create", "update", "partial_update"]:
             return AdminUsuarioSerializer
         return UsuarioSerializer
 
@@ -145,7 +153,7 @@ class UserViewSet(mixins.CreateModelMixin,
             accion="Modificar usuario",
             modelo="Usuario",
             registro_id=instance.pk,
-            descripcion=f"Se modificó el usuario {instance.username}"
+            descripcion=f"Se modificó el usuario {instance.username}",
         )
 
         if old_groups != new_groups:
@@ -157,17 +165,16 @@ class UserViewSet(mixins.CreateModelMixin,
                 modelo="Usuario",
                 registro_id=instance.pk,
                 descripcion=(
-                    f"Rol del usuario {instance.username} cambió de "
-                    f"{old_names or 'sin rol'} a {new_names or 'sin rol'}"
-                )
+                    f"Rol del usuario {instance.username} cambió de {old_names or 'sin rol'} a {new_names or 'sin rol'}"
+                ),
             )
             crear_notificacion(
                 usuario=instance,
                 titulo="Rol asignado",
-                mensaje=f"Se te ha asignado el rol: {', '.join(new_names) if new_names else 'sin rol'}"
+                mensaje=f"Se te ha asignado el rol: {', '.join(new_names) if new_names else 'sin rol'}",
             )
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def permisos(self, request, pk=None):
         """
         @brief Retorna los permisos de un usuario especifico
@@ -187,18 +194,19 @@ class UserViewSet(mixins.CreateModelMixin,
         @raises ValidationError Si el usuario intenta eliminarse a si mismo
         """
         if instance.pk == self.request.user.pk:
-            raise ValidationError({'detail': 'No puede eliminar su propia cuenta.'})
+            raise ValidationError({"detail": "No puede eliminar su propia cuenta."})
         username = instance.username
         registrar_auditoria(
             usuario=self.request.user,
             accion="Eliminar usuario",
             modelo="Usuario",
             registro_id=instance.pk,
-            descripcion=f"Se eliminó el usuario {username}"
+            descripcion=f"Se eliminó el usuario {username}",
         )
         instance.delete()
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def login(request):
@@ -213,58 +221,41 @@ def login(request):
 
     throttle = AnonRateThrottle()
     if not throttle.allow_request(request, None):
-        return Response(
-            {"error": "Demasiados intentos. Espere un momento."},
-            status=status.HTTP_429_TOO_MANY_REQUESTS
-        )
+        return Response({"error": "Demasiados intentos. Espere un momento."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-    username = request.data.get('username', '').strip()
-    password = request.data.get('password', '')
+    username = request.data.get("username", "").strip()
+    password = request.data.get("password", "")
 
     if not username or not password:
-        return Response(
-            {"error": "Usuario y contrasena son requeridos"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "Usuario y contrasena son requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
     user = authenticate(username=username, password=password)
 
     if user is None:
-        return Response(
-            {"error": "Credenciales invalidas"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "Credenciales invalidas"}, status=status.HTTP_400_BAD_REQUEST)
 
     if not user.is_active:
-        return Response(
-            {"error": "Cuenta desactivada. Contacte al administrador."},
-            status=status.HTTP_403_FORBIDDEN
-        )
+        return Response({"error": "Cuenta desactivada. Contacte al administrador."}, status=status.HTTP_403_FORBIDDEN)
 
     token, created = Token.objects.get_or_create(user=user)
 
     user.last_login = timezone.now()
-    user.save(update_fields=['last_login'])
+    user.save(update_fields=["last_login"])
 
-    serializer = UsuarioProfileSerializer(user, context={'request': request})
+    serializer = UsuarioProfileSerializer(user, context={"request": request})
 
     registrar_auditoria(
         usuario=user,
         accion="Inicio de sesion",
         modelo="Usuario",
         registro_id=user.pk,
-        descripcion=f"El usuario {user.username} inicio sesion"
+        descripcion=f"El usuario {user.username} inicio sesion",
     )
 
-    return Response(
-        {
-            "token": token.key,
-            "user": serializer.data
-        },
-        status=status.HTTP_200_OK
-    )
+    return Response({"token": token.key, "user": serializer.data}, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def register(request):
@@ -280,10 +271,7 @@ def register(request):
 
     throttle = AnonRateThrottle()
     if not throttle.allow_request(request, None):
-        return Response(
-            {"error": "Demasiados registros. Espere un momento."},
-            status=status.HTTP_429_TOO_MANY_REQUESTS
-        )
+        return Response({"error": "Demasiados registros. Espere un momento."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
     serializer = UsuarioSerializer(data=request.data)
 
@@ -296,17 +284,15 @@ def register(request):
             accion="Crear usuario",
             modelo="Usuario",
             registro_id=user.pk,
-            descripcion=f"Se registro el usuario {user.username} con email {user.email}"
+            descripcion=f"Se registro el usuario {user.username} con email {user.email}",
         )
 
-        return Response(
-            {'token': token.key, "user": serializer.data},
-            status=status.HTTP_201_CREATED
-        )
+        return Response({"token": token.key, "user": serializer.data}, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def logout(request):
@@ -321,7 +307,7 @@ def logout(request):
     return Response({"detail": "Sesión cerrada correctamente."}, status=status.HTTP_200_OK)
 
 
-@api_view(['GET', 'PUT', 'PATCH'])
+@api_view(["GET", "PUT", "PATCH"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def profile(request):
@@ -331,16 +317,11 @@ def profile(request):
     @return Response con datos del perfil actualizados o serializados
     @raises ValidationError Si los datos de actualizacion son invalidos
     """
-    if request.method == 'GET':
-        serializer = UsuarioProfileSerializer(request.user, context={'request': request})
+    if request.method == "GET":
+        serializer = UsuarioProfileSerializer(request.user, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    serializer = UsuarioProfileSerializer(
-        request.user,
-        data=request.data,
-        partial=True,
-        context={'request': request}
-    )
+    serializer = UsuarioProfileSerializer(request.user, data=request.data, partial=True, context={"request": request})
 
     if serializer.is_valid():
         serializer.save()
@@ -348,7 +329,8 @@ def profile(request):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def me(request):
@@ -357,13 +339,14 @@ def me(request):
     @param request Request HTTP autenticado del usuario
     @return Response con datos del perfil del usuario
     """
-    serializer = UsuarioProfileSerializer(request.user, context={'request': request})
+    serializer = UsuarioProfileSerializer(request.user, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def change_password(request): #Para cambiar contraseña de usuario
+def change_password(request):  # Para cambiar contraseña de usuario
     """
     @brief Cambia la contrasena del usuario autenticado
     @param request Request HTTP con old_password y new_password
@@ -373,31 +356,22 @@ def change_password(request): #Para cambiar contraseña de usuario
 
     user = request.user
 
-    old_password = request.data.get('old_password')
-    new_password = request.data.get('new_password')
+    old_password = request.data.get("old_password")
+    new_password = request.data.get("new_password")
 
     if not old_password or not new_password:
-        return Response(
-            {"error": "Debe proporcionar ambas contraseñas"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "Debe proporcionar ambas contraseñas"}, status=status.HTTP_400_BAD_REQUEST)
 
     if not user.check_password(old_password):
-        return Response(
-            {"error": "La contraseña actual es incorrecta"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "La contraseña actual es incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
 
     user.set_password(new_password)
     user.save()
 
-    return Response(
-        {"message": "Contraseña actualizada correctamente"},
-        status=status.HTTP_200_OK
-    )
+    return Response({"message": "Contraseña actualizada correctamente"}, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def forgot_password(request):
@@ -414,25 +388,19 @@ def forgot_password(request):
     throttle = AnonRateThrottle()
     if not throttle.allow_request(request, None):
         return Response(
-            {"error": "Demasiadas solicitudes. Espere un momento."},
-            status=status.HTTP_429_TOO_MANY_REQUESTS
+            {"error": "Demasiadas solicitudes. Espere un momento."}, status=status.HTTP_429_TOO_MANY_REQUESTS
         )
 
-    email = (request.data.get('email') or '').strip()
+    email = (request.data.get("email") or "").strip()
 
     if not email:
-        return Response(
-            {"error": "El correo es requerido"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "El correo es requerido"}, status=status.HTTP_400_BAD_REQUEST)
 
     import re
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+    email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if not re.match(email_regex, email):
-        return Response(
-            {"error": "Formato de correo invalido"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "Formato de correo invalido"}, status=status.HTTP_400_BAD_REQUEST)
 
     if email:
         user_model = get_user_model()
@@ -445,12 +413,12 @@ def forgot_password(request):
 
             try:
                 send_mail(
-                    subject='Restablecimiento de contrasena',
+                    subject="Restablecimiento de contrasena",
                     message=(
-                        f'Hola {user.first_name or user.username},\n\n'
-                        'Recibimos una solicitud para restablecer tu contrasena. '
-                        f'Puedes hacerlo usando este enlace:\n{reset_url}\n\n'
-                        'Si no solicitaste este cambio, puedes ignorar este correo.'
+                        f"Hola {user.first_name or user.username},\n\n"
+                        "Recibimos una solicitud para restablecer tu contrasena. "
+                        f"Puedes hacerlo usando este enlace:\n{reset_url}\n\n"
+                        "Si no solicitaste este cambio, puedes ignorar este correo."
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
@@ -461,11 +429,11 @@ def forgot_password(request):
 
     return Response(
         {"message": "Si el correo existe, recibiras instrucciones para recuperar tu contrasena."},
-        status=status.HTTP_200_OK
+        status=status.HTTP_200_OK,
     )
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def reset_password(request):
@@ -475,14 +443,13 @@ def reset_password(request):
     @return Response con mensaje de confirmacion o error de enlace invalido
     @raises ValidationError Si el uid, token son invalidos o faltan campos
     """
-    uid = request.data.get('uid')
-    token = request.data.get('token')
-    new_password = request.data.get('new_password')
+    uid = request.data.get("uid")
+    token = request.data.get("token")
+    new_password = request.data.get("new_password")
 
     if not uid or not token or not new_password:
         return Response(
-            {"error": "Debe proporcionar uid, token y nueva contraseña"},
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "Debe proporcionar uid, token y nueva contraseña"}, status=status.HTTP_400_BAD_REQUEST
         )
 
     try:

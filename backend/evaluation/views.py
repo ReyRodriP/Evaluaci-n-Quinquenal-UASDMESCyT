@@ -5,25 +5,28 @@ criterios, indicadores y asignaciones, incluyendo acciones personalizadas
 para el flujo de revisión, aprobación y rechazo de evidencias.
 """
 
-from rest_framework import viewsets, status
-from rest_framework.exceptions import ValidationError
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, viewsets
 from rest_framework.authentication import TokenAuthentication
-from .models import Periodo, Criterio, Indicador, Asignacion, EstadoAsignacion, HistorialEstado
-from .serializers import (
-    PeriodoSerializer,
-    CriterioSerializer,
-    IndicadorSerializer,
-    AsignacionSerializer,
-    HistorialEstadoSerializer
-)
-from accounts.permissions import CustomModelPermissions, filtrar_por_rol, departamentos_permitidos
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from accounts.permissions import CustomModelPermissions, departamentos_permitidos, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
+from evidence.models import Evidencia, Observacion
 from notificaciones.utils import crear_notificacion
 from organization.models import PerfilUsuario
-from evidence.models import Evidencia, VersionEvidencia, Observacion
+
+from .models import Asignacion, Criterio, EstadoAsignacion, HistorialEstado, Indicador, Periodo
+from .serializers import (
+    AsignacionSerializer,
+    CriterioSerializer,
+    HistorialEstadoSerializer,
+    IndicadorSerializer,
+    PeriodoSerializer,
+)
+
 
 class PeriodoViewSet(viewsets.ModelViewSet):
     """@class PeriodoViewSet
@@ -31,8 +34,9 @@ class PeriodoViewSet(viewsets.ModelViewSet):
     @details Proporciona operaciones CRUD completas para el modelo Periodo.
     Incluye registro de auditoría al eliminar un período.
     """
+
     authentication_classes = [TokenAuthentication]
-    queryset = Periodo.objects.all().order_by('-fecha_inicio')
+    queryset = Periodo.objects.all().order_by("-fecha_inicio")
     serializer_class = PeriodoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
@@ -42,7 +46,7 @@ class PeriodoViewSet(viewsets.ModelViewSet):
             accion="Eliminar registro",
             modelo="Periodo",
             registro_id=instance.pk,
-            descripcion=f"Se eliminó el período '{instance.nombre}'"
+            descripcion=f"Se eliminó el período '{instance.nombre}'",
         )
         instance.delete()
 
@@ -53,8 +57,9 @@ class CriterioViewSet(viewsets.ModelViewSet):
     @details Proporciona operaciones CRUD completas para el modelo Criterio.
     Incluye registro de auditoría al eliminar un criterio.
     """
+
     authentication_classes = [TokenAuthentication]
-    queryset = Criterio.objects.all().order_by('nombre')
+    queryset = Criterio.objects.all().order_by("nombre")
     serializer_class = CriterioSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
@@ -64,7 +69,7 @@ class CriterioViewSet(viewsets.ModelViewSet):
             accion="Eliminar registro",
             modelo="Criterio",
             registro_id=instance.pk,
-            descripcion=f"Se eliminó el criterio '{instance.nombre}'"
+            descripcion=f"Se eliminó el criterio '{instance.nombre}'",
         )
         instance.delete()
 
@@ -75,8 +80,9 @@ class IndicadorViewSet(viewsets.ModelViewSet):
     @details Proporciona operaciones CRUD completas para el modelo Indicador.
     Incluye registro de auditoría al eliminar un indicador.
     """
+
     authentication_classes = [TokenAuthentication]
-    queryset = Indicador.objects.all().order_by('nombre')
+    queryset = Indicador.objects.all().order_by("nombre")
     serializer_class = IndicadorSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
@@ -86,7 +92,7 @@ class IndicadorViewSet(viewsets.ModelViewSet):
             accion="Eliminar registro",
             modelo="Indicador",
             registro_id=instance.pk,
-            descripcion=f"Se eliminó el indicador '{instance.nombre}'"
+            descripcion=f"Se eliminó el indicador '{instance.nombre}'",
         )
         instance.delete()
 
@@ -98,14 +104,15 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     de trabajo de evaluación: envío a revisión, aprobación, rechazo y observaciones.
     Filtra el queryset según el rol del usuario autenticado.
     """
+
     authentication_classes = [TokenAuthentication]
-    queryset = Asignacion.objects.all().order_by('periodo', 'departamento')
+    queryset = Asignacion.objects.all().order_by("periodo", "departamento")
     serializer_class = AsignacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_queryset(self):
-        qs = Asignacion.objects.all().order_by('periodo', 'departamento')
-        return filtrar_por_rol(qs, self.request, dept_field='departamento')
+        qs = Asignacion.objects.all().order_by("periodo", "departamento")
+        return filtrar_por_rol(qs, self.request, dept_field="departamento")
 
     def _notificar_departamento(self, departamento, titulo, mensaje):
         """@brief Envía una notificación a todos los usuarios del departamento.
@@ -116,11 +123,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         """
         perfiles = PerfilUsuario.objects.filter(departamento=departamento)
         for perfil in perfiles:
-            crear_notificacion(
-                usuario=perfil.usuario,
-                titulo=titulo,
-                mensaje=mensaje
-            )
+            crear_notificacion(usuario=perfil.usuario, titulo=titulo, mensaje=mensaje)
 
     def _notificar_subido_por(self, instance, titulo, mensaje):
         """@brief Envía una notificación al usuario que subió la evidencia.
@@ -131,12 +134,8 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         """
         try:
             evidencia = instance.evidencia
-            if evidencia and hasattr(evidencia, 'subido_por') and evidencia.subido_por:
-                crear_notificacion(
-                    usuario=evidencia.subido_por,
-                    titulo=titulo,
-                    mensaje=mensaje
-                )
+            if evidencia and hasattr(evidencia, "subido_por") and evidencia.subido_por:
+                crear_notificacion(usuario=evidencia.subido_por, titulo=titulo, mensaje=mensaje)
         except Evidencia.DoesNotExist:
             pass
 
@@ -154,7 +153,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             estado_anterior=estado_anterior,
             estado_nuevo=estado_nuevo,
             usuario=usuario,
-            comentario=comentario
+            comentario=comentario,
         )
 
     def _crear_observacion(self, asignacion, usuario, comentario):
@@ -170,11 +169,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             evidencia = asignacion.evidencia
             ultima_version = evidencia.versiones.order_by("-version").first()
             if ultima_version:
-                Observacion.objects.create(
-                    version=ultima_version,
-                    usuario=usuario,
-                    comentario=comentario
-                )
+                Observacion.objects.create(version=ultima_version, usuario=usuario, comentario=comentario)
         except Evidencia.DoesNotExist:
             pass
 
@@ -186,7 +181,11 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         """
         transiciones_validas = {
             EstadoAsignacion.PENDIENTE: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.OBSERVADA],
-            EstadoAsignacion.EN_PROGRESO: [EstadoAsignacion.APROBADO, EstadoAsignacion.RECHAZADO, EstadoAsignacion.OBSERVADA],
+            EstadoAsignacion.EN_PROGRESO: [
+                EstadoAsignacion.APROBADO,
+                EstadoAsignacion.RECHAZADO,
+                EstadoAsignacion.OBSERVADA,
+            ],
             EstadoAsignacion.OBSERVADA: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.RECHAZADO],
             EstadoAsignacion.RECHAZADO: [EstadoAsignacion.EN_PROGRESO],
             EstadoAsignacion.APROBADO: [],
@@ -235,7 +234,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Enviar a revisión",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"La asignación '{asignacion.indicador.nombre}' fue enviada a revisión"
+            descripcion=f"La asignación '{asignacion.indicador.nombre}' fue enviada a revisión",
         )
         return Response({"estado": EstadoAsignacion.EN_PROGRESO})
 
@@ -261,18 +260,18 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Aprobar evidencia",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"La evidencia para '{asignacion.indicador.nombre}' fue aprobada"
+            descripcion=f"La evidencia para '{asignacion.indicador.nombre}' fue aprobada",
         )
         self._notificar_subido_por(
             instance=asignacion,
             titulo="Evidencia aprobada",
-            mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido aprobada."
+            mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido aprobada.",
         )
         if comentario:
             self._notificar_departamento(
                 departamento=asignacion.departamento,
                 titulo="Evidencia aprobada con comentarios",
-                mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' fue aprobada. Comentario: {comentario}"
+                mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' fue aprobada. Comentario: {comentario}",
             )
         return Response({"estado": EstadoAsignacion.APROBADO})
 
@@ -298,12 +297,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Rechazar evidencia",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"La evidencia para '{asignacion.indicador.nombre}' fue rechazada. Motivo: {comentario}"
+            descripcion=f"La evidencia para '{asignacion.indicador.nombre}' fue rechazada. Motivo: {comentario}",
         )
         self._notificar_subido_por(
             instance=asignacion,
             titulo="Evidencia rechazada",
-            mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido rechazada. Motivo: {comentario}"
+            mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido rechazada. Motivo: {comentario}",
         )
         return Response({"estado": EstadoAsignacion.RECHAZADO})
 
@@ -329,12 +328,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Solicitar cambios",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"Se solicitaron cambios para '{asignacion.indicador.nombre}'. Observación: {comentario}"
+            descripcion=f"Se solicitaron cambios para '{asignacion.indicador.nombre}'. Observación: {comentario}",
         )
         self._notificar_subido_por(
             instance=asignacion,
             titulo="Cambios solicitados",
-            mensaje=f"Se solicitaron cambios para tu evidencia '{asignacion.indicador.nombre}'. Observación: {comentario}"
+            mensaje=f"Se solicitaron cambios para tu evidencia '{asignacion.indicador.nombre}'. Observación: {comentario}",
         )
         return Response({"estado": EstadoAsignacion.OBSERVADA})
 
@@ -344,14 +343,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @return None
         @raises ValidationError Si el departamento no está permitido.
         """
-        departamento = validated_data.get('departamento')
+        departamento = validated_data.get("departamento")
         if not departamento:
             return
         permitidos = departamentos_permitidos(self.request)
         if permitidos is not None and departamento.pk not in permitidos:
-            raise ValidationError({
-                'departamento': 'No tiene permiso para asignar indicadores a este departamento.'
-            })
+            raise ValidationError({"departamento": "No tiene permiso para asignar indicadores a este departamento."})
 
     def perform_create(self, serializer):
         """@brief Crea una nueva asignación validando el departamento permitido.
@@ -369,12 +366,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 f"Se asignó el indicador '{instance.indicador.nombre}' "
                 f"al departamento '{instance.departamento.nombre}' "
                 f"en el período '{instance.periodo.nombre}'"
-            )
+            ),
         )
         self._notificar_departamento(
             departamento=instance.departamento,
             titulo="Nuevo indicador asignado",
-            mensaje=f"Se te ha asignado el indicador '{instance.indicador.nombre}' en el período {instance.periodo.nombre}"
+            mensaje=f"Se te ha asignado el indicador '{instance.indicador.nombre}' en el período {instance.periodo.nombre}",
         )
 
     def perform_update(self, serializer):
@@ -394,9 +391,8 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 modelo="Asignacion",
                 registro_id=instance.pk,
                 descripcion=(
-                    f"La asignación '{instance.indicador.nombre}' cambió de "
-                    f"'{old_estado}' a '{instance.estado}'"
-                )
+                    f"La asignación '{instance.indicador.nombre}' cambió de '{old_estado}' a '{instance.estado}'"
+                ),
             )
             estado_choices = {k: v for k, v in EstadoAsignacion.choices}
             self._notificar_departamento(
@@ -406,16 +402,13 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                     f"La asignación '{instance.indicador.nombre}' cambió de "
                     f"'{estado_choices.get(old_estado, old_estado)}' "
                     f"a '{instance.get_estado_display()}'"
-                )
+                ),
             )
             if instance.estado == EstadoAsignacion.APROBADO:
                 self._notificar_subido_por(
                     instance=instance,
                     titulo="Evidencia aprobada",
-                    mensaje=(
-                        f"Tu evidencia para el indicador '{instance.indicador.nombre}' "
-                        f"ha sido aprobada"
-                    )
+                    mensaje=(f"Tu evidencia para el indicador '{instance.indicador.nombre}' ha sido aprobada"),
                 )
 
     def perform_destroy(self, instance):
@@ -431,6 +424,6 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             descripcion=(
                 f"Se eliminó la asignación del indicador '{instance.indicador.nombre}' "
                 f"del departamento '{instance.departamento.nombre}'"
-            )
+            ),
         )
         instance.delete()

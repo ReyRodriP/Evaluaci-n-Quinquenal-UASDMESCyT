@@ -5,21 +5,15 @@ from django.db.models import Count
 
 
 def deduplicar_emails(apps, schema_editor):
-    Usuario = apps.get_model('accounts', 'Usuario')
-    duplicados = (
-        Usuario.objects
-        .values('email')
-        .annotate(total=Count('id'))
-        .filter(total__gt=1)
-        .exclude(email='')
-    )
+    Usuario = apps.get_model("accounts", "Usuario")
+    duplicados = Usuario.objects.values("email").annotate(total=Count("id")).filter(total__gt=1).exclude(email="")
     for grupo in duplicados:
-        correo = grupo['email']
-        usuarios = Usuario.objects.filter(email=correo).order_by('id')
+        correo = grupo["email"]
+        usuarios = Usuario.objects.filter(email=correo).order_by("id")
         primer = usuarios.first()
         for usuario in usuarios.exclude(pk=primer.pk):
-            usuario.email = 'usuario%s@correo.duplicado' % usuario.pk
-            usuario.save(update_fields=['email'])
+            usuario.email = "usuario%s@correo.duplicado" % usuario.pk
+            usuario.save(update_fields=["email"])
 
 
 def reversa(apps, schema_editor):
@@ -27,9 +21,8 @@ def reversa(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0003_alter_usuario_foto_perfil'),
+        ("accounts", "0003_alter_usuario_foto_perfil"),
     ]
 
     operations = [

@@ -6,49 +6,79 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('evaluation', '0003_historialestado'),
+        ("evaluation", "0003_historialestado"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Evidencia',
+            name="Evidencia",
             fields=[
-                ('id_evidencia', models.AutoField(primary_key=True, serialize=False)),
-                ('titulo', models.CharField(max_length=255)),
-                ('descripcion', models.TextField()),
-                ('estado', models.CharField(choices=[('activa', 'Activa'), ('cancelada', 'Cancelada')], default='activa', max_length=20)),
-                ('fecha_creacion', models.DateTimeField(auto_now_add=True)),
-                ('asignacion', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='evidencia', to='evaluation.asignacion')),
+                ("id_evidencia", models.AutoField(primary_key=True, serialize=False)),
+                ("titulo", models.CharField(max_length=255)),
+                ("descripcion", models.TextField()),
+                (
+                    "estado",
+                    models.CharField(
+                        choices=[("activa", "Activa"), ("cancelada", "Cancelada")], default="activa", max_length=20
+                    ),
+                ),
+                ("fecha_creacion", models.DateTimeField(auto_now_add=True)),
+                (
+                    "asignacion",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="evidencia",
+                        to="evaluation.asignacion",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='VersionEvidencia',
+            name="VersionEvidencia",
             fields=[
-                ('id_version', models.AutoField(primary_key=True, serialize=False)),
-                ('archivo', models.FileField(upload_to='evidencias/')),
-                ('version', models.IntegerField(default=1)),
-                ('comentario', models.TextField(blank=True, null=True)),
-                ('fecha_subida', models.DateTimeField(auto_now_add=True)),
-                ('evidencia', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='versiones', to='evidence.evidencia')),
+                ("id_version", models.AutoField(primary_key=True, serialize=False)),
+                ("archivo", models.FileField(upload_to="evidencias/")),
+                ("version", models.IntegerField(default=1)),
+                ("comentario", models.TextField(blank=True, null=True)),
+                ("fecha_subida", models.DateTimeField(auto_now_add=True)),
+                (
+                    "evidencia",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="versiones", to="evidence.evidencia"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Observacion',
+            name="Observacion",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('comentario', models.TextField()),
-                ('fecha_creacion', models.DateTimeField(auto_now_add=True)),
-                ('activo', models.BooleanField(default=True)),
-                ('usuario', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='observaciones', to=settings.AUTH_USER_MODEL)),
-                ('version', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='observaciones', to='evidence.versionevidencia')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("comentario", models.TextField()),
+                ("fecha_creacion", models.DateTimeField(auto_now_add=True)),
+                ("activo", models.BooleanField(default=True)),
+                (
+                    "usuario",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="observaciones",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "version",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="observaciones",
+                        to="evidence.versionevidencia",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-fecha_creacion'],
+                "ordering": ["-fecha_creacion"],
             },
         ),
     ]

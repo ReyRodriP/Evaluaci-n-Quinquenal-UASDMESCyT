@@ -6,6 +6,7 @@
 del proyecto Evaluación Quinquenal, incluyendo migraciones,
 creación de superusuarios y otros comandos de gestión.
 """
+
 import os
 import sys
 
@@ -14,7 +15,7 @@ def main():
     """@brief Ejecuta las tareas administrativas de Django.
     @return None
     """
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evaluacionQuinquenal.settings')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "evaluacionQuinquenal.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -26,5 +27,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

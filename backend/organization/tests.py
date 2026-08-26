@@ -1,19 +1,21 @@
-from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import IntegrityError
-from rest_framework.test import APIClient
-from rest_framework.authtoken.models import Token
+from django.test import TestCase, override_settings
 from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
 
-from .models import Facultad, Departamento, PerfilUsuario
+from .models import Departamento, Facultad, PerfilUsuario
 
 User = get_user_model()
 
 
-@override_settings(PASSWORD_HASHERS=[
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-])
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
 class FacultadModelTests(TestCase):
     def setUp(self):
         self.facultad = Facultad.objects.create(
@@ -37,9 +39,11 @@ class FacultadModelTests(TestCase):
         self.assertEqual(str(self.facultad), "Ingenieria")
 
 
-@override_settings(PASSWORD_HASHERS=[
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-])
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
 class DepartamentoModelTests(TestCase):
     def setUp(self):
         self.facultad = Facultad.objects.create(nombre="Ciencias")
@@ -62,30 +66,24 @@ class DepartamentoModelTests(TestCase):
         self.assertEqual(str(self.departamento), "Matematicas")
 
 
-@override_settings(PASSWORD_HASHERS=[
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-])
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
 class PerfilUsuarioModelTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="testuser", email="testuser@test.com", password="testpass123"
-        )
+        self.user = User.objects.create_user(username="testuser", email="testuser@test.com", password="testpass123")
         self.facultad = Facultad.objects.create(nombre="Medicina")
-        self.departamento = Departamento.objects.create(
-            nombre="Anatomia", facultad=self.facultad
-        )
-        self.perfil = PerfilUsuario.objects.create(
-            usuario=self.user, departamento=self.departamento
-        )
+        self.departamento = Departamento.objects.create(nombre="Anatomia", facultad=self.facultad)
+        self.perfil = PerfilUsuario.objects.create(usuario=self.user, departamento=self.departamento)
 
     def test_crear_perfil(self):
         self.assertEqual(self.perfil.usuario, self.user)
         self.assertEqual(self.perfil.departamento, self.departamento)
 
     def test_perfil_one_to_one(self):
-        user2 = User.objects.create_user(
-            username="testuser2", email="testuser2@test.com", password="testpass123"
-        )
+        user2 = User.objects.create_user(username="testuser2", email="testuser2@test.com", password="testpass123")
         PerfilUsuario.objects.create(usuario=user2, departamento=self.departamento)
         with self.assertRaises(IntegrityError):
             PerfilUsuario.objects.create(usuario=self.user, departamento=self.departamento)
@@ -94,9 +92,11 @@ class PerfilUsuarioModelTests(TestCase):
         self.assertEqual(str(self.perfil), "testuser")
 
 
-@override_settings(PASSWORD_HASHERS=[
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-])
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
 class FacultadViewSetTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -116,9 +116,7 @@ class FacultadViewSetTests(TestCase):
         self.consulta_user.groups.add(self.consulta_group)
         self.consulta_token = Token.objects.create(user=self.consulta_user)
 
-        self.facultad = Facultad.objects.create(
-            nombre="Ciencias Economicas", descripcion="Facultad de Economia"
-        )
+        self.facultad = Facultad.objects.create(nombre="Ciencias Economicas", descripcion="Facultad de Economia")
 
     def test_list_facultades_requires_auth(self):
         response = self.client.get("/api/facultades/")
@@ -145,9 +143,7 @@ class FacultadViewSetTests(TestCase):
     def test_update_facultad_admin(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
         update_data = {"nombre": "Ciencias Economicas Update", "descripcion": "Actualizado"}
-        response = self.client.put(
-            f"/api/facultades/{self.facultad.pk}/", update_data, format="json"
-        )
+        response = self.client.put(f"/api/facultades/{self.facultad.pk}/", update_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.facultad.refresh_from_db()
         self.assertEqual(self.facultad.nombre, "Ciencias Economicas Update")
@@ -159,9 +155,11 @@ class FacultadViewSetTests(TestCase):
         self.assertFalse(Facultad.objects.filter(pk=self.facultad.pk).exists())
 
 
-@override_settings(PASSWORD_HASHERS=[
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-])
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
 class DepartamentoViewSetTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -184,9 +182,7 @@ class DepartamentoViewSetTests(TestCase):
 
     def test_create_departamento_admin(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
-        response = self.client.post(
-            "/api/departamentos/", self.departamento_data, format="json"
-        )
+        response = self.client.post("/api/departamentos/", self.departamento_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Departamento.objects.count(), 1)
         self.assertEqual(response.data["nombre"], "Historia")

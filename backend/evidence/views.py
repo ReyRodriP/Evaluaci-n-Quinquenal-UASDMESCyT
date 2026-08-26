@@ -4,30 +4,23 @@
 completo de evidencias, subida de versiones, observaciones y descarga
 de archivos, con control de permisos y auditoría integrada."""
 
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
+import os
 
-from django.http import FileResponse
 from django.db.models import Max
-
+from django.http import FileResponse
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from accounts.permissions import CustomModelPermissions, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
+from evaluation.models import EstadoAsignacion, HistorialEstado
 from notificaciones.utils import crear_notificacion
 
-from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado
+from .models import Evidencia, Observacion, VersionEvidencia
+from .serializers import EditarVersionSerializer, EvidenciaSerializer, ObservacionSerializer, VersionEvidenciaSerializer
 
-from .models import Evidencia, VersionEvidencia, Observacion
-from .serializers import (
-    EvidenciaSerializer,
-    VersionEvidenciaSerializer,
-    ObservacionSerializer,
-    EditarVersionSerializer
-)
-
-import os
 
 # CRUD de Evidencias
 class EvidenciaViewSet(viewsets.ModelViewSet):
@@ -37,10 +30,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
     así como acciones personalizadas para subir versiones, obtener detalles
     con información de asignación, historial de versiones y edición de versiones."""
 
-    permission_classes = [
-    IsAuthenticated,
-    CustomModelPermissions
-    ]
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
     queryset = Evidencia.objects.all()
     serializer_class = EvidenciaSerializer
 
@@ -49,7 +39,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         @return QuerySet filtrado por departamento de la asignación"""
 
         qs = Evidencia.objects.all()
-        return filtrar_por_rol(qs, self.request, dept_field='asignacion__departamento')
+        return filtrar_por_rol(qs, self.request, dept_field="asignacion__departamento")
 
     def create(self, request, *args, **kwargs):
         """@brief Crea una nueva evidencia o reactiva una existente
@@ -85,16 +75,12 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
         if evidencia.asignacion.estado == EstadoAsignacion.APROBADO:
             return Response(
-                {"error": "No se puede modificar una evidencia ya aprobada"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "No se puede modificar una evidencia ya aprobada"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         archivo = request.FILES.get("archivo")
         if not archivo:
-            return Response(
-                {"error": "Debe adjuntar un archivo"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Debe adjuntar un archivo"}, status=status.HTTP_400_BAD_REQUEST)
 
         comentario = request.data.get("comentario", "")
 
@@ -102,24 +88,15 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
             evidencia.estado = "activa"
             evidencia.save()
 
-        ultima_version = evidencia.versiones.aggregate(
-            max_version=Max("version")
-        )["max_version"] or 0
+        ultima_version = evidencia.versiones.aggregate(max_version=Max("version"))["max_version"] or 0
         nueva_version_num = ultima_version + 1
 
         version = VersionEvidencia.objects.create(
-            evidencia=evidencia,
-            archivo=archivo,
-            version=nueva_version_num,
-            comentario=comentario
+            evidencia=evidencia, archivo=archivo, version=nueva_version_num, comentario=comentario
         )
 
         asignacion = evidencia.asignacion
-        if asignacion.estado in [
-            EstadoAsignacion.PENDIENTE,
-            EstadoAsignacion.OBSERVADA,
-            EstadoAsignacion.RECHAZADO
-        ]:
+        if asignacion.estado in [EstadoAsignacion.PENDIENTE, EstadoAsignacion.OBSERVADA, EstadoAsignacion.RECHAZADO]:
             estado_anterior = asignacion.estado
             asignacion.estado = EstadoAsignacion.EN_PROGRESO
             asignacion.save()
@@ -128,13 +105,10 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
                 estado_anterior=estado_anterior,
                 estado_nuevo=EstadoAsignacion.EN_PROGRESO,
                 usuario=request.user,
-                comentario=f"Nueva versión subida: {comentario or 'Sin comentario'}"
+                comentario=f"Nueva versión subida: {comentario or 'Sin comentario'}",
             )
 
-        return Response(
-            VersionEvidenciaSerializer(version).data,
-            status=status.HTTP_201_CREATED
-        )
+        return Response(VersionEvidenciaSerializer(version).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"])
     def detalle(self, request, pk=None):
@@ -155,13 +129,16 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         data = EvidenciaSerializer(evidencia, context={"request": request}).data
         if asignacion:
             from evaluation.serializers import AsignacionSerializer, HistorialEstadoSerializer
+
             data["asignacion_info"] = AsignacionSerializer(asignacion).data
             historial = asignacion.historial_estados.all().order_by("-fecha")[:20]
             data["historial_estados"] = HistorialEstadoSerializer(historial, many=True).data
 
         data["puede_observar"] = request.user.has_perm("evidence.add_observacion")
         es_aprobado = asignacion and asignacion.estado == EstadoAsignacion.APROBADO
-        puede_subir = request.user.has_perm("evidence.add_versionevidencia") or request.user.has_perm("evidence.add_evidencia")
+        puede_subir = request.user.has_perm("evidence.add_versionevidencia") or request.user.has_perm(
+            "evidence.add_evidencia"
+        )
 
         puede_cambiar = request.user.has_perm("evidence.change_evidencia")
 
@@ -182,9 +159,8 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         evidencia = self.get_object()
         versiones = evidencia.versiones.order_by("-version")
 
-        return Response(
-            VersionEvidenciaSerializer(versiones, many=True).data
-        )
+        return Response(VersionEvidenciaSerializer(versiones, many=True).data)
+
     @action(detail=True, methods=["patch"])
     def editar_version(self, request, pk=None):
         """@brief Edita la última versión de una evidencia
@@ -199,16 +175,12 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
         if evidencia.asignacion.estado == EstadoAsignacion.APROBADO:
             return Response(
-                {"error": "No se puede modificar una evidencia ya aprobada"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "No se puede modificar una evidencia ya aprobada"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        ultima = evidencia.versiones.order_by('-version').first()
+        ultima = evidencia.versiones.order_by("-version").first()
         if not ultima:
-            return Response(
-                {"error": "No hay versiones para editar"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No hay versiones para editar"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = EditarVersionSerializer(ultima, data=request.data, partial=True)
         if not serializer.is_valid():
@@ -221,13 +193,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
             accion="Editar versión",
             modelo="VersionEvidencia",
             registro_id=version.pk,
-            descripcion=(
-                f"Se editó la versión {version.version} de la evidencia "
-                f"'{evidencia.titulo}'"
-            )
+            descripcion=(f"Se editó la versión {version.version} de la evidencia '{evidencia.titulo}'"),
         )
 
         return Response(VersionEvidenciaSerializer(version).data)
+
 
 # CRUD de Versiones
 class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -236,10 +206,7 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
     @details Permite listar, consultar detalles, descargar archivos,
     obtener previsualización y listar observaciones de cada versión."""
 
-    permission_classes = [
-        IsAuthenticated,
-        CustomModelPermissions
-    ]
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
     queryset = VersionEvidencia.objects.all()
     serializer_class = VersionEvidenciaSerializer
 
@@ -248,7 +215,7 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         @return QuerySet filtrado por departamento de la evidencia"""
 
         qs = VersionEvidencia.objects.all()
-        return filtrar_por_rol(qs, self.request, dept_field='evidencia__asignacion__departamento')
+        return filtrar_por_rol(qs, self.request, dept_field="evidencia__asignacion__departamento")
 
     @action(detail=True, methods=["get"])
     def descargar(self, request, pk=None):
@@ -260,11 +227,7 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
 
         version = self.get_object()
 
-        return FileResponse(
-            version.archivo.open(),
-            as_attachment=True,
-            filename=version.archivo.name.split("/")[-1]
-        )
+        return FileResponse(version.archivo.open(), as_attachment=True, filename=version.archivo.name.split("/")[-1])
 
     @action(detail=True, methods=["get"])
     def preview(self, request, pk=None):
@@ -280,43 +243,40 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         archivo = version.archivo
 
         content_type_map = {
-            '.pdf': 'application/pdf',
-            '.txt': 'text/plain',
-            '.csv': 'text/csv',
-            '.json': 'application/json',
-            '.xml': 'application/xml',
-            '.html': 'text/html',
-            '.htm': 'text/html',
-            '.md': 'text/markdown',
-            '.log': 'text/plain',
-            '.py': 'text/plain',
-            '.js': 'text/plain',
-            '.ts': 'text/plain',
-            '.java': 'text/plain',
-            '.c': 'text/plain',
-            '.cpp': 'text/plain',
-            '.css': 'text/plain',
-            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            '.xls': 'application/vnd.ms-excel',
-            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            '.doc': 'application/msword',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.webp': 'image/webp',
-            '.svg': 'image/svg+xml',
-            '.bmp': 'image/bmp',
+            ".pdf": "application/pdf",
+            ".txt": "text/plain",
+            ".csv": "text/csv",
+            ".json": "application/json",
+            ".xml": "application/xml",
+            ".html": "text/html",
+            ".htm": "text/html",
+            ".md": "text/markdown",
+            ".log": "text/plain",
+            ".py": "text/plain",
+            ".js": "text/plain",
+            ".ts": "text/plain",
+            ".java": "text/plain",
+            ".c": "text/plain",
+            ".cpp": "text/plain",
+            ".css": "text/plain",
+            ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".xls": "application/vnd.ms-excel",
+            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".doc": "application/msword",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+            ".svg": "image/svg+xml",
+            ".bmp": "image/bmp",
         }
 
         ext = os.path.splitext(archivo.name)[1].lower()
-        content_type = content_type_map.get(ext, 'application/octet-stream')
+        content_type = content_type_map.get(ext, "application/octet-stream")
 
-        response = FileResponse(
-            archivo.open('rb'),
-            content_type=content_type
-        )
-        response['Content-Disposition'] = f'inline; filename="{os.path.basename(archivo.name)}"'
+        response = FileResponse(archivo.open("rb"), content_type=content_type)
+        response["Content-Disposition"] = f'inline; filename="{os.path.basename(archivo.name)}"'
         return response
 
     @action(detail=True, methods=["get"])
@@ -328,12 +288,8 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
 
         version = self.get_object()
 
-        return Response(
-            ObservacionSerializer(
-                version.observaciones.all(),
-                many=True
-            ).data
-        )
+        return Response(ObservacionSerializer(version.observaciones.all(), many=True).data)
+
 
 # CRUD de Observaciones
 class ObservacionViewSet(viewsets.ModelViewSet):
@@ -346,17 +302,14 @@ class ObservacionViewSet(viewsets.ModelViewSet):
     queryset = Observacion.objects.filter(activo=True)
     serializer_class = ObservacionSerializer
 
-    permission_classes = [
-        IsAuthenticated,
-        CustomModelPermissions
-    ]
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_queryset(self):
         """@brief Filtra el queryset de observaciones activas según el rol del usuario
         @return QuerySet filtrado por departamento de la evidencia asociada"""
 
         qs = Observacion.objects.filter(activo=True)
-        return filtrar_por_rol(qs, self.request, dept_field='version__evidencia__asignacion__departamento')
+        return filtrar_por_rol(qs, self.request, dept_field="version__evidencia__asignacion__departamento")
 
     def perform_create(self, serializer):
         """@brief Crea una observación y ejecuta acciones secundarias
@@ -378,17 +331,14 @@ class ObservacionViewSet(viewsets.ModelViewSet):
             descripcion=(
                 f"Se creó una observación sobre la evidencia '{evidencia.titulo}' "
                 f"(versión {observacion.version.version}): {observacion.comentario}"
-            )
+            ),
         )
 
-        if hasattr(evidencia, 'subido_por') and evidencia.subido_por:
+        if hasattr(evidencia, "subido_por") and evidencia.subido_por:
             crear_notificacion(
                 usuario=evidencia.subido_por,
                 titulo="Evidencia observada",
-                mensaje=(
-                    f"Tu evidencia '{evidencia.titulo}' ha recibido una observación: "
-                    f"{observacion.comentario}"
-                )
+                mensaje=(f"Tu evidencia '{evidencia.titulo}' ha recibido una observación: {observacion.comentario}"),
             )
 
         estado_anterior = asignacion.estado
@@ -400,7 +350,7 @@ class ObservacionViewSet(viewsets.ModelViewSet):
             estado_anterior=estado_anterior,
             estado_nuevo=EstadoAsignacion.OBSERVADA,
             usuario=self.request.user,
-            comentario=f"Observación creada: {observacion.comentario}"
+            comentario=f"Observación creada: {observacion.comentario}",
         )
 
     def perform_destroy(self, instance):

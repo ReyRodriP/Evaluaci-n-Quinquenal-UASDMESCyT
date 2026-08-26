@@ -7,16 +7,13 @@ en el router de DRF, exponiendo los endpoints /facultades/,
 """
 
 from rest_framework.routers import DefaultRouter
-from .views import (
-    FacultadViewSet,
-    DepartamentoViewSet,
-    PerfilUsuarioViewSet
-)
+
+from .views import DepartamentoViewSet, FacultadViewSet, PerfilUsuarioViewSet
 
 router = DefaultRouter()
 
-router.register(r'facultades', FacultadViewSet)
-router.register(r'departamentos', DepartamentoViewSet)
-router.register(r'perfiles', PerfilUsuarioViewSet)
+router.register(r"facultades", FacultadViewSet)
+router.register(r"departamentos", DepartamentoViewSet)
+router.register(r"perfiles", PerfilUsuarioViewSet)
 
 urlpatterns = router.urls

@@ -5,7 +5,9 @@ serialización y deserialización de datos de evidencias, versiones
 y observaciones, incluyendo campos calculados y validaciones."""
 
 from rest_framework import serializers
-from .models import Evidencia, VersionEvidencia, Observacion
+
+from .models import Evidencia, Observacion, VersionEvidencia
+
 
 class ObservacionSerializer(serializers.ModelSerializer):
     """@class ObservacionSerializer
@@ -13,25 +15,13 @@ class ObservacionSerializer(serializers.ModelSerializer):
     @details Serializa los campos de observación incluyendo el nombre
     del usuario y validación del comentario para evitar valores vacíos."""
 
-    usuario_nombre = serializers.ReadOnlyField(source='usuario.username')
+    usuario_nombre = serializers.ReadOnlyField(source="usuario.username")
 
     class Meta:
         model = Observacion
-        fields = [
-            'id',
-            'version',
-            'usuario',
-            'usuario_nombre',
-            'comentario',
-            'fecha_creacion',
-            'activo'
-        ]
+        fields = ["id", "version", "usuario", "usuario_nombre", "comentario", "fecha_creacion", "activo"]
 
-        read_only_fields = [
-            'usuario',
-            'fecha_creacion',
-            'activo'
-        ]
+        read_only_fields = ["usuario", "fecha_creacion", "activo"]
 
     def validate_comentario(self, value):
         """@brief Valida que el comentario no esté vacío
@@ -40,10 +30,10 @@ class ObservacionSerializer(serializers.ModelSerializer):
         @raises ValidationError Si el comentario está vacío o contiene solo espacios"""
 
         if not value or not value.strip():
-            raise serializers.ValidationError(
-                "El comentario no puede estar vacío."
-            )
+            raise serializers.ValidationError("El comentario no puede estar vacío.")
         return value
+
+
 class VersionEvidenciaSerializer(serializers.ModelSerializer):
     """@class VersionEvidenciaSerializer
     @brief Serializer para el modelo VersionEvidencia
@@ -57,15 +47,15 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = VersionEvidencia
         fields = [
-            'id_version',
-            'evidencia',
-            'archivo',
-            'descargar_url',
-            'nombre_archivo',
-            'version',
-            'comentario',
-            'fecha_subida',
-            'observaciones'
+            "id_version",
+            "evidencia",
+            "archivo",
+            "descargar_url",
+            "nombre_archivo",
+            "version",
+            "comentario",
+            "fecha_subida",
+            "observaciones",
         ]
 
     def get_descargar_url(self, obj):
@@ -83,8 +73,9 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
         @return str Nombre del archivo o None si no hay archivo"""
 
         if obj.archivo:
-            return obj.archivo.name.split('/')[-1]
+            return obj.archivo.name.split("/")[-1]
         return None
+
 
 class EditarVersionSerializer(serializers.Serializer):
     """@class EditarVersionSerializer
@@ -102,8 +93,8 @@ class EditarVersionSerializer(serializers.Serializer):
         @param validated_data Diccionario con los campos a actualizar
         @return instance Instancia actualizada"""
 
-        archivo = validated_data.get('archivo')
-        comentario = validated_data.get('comentario')
+        archivo = validated_data.get("archivo")
+        comentario = validated_data.get("comentario")
 
         if archivo:
             instance.archivo = archivo
@@ -112,6 +103,7 @@ class EditarVersionSerializer(serializers.Serializer):
 
         instance.save()
         return instance
+
 
 class EvidenciaSerializer(serializers.ModelSerializer):
     """@class EvidenciaSerializer
@@ -127,14 +119,14 @@ class EvidenciaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Evidencia
-        fields = '__all__'
+        fields = "__all__"
 
     def get_ultima_version(self, obj):
         """@brief Obtiene la versión más reciente de la evidencia
         @param obj Instancia de Evidencia
         @return dict Datos serializados de la última versión o None"""
 
-        ultima = obj.versiones.order_by('-version').first()
+        ultima = obj.versiones.order_by("-version").first()
         if ultima:
             return VersionEvidenciaSerializer(ultima).data
         return None
@@ -164,13 +156,13 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         @param obj Instancia de Evidencia
         @return dict Datos de la última observación activa o None"""
 
-        ultima_version = obj.versiones.order_by('-version').first()
+        ultima_version = obj.versiones.order_by("-version").first()
         if ultima_version:
-            ultima_obs = ultima_version.observaciones.filter(activo=True).order_by('-fecha_creacion').first()
+            ultima_obs = ultima_version.observaciones.filter(activo=True).order_by("-fecha_creacion").first()
             if ultima_obs:
                 return {
-                    'comentario': ultima_obs.comentario,
-                    'usuario_nombre': ultima_obs.usuario.username,
-                    'fecha_creacion': ultima_obs.fecha_creacion
+                    "comentario": ultima_obs.comentario,
+                    "usuario_nombre": ultima_obs.usuario.username,
+                    "fecha_creacion": ultima_obs.fecha_creacion,
                 }
         return None

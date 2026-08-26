@@ -4,91 +4,122 @@
 @details Contiene el diccionario ROLE_PERMISSIONS que mapea cada rol a sus permisos
 asignados, junto con funciones para sincronizar y comparar permisos de grupos.
 """
+
 ROLE_PERMISSIONS = {
-    'Administrador General': None,
-    'Coordinador Quinquenal': None,
-
-    'Responsable Departamental': {
-        'evaluation': [
-            'view_periodo', 'view_criterio', 'view_indicador',
-            'view_asignacion', 'view_historialestado',
+    "Administrador General": None,
+    "Coordinador Quinquenal": None,
+    "Responsable Departamental": {
+        "evaluation": [
+            "view_periodo",
+            "view_criterio",
+            "view_indicador",
+            "view_asignacion",
+            "view_historialestado",
         ],
-        'evidence': [
-            'add_evidencia', 'change_evidencia', 'view_evidencia',
-            'add_versionevidencia', 'view_versionevidencia',
-            'view_observacion',
+        "evidence": [
+            "add_evidencia",
+            "change_evidencia",
+            "view_evidencia",
+            "add_versionevidencia",
+            "view_versionevidencia",
+            "view_observacion",
         ],
-        'evidencias': [
-            'add_evidencia', 'change_evidencia', 'view_evidencia',
+        "evidencias": [
+            "add_evidencia",
+            "change_evidencia",
+            "view_evidencia",
         ],
-        'organization': [
-            'view_facultad', 'view_departamento', 'view_perfilusuario',
+        "organization": [
+            "view_facultad",
+            "view_departamento",
+            "view_perfilusuario",
         ],
-        'notificaciones': [
-            'view_notificacion', 'change_notificacion',
-        ],
-    },
-
-    'Revisor Institucional': {
-        'evaluation': [
-            'view_periodo', 'view_criterio', 'view_indicador',
-            'view_asignacion', 'change_asignacion', 'add_asignacion',
-            'view_historialestado',
-        ],
-        'evidence': [
-            'view_evidencia', 'view_versionevidencia',
-            'add_observacion', 'change_observacion', 'view_observacion',
-        ],
-        'evidencias': [
-            'view_evidencia',
-        ],
-        'organization': [
-            'view_facultad', 'view_departamento', 'view_perfilusuario',
-        ],
-        'notificaciones': [
-            'view_notificacion',
-        ],
-        'auditoria': [
-            'view_auditoria',
+        "notificaciones": [
+            "view_notificacion",
+            "change_notificacion",
         ],
     },
-
-    'Consulta': {
-        'evaluation': [
-            'view_periodo', 'view_criterio', 'view_indicador',
-            'view_asignacion', 'view_historialestado',
+    "Revisor Institucional": {
+        "evaluation": [
+            "view_periodo",
+            "view_criterio",
+            "view_indicador",
+            "view_asignacion",
+            "change_asignacion",
+            "add_asignacion",
+            "view_historialestado",
         ],
-        'evidence': [
-            'view_evidencia', 'view_versionevidencia', 'view_observacion',
+        "evidence": [
+            "view_evidencia",
+            "view_versionevidencia",
+            "add_observacion",
+            "change_observacion",
+            "view_observacion",
         ],
-        'evidencias': [
-            'view_evidencia',
+        "evidencias": [
+            "view_evidencia",
         ],
-        'organization': [
-            'view_facultad', 'view_departamento', 'view_perfilusuario',
+        "organization": [
+            "view_facultad",
+            "view_departamento",
+            "view_perfilusuario",
         ],
-        'notificaciones': [
-            'view_notificacion',
+        "notificaciones": [
+            "view_notificacion",
+        ],
+        "auditoria": [
+            "view_auditoria",
         ],
     },
-
-    'Evaluador Externo': {
-        'evaluation': [
-            'view_periodo', 'view_criterio', 'view_indicador',
-            'view_asignacion', 'view_historialestado',
+    "Consulta": {
+        "evaluation": [
+            "view_periodo",
+            "view_criterio",
+            "view_indicador",
+            "view_asignacion",
+            "view_historialestado",
         ],
-        'evidence': [
-            'view_evidencia', 'view_versionevidencia',
-            'add_observacion', 'view_observacion',
+        "evidence": [
+            "view_evidencia",
+            "view_versionevidencia",
+            "view_observacion",
         ],
-        'evidencias': [
-            'view_evidencia',
+        "evidencias": [
+            "view_evidencia",
         ],
-        'organization': [
-            'view_facultad', 'view_departamento', 'view_perfilusuario',
+        "organization": [
+            "view_facultad",
+            "view_departamento",
+            "view_perfilusuario",
         ],
-        'notificaciones': [
-            'view_notificacion',
+        "notificaciones": [
+            "view_notificacion",
+        ],
+    },
+    "Evaluador Externo": {
+        "evaluation": [
+            "view_periodo",
+            "view_criterio",
+            "view_indicador",
+            "view_asignacion",
+            "view_historialestado",
+        ],
+        "evidence": [
+            "view_evidencia",
+            "view_versionevidencia",
+            "add_observacion",
+            "view_observacion",
+        ],
+        "evidencias": [
+            "view_evidencia",
+        ],
+        "organization": [
+            "view_facultad",
+            "view_departamento",
+            "view_perfilusuario",
+        ],
+        "notificaciones": [
+            "view_notificacion",
         ],
     },
 }
@@ -97,8 +128,13 @@ ROLE_PERMISSIONS = {
 _re_syncing = set()
 
 OUR_APP_LABELS = [
-    'accounts', 'auditoria', 'evaluation', 'evidence',
-    'evidencias', 'notificaciones', 'organization',
+    "accounts",
+    "auditoria",
+    "evaluation",
+    "evidence",
+    "evidencias",
+    "notificaciones",
+    "organization",
 ]
 
 
@@ -123,20 +159,15 @@ def sync_group_permissions(group):
         role_perms = ROLE_PERMISSIONS[group.name]
 
         if role_perms is None:
-            group.permissions.set(
-                Permission.objects.filter(
-                    content_type__app_label__in=OUR_APP_LABELS
-                )
-            )
+            group.permissions.set(Permission.objects.filter(content_type__app_label__in=OUR_APP_LABELS))
             return
 
         perm_ids = []
         for app_label, codenames in role_perms.items():
             perm_ids.extend(
-                Permission.objects.filter(
-                    content_type__app_label=app_label,
-                    codename__in=codenames
-                ).values_list('id', flat=True)
+                Permission.objects.filter(content_type__app_label=app_label, codename__in=codenames).values_list(
+                    "id", flat=True
+                )
             )
 
         group.permissions.set(perm_ids)
@@ -160,19 +191,14 @@ def get_role_permissions_diff(group):
     role_perms = ROLE_PERMISSIONS[group.name]
 
     if role_perms is None:
-        expected = set(
-            Permission.objects.filter(
-                content_type__app_label__in=OUR_APP_LABELS
-            )
-        )
+        expected = set(Permission.objects.filter(content_type__app_label__in=OUR_APP_LABELS))
     else:
         perm_ids = []
         for app_label, codenames in role_perms.items():
             perm_ids.extend(
-                Permission.objects.filter(
-                    content_type__app_label=app_label,
-                    codename__in=codenames
-                ).values_list('id', flat=True)
+                Permission.objects.filter(content_type__app_label=app_label, codename__in=codenames).values_list(
+                    "id", flat=True
+                )
             )
         expected = set(Permission.objects.filter(id__in=perm_ids))
 

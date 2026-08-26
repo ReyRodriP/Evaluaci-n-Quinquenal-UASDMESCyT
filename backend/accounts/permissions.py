@@ -4,16 +4,18 @@
 @details Define permisos por rol, funciones de filtrado por departamento y facultad,
 y clases de permisos personalizados para el sistema de evaluacion quinquenal.
 """
-from rest_framework.permissions import DjangoModelPermissions, BasePermission, SAFE_METHODS
+
+from rest_framework.permissions import SAFE_METHODS, BasePermission, DjangoModelPermissions
+
 from organization.models import PerfilUsuario
 
-ROLES_SIN_RESTRICCION = {'Administrador General', 'Coordinador Quinquenal', 'Evaluador Externo'}
+ROLES_SIN_RESTRICCION = {"Administrador General", "Coordinador Quinquenal", "Evaluador Externo"}
 
-ROLES_REPORTES = {'Administrador General', 'Coordinador Quinquenal', 'Revisor Institucional'}
+ROLES_REPORTES = {"Administrador General", "Coordinador Quinquenal", "Revisor Institucional"}
 
-ROLES_REPORTES_COMPLETOS = {'Administrador General', 'Coordinador Quinquenal'}
+ROLES_REPORTES_COMPLETOS = {"Administrador General", "Coordinador Quinquenal"}
 
-ROLES_AUDITORIA = {'Administrador General', 'Coordinador Quinquenal'}
+ROLES_AUDITORIA = {"Administrador General", "Coordinador Quinquenal"}
 
 
 def _grupos_usuario(user):
@@ -22,10 +24,10 @@ def _grupos_usuario(user):
     @param user Instancia del modelo User
     @return Conjunto de strings con los nombres de los grupos del usuario
     """
-    return set(user.groups.values_list('name', flat=True))
+    return set(user.groups.values_list("name", flat=True))
 
 
-def filtrar_por_rol(queryset, request, dept_field='departamento'):
+def filtrar_por_rol(queryset, request, dept_field="departamento"):
     """
     @brief Filtra un queryset segun el rol y departamento del usuario
     @param queryset Queryset a filtrar
@@ -52,11 +54,11 @@ def filtrar_por_rol(queryset, request, dept_field='departamento'):
     if not perfil.departamento:
         return queryset.none()
 
-    if 'Revisor Institucional' in grupos or 'Consulta' in grupos:
+    if "Revisor Institucional" in grupos or "Consulta" in grupos:
         facultad_id = perfil.departamento.facultad_id
-        return queryset.filter(**{f'{dept_field}__facultad_id': facultad_id})
+        return queryset.filter(**{f"{dept_field}__facultad_id": facultad_id})
 
-    return queryset.filter(**{f'{dept_field}_id': perfil.departamento_id})
+    return queryset.filter(**{f"{dept_field}_id": perfil.departamento_id})
 
 
 def departamentos_permitidos(request):
@@ -84,11 +86,12 @@ def departamentos_permitidos(request):
     if not perfil.departamento:
         return []
 
-    if 'Revisor Institucional' in grupos or 'Consulta' in grupos:
+    if "Revisor Institucional" in grupos or "Consulta" in grupos:
         from organization.models import Departamento
-        return list(Departamento.objects.filter(
-            facultad_id=perfil.departamento.facultad_id
-        ).values_list('pk', flat=True))
+
+        return list(
+            Departamento.objects.filter(facultad_id=perfil.departamento.facultad_id).values_list("pk", flat=True)
+        )
 
     return [perfil.departamento_id]
 
@@ -129,13 +132,13 @@ class CustomModelPermissions(DjangoModelPermissions):
     """
 
     perms_map = {
-        'GET': ['%(app_label)s.view_%(model_name)s'],
-        'OPTIONS': ['%(app_label)s.view_%(model_name)s'],
-        'HEAD': ['%(app_label)s.view_%(model_name)s'],
-        'POST': ['%(app_label)s.add_%(model_name)s'],
-        'PUT': ['%(app_label)s.change_%(model_name)s'],
-        'PATCH': ['%(app_label)s.change_%(model_name)s'],
-        'DELETE': ['%(app_label)s.delete_%(model_name)s'],
+        "GET": ["%(app_label)s.view_%(model_name)s"],
+        "OPTIONS": ["%(app_label)s.view_%(model_name)s"],
+        "HEAD": ["%(app_label)s.view_%(model_name)s"],
+        "POST": ["%(app_label)s.add_%(model_name)s"],
+        "PUT": ["%(app_label)s.change_%(model_name)s"],
+        "PATCH": ["%(app_label)s.change_%(model_name)s"],
+        "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
 
 
@@ -158,7 +161,7 @@ class IsAdminGroup(BasePermission):
             return False
         if request.user.is_superuser:
             return True
-        return request.user.groups.filter(name='Administrador General').exists()
+        return request.user.groups.filter(name="Administrador General").exists()
 
 
 class IsAdminOrReadOnly(BasePermission):
@@ -185,7 +188,7 @@ class IsAdminOrReadOnly(BasePermission):
         if request.user.is_superuser:
             return True
 
-        return request.user.groups.filter(name='Administrador General').exists()
+        return request.user.groups.filter(name="Administrador General").exists()
 
 
 class PuedeVerReportes(BasePermission):

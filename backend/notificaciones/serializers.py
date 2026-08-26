@@ -6,6 +6,7 @@ del modelo Notificacion a formato JSON.
 """
 
 from rest_framework import serializers
+
 from .models import Notificacion
 
 
@@ -15,7 +16,8 @@ class NotificacionSerializer(serializers.ModelSerializer):
     @details Serializa los campos del modelo Notificacion con
     campos de solo lectura para usuario, título, mensaje y fecha.
     """
+
     class Meta:
         model = Notificacion
-        fields = '__all__'
-        read_only_fields = ['usuario', 'titulo', 'mensaje', 'fecha_creacion']
+        fields = "__all__"
+        read_only_fields = ["usuario", "titulo", "mensaje", "fecha_creacion"]

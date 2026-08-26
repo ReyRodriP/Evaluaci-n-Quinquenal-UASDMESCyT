@@ -15,8 +15,4 @@ def crear_notificacion(usuario, titulo, mensaje):
     @param mensaje Mensaje detallado de la notificación.
     @return None
     """
-    Notificacion.objects.create(
-        usuario=usuario,
-        titulo=titulo,
-        mensaje=mensaje
-    )
+    Notificacion.objects.create(usuario=usuario, titulo=titulo, mensaje=mensaje)

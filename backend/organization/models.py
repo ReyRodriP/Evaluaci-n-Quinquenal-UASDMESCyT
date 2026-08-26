@@ -5,8 +5,8 @@
 representan la estructura organizativa de la institución.
 """
 
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class Facultad(models.Model):
@@ -36,11 +36,7 @@ class Departamento(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True, null=True)
 
-    facultad = models.ForeignKey(
-        Facultad,
-        on_delete=models.CASCADE,
-        related_name='departamentos'
-    )
+    facultad = models.ForeignKey(Facultad, on_delete=models.CASCADE, related_name="departamentos")
 
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -56,17 +52,9 @@ class PerfilUsuario(models.Model):
     permitiendo la gestión de pertenencia organizativa.
     """
 
-    usuario = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    departamento = models.ForeignKey(
-        Departamento,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
+    departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return self.usuario.username

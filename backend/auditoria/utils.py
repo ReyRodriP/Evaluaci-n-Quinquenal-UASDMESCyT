@@ -24,5 +24,5 @@ def registrar_auditoria(usuario, accion, modelo, registro_id=None, descripcion="
         accion=accion,
         modelo=modelo,
         registro_id=registro_id,
-        descripcion=descripcion
+        descripcion=descripcion,
     )

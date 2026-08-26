@@ -6,7 +6,8 @@ y PerfilUsuario, incluyendo campos de solo lectura para nombres relacionados.
 """
 
 from rest_framework import serializers
-from .models import Facultad, Departamento, PerfilUsuario
+
+from .models import Departamento, Facultad, PerfilUsuario
 
 
 class FacultadSerializer(serializers.ModelSerializer):
@@ -18,7 +19,7 @@ class FacultadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Facultad
-        fields = '__all__'
+        fields = "__all__"
 
 
 class DepartamentoSerializer(serializers.ModelSerializer):
@@ -28,22 +29,12 @@ class DepartamentoSerializer(serializers.ModelSerializer):
     de la facultad padre como campo de solo lectura.
     """
 
-    facultad_nombre = serializers.CharField(
-        source='facultad.nombre',
-        read_only=True
-    )
+    facultad_nombre = serializers.CharField(source="facultad.nombre", read_only=True)
 
     class Meta:
         model = Departamento
-        fields = [
-            'id',
-            'nombre',
-            'descripcion',
-            'facultad',
-            'facultad_nombre',
-            'activo',
-            'fecha_creacion'
-        ]
+        fields = ["id", "nombre", "descripcion", "facultad", "facultad_nombre", "activo", "fecha_creacion"]
+
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     """@class PerfilUsuarioSerializer
@@ -52,22 +43,10 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
     nombres del usuario y del departamento como campos de solo lectura.
     """
 
-    usuario_nombre = serializers.CharField(
-        source='usuario.username',
-        read_only=True
-    )
+    usuario_nombre = serializers.CharField(source="usuario.username", read_only=True)
 
-    departamento_nombre = serializers.CharField(
-        source='departamento.nombre',
-        read_only=True
-    )
+    departamento_nombre = serializers.CharField(source="departamento.nombre", read_only=True)
 
     class Meta:
         model = PerfilUsuario
-        fields = [
-            'id',
-            'usuario',
-            'usuario_nombre',
-            'departamento',
-            'departamento_nombre'
-        ]
+        fields = ["id", "usuario", "usuario_nombre", "departamento", "departamento_nombre"]

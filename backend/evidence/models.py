@@ -3,8 +3,9 @@
 @details Define los modelos principales para la gestión de evidencias,
 versiones de evidencia, observaciones y sus estados en el sistema."""
 
-from django.db import models
 from django.conf import settings
+from django.db import models
+
 from evaluation.models import Asignacion
 
 
@@ -14,8 +15,8 @@ class EstadoEvidencia(models.TextChoices):
     @details Define los estados disponibles: ACTIVA (evidencia activa y
     en proceso de revisión) y CANCELADA (evidencia deshabilitada)."""
 
-    ACTIVA = 'activa', 'Activa'
-    CANCELADA = 'cancelada', 'Cancelada'
+    ACTIVA = "activa", "Activa"
+    CANCELADA = "cancelada", "Cancelada"
 
 
 class Evidencia(models.Model):
@@ -30,19 +31,11 @@ class Evidencia(models.Model):
     titulo = models.CharField(max_length=255)
     descripcion = models.TextField()
 
-    estado = models.CharField(
-        max_length=20,
-        choices=EstadoEvidencia.choices,
-        default=EstadoEvidencia.ACTIVA
-    )
+    estado = models.CharField(max_length=20, choices=EstadoEvidencia.choices, default=EstadoEvidencia.ACTIVA)
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
-    asignacion = models.OneToOneField(
-        Asignacion,
-        on_delete=models.CASCADE,
-        related_name='evidencia'
-    )
+    asignacion = models.OneToOneField(Asignacion, on_delete=models.CASCADE, related_name="evidencia")
 
     def __str__(self):
         return self.titulo
@@ -57,13 +50,9 @@ class VersionEvidencia(models.Model):
 
     id_version = models.AutoField(primary_key=True)
 
-    evidencia = models.ForeignKey(
-        Evidencia,
-        on_delete=models.CASCADE,
-        related_name='versiones'
-    )
+    evidencia = models.ForeignKey(Evidencia, on_delete=models.CASCADE, related_name="versiones")
 
-    archivo = models.FileField(upload_to='evidencias/')
+    archivo = models.FileField(upload_to="evidencias/")
     version = models.IntegerField(default=1)
     comentario = models.TextField(blank=True, null=True)
 
@@ -82,17 +71,9 @@ class Observacion(models.Model):
 
     id = models.AutoField(primary_key=True)
 
-    version = models.ForeignKey(
-        VersionEvidencia,
-        on_delete=models.CASCADE,
-        related_name='observaciones'
-    )
+    version = models.ForeignKey(VersionEvidencia, on_delete=models.CASCADE, related_name="observaciones")
 
-    usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='observaciones'
-    )
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="observaciones")
 
     comentario = models.TextField()
 
@@ -104,4 +85,4 @@ class Observacion(models.Model):
         return f"Observación #{self.id} - Versión {self.version.version}"
 
     class Meta:
-        ordering = ['-fecha_creacion']
+        ordering = ["-fecha_creacion"]
