@@ -18,6 +18,19 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -28,20 +41,34 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DJANGO_SETTINGS_MODULE=evaluacionQuinquenal.settings
-      - DEBUG=${DEBUG:-True}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me-in-production}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-cambiar-esta-clave-en-produccion}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${DB_NAME:-evaluacion_quinquenal}
       - DB_USER=${DB_USER:-evaluacion_user}
       - DB_PASSWORD=${DB_PASSWORD:-evaluacion_pass}
       - DB_HOST=db
       - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:4200}
+      - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      - EMAIL_HOST=${EMAIL_HOST:-}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@localhost}
+      - SENTRY_DSN=${SENTRY_DSN:-}
       - MEDIA_ROOT=/app/media
     volumes:
       - media_data:/app/media
+      - logs_data:/app/logs
 
   frontend:
     build:
@@ -55,4 +82,6 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   media_data:
+  logs_data:
