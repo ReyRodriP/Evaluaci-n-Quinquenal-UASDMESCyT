@@ -23,6 +23,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from auditoria.utils import registrar_auditoria
+from evaluacionQuinquenal.security import _get_client_ip
 from notificaciones.utils import crear_notificacion
 
 from .permissions import CustomModelPermissions, IsAdminOrReadOnly
@@ -232,6 +233,13 @@ def login(request):
     user = authenticate(username=username, password=password)
 
     if user is None:
+        registrar_auditoria(
+            usuario=None,
+            accion="Login fallido",
+            modelo="Usuario",
+            registro_id=None,
+            descripcion=f"Intento de login fallido para usuario '{username}' desde {_get_client_ip(request)}",
+        )
         return Response({"error": "Credenciales invalidas"}, status=status.HTTP_400_BAD_REQUEST)
 
     if not user.is_active:

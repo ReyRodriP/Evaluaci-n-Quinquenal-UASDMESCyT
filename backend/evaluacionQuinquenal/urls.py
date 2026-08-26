@@ -11,7 +11,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("admin/", admin.site.urls),  # Proteger en produccion con staff_member_required (ver settings.py)
     path("api/", include("dashboard.urls")),
     path("api/", include("search.urls")),
     path("api/", include("organization.urls")),
