@@ -246,3 +246,151 @@ class ObjectivesTest(TestCase):
     def test_unauthenticated_user_blocked(self):
         response = self.client.get('/api/facultades/')
         self.assertEqual(response.status_code, 401)
+
+
+class SecurityTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123',
+            email='test@example.com'
+        )
+        self.active_user = User.objects.create_user(
+            username='activeuser',
+            password='activepass123',
+            email='active@example.com',
+            is_active=True
+        )
+        self.inactive_user = User.objects.create_user(
+            username='inactiveuser',
+            password='inactivepass123',
+            email='inactive@example.com',
+            is_active=False
+        )
+
+    def test_login_rate_limiting(self):
+        for i in range(5):
+            response = self.client.post('/api/login', {
+                'username': 'testuser',
+                'password': 'wrongpassword'
+            })
+        response = self.client.post('/api/login', {
+            'username': 'testuser',
+            'password': 'wrongpassword'
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_register_rejects_short_password(self):
+        response = self.client.post('/api/register', {
+            'username': 'newuser',
+            'email': 'new@example.com',
+            'password': 'abc'
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_register_rejects_invalid_email(self):
+        response = self.client.post('/api/register', {
+            'username': 'newuser',
+            'email': 'notanemail',
+            'password': 'validpass123'
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_register_rejects_special_chars_username(self):
+        response = self.client.post('/api/register', {
+            'username': 'user@name!',
+            'email': 'new@example.com',
+            'password': 'validpass123'
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_unauthenticated_access_returns_401(self):
+        response = self.client.get('/api/usuarios/')
+        self.assertEqual(response.status_code, 401)
+
+    def test_superuser_can_access_anything(self):
+        superuser = User.objects.create_superuser(
+            username='admin',
+            password='adminpass123',
+            email='admin@example.com'
+        )
+        token = Token.objects.create(user=superuser)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        response = self.client.get('/api/usuarios/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_user_cannot_delete_self(self):
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        with self.assertRaises(Exception):
+            self.client.delete(f'/api/usuarios/{self.user.id}/')
+        self.assertTrue(User.objects.filter(id=self.user.id).exists())
+
+    def test_login_inactive_user(self):
+        response = self.client.post('/api/login', {
+            'username': 'inactiveuser',
+            'password': 'inactivepass123'
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_change_password_wrong_old_password(self):
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        response = self.client.post('/api/change_password', {
+            'old_password': 'wrongoldpassword',
+            'new_password': 'newpassword123!'
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_forgot_password_invalid_email_format(self):
+        response = self.client.post('/api/forgot_password', {
+            'email': 'bad'
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_profile_read_only_fields(self):
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        original_username = self.user.username
+        response = self.client.patch('/api/profile', {
+            'username': 'hackedname'
+        })
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, original_username)
+
+
+class TokenTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='tokentest',
+            password='tokenpass123',
+            email='token@example.com'
+        )
+
+    def test_token_created_on_login(self):
+        self.client.post('/api/login', {
+            'username': 'tokentest',
+            'password': 'tokenpass123'
+        })
+        self.assertTrue(Token.objects.filter(user=self.user).exists())
+
+    def test_token_reused_on_second_login(self):
+        self.client.post('/api/login', {
+            'username': 'tokentest',
+            'password': 'tokenpass123'
+        })
+        first_token = Token.objects.get(user=self.user)
+        self.client.post('/api/login', {
+            'username': 'tokentest',
+            'password': 'tokenpass123'
+        })
+        second_token = Token.objects.get(user=self.user)
+        self.assertEqual(first_token.key, second_token.key)
+
+    def test_token_deleted_on_logout(self):
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.post('/api/logout')
+        self.assertFalse(Token.objects.filter(user=self.user).exists())
