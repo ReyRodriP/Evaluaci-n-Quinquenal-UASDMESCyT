@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('evaluation', '0003_asignacion_estado'),
+        ('evaluation', '0003_historialestado'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
