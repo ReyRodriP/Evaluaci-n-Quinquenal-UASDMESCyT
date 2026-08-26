@@ -2,7 +2,7 @@
 
 ## Primeros pasos
 
-`ash
+`Bash
 py -m pip install virtualenv
 virtualenv venv
 venv\Scripts\activate

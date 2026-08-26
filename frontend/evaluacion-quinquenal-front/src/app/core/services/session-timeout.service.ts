@@ -7,7 +7,7 @@ import { AuthService } from '../../features/auth/services/auth-service';
   providedIn: 'root',
 })
 export class SessionTimeoutService implements OnDestroy {
-  private readonly IDLE_MINUTOS = 5;
+  private readonly IDLE_MINUTOS = 50;
   private readonly TIEMPO_AVISO_SEG = 120;
 
   private activo = false;
