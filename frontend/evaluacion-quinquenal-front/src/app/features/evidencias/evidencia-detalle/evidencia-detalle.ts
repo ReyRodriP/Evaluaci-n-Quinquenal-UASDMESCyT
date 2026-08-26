@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -38,10 +39,19 @@ export class EvidenciaDetalle implements OnInit {
   versionEditFileError = '';
   guardandoVersionEdit = false;
 
+  previewAbierto = false;
+  previewUrl: SafeResourceUrl | null = null;
+  previewTipo: 'pdf' | 'imagen' | 'texto' | 'excel' | 'desconocido' = 'desconocido';
+  previewNombre = '';
+  previewCargando = false;
+  previewError = '';
+  previewTextoContenido = '';
+
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
-    private toast: ToastrService
+    private toast: ToastrService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -245,6 +255,81 @@ export class EvidenciaDetalle implements OnInit {
     this.editandoVersionId = null;
     this.versionEditComentario = '';
     this.versionEditFile = null;
+  }
+
+  abrirPreview(version: any): void {
+    this.previewAbierto = true;
+    this.previewCargando = true;
+    this.previewError = '';
+    this.previewTextoContenido = '';
+    this.previewNombre = version.nombre_archivo || 'archivo';
+
+    const ext = (version.nombre_archivo || '').split('.').pop()?.toLowerCase() || '';
+
+    if (['pdf'].includes(ext)) {
+      this.previewTipo = 'pdf';
+      this.authService.previewVersion(version.id_version).subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+          this.previewCargando = false;
+        },
+        error: () => {
+          this.previewError = 'No se pudo cargar la vista previa';
+          this.previewCargando = false;
+        },
+      });
+    } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+      this.previewTipo = 'imagen';
+      this.authService.previewVersion(version.id_version).subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+          this.previewCargando = false;
+        },
+        error: () => {
+          this.previewError = 'No se pudo cargar la vista previa';
+          this.previewCargando = false;
+        },
+      });
+    } else if (['txt', 'csv', 'json', 'xml', 'html', 'htm', 'md', 'log', 'py', 'js', 'ts', 'java', 'c', 'cpp', 'css'].includes(ext)) {
+      this.previewTipo = 'texto';
+      this.authService.previewVersion(version.id_version).subscribe({
+        next: (blob) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            this.previewTextoContenido = reader.result as string;
+            this.previewCargando = false;
+          };
+          reader.onerror = () => {
+            this.previewError = 'No se pudo leer el archivo';
+            this.previewCargando = false;
+          };
+          reader.readAsText(blob);
+        },
+        error: () => {
+          this.previewError = 'No se pudo cargar la vista previa';
+          this.previewCargando = false;
+        },
+      });
+    } else if (['xlsx', 'xls'].includes(ext)) {
+      this.previewTipo = 'excel';
+      this.previewCargando = false;
+      this.previewError = '';
+    } else {
+      this.previewTipo = 'desconocido';
+      this.previewCargando = false;
+      this.previewError = 'Vista previa no disponible para este tipo de archivo';
+    }
+  }
+
+  cerrarPreview(): void {
+    this.previewAbierto = false;
+    this.previewUrl = null;
+    this.previewTipo = 'desconocido';
+    this.previewNombre = '';
+    this.previewError = '';
+    this.previewTextoContenido = '';
   }
 
   guardarEdicionVersion(): void {

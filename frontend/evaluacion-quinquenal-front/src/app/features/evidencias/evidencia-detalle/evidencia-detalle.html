@@ -187,6 +187,14 @@
                             </button>
 
                             <button
+                                class="secondary-btn preview-btn"
+                                (click)="abrirPreview(version)">
+
+                                <i class="bx bx-show"></i>
+
+                            </button>
+
+                            <button
                                 class="secondary-btn"
 
                                 (click)="descargar(version.id_version, version.nombre_archivo)">
@@ -514,5 +522,83 @@
         </div>
 
     </ng-container>
+
+    <!-- ===========================
+         MODAL DE VISTA PREVIA
+    ============================ -->
+
+    <div *ngIf="previewAbierto" class="preview-overlay" (click)="cerrarPreview()">
+
+        <div class="preview-modal" (click)="$event.stopPropagation()">
+
+            <div class="preview-header">
+
+                <h3>
+                    <i class="bx bx-show"></i>
+                    Vista Previa: {{ previewNombre }}
+                </h3>
+
+                <button class="close-btn" (click)="cerrarPreview()">
+                    <i class="bx bx-x"></i>
+                </button>
+
+            </div>
+
+            <div class="preview-body">
+
+                <div *ngIf="previewCargando" class="preview-loading">
+                    <i class="bx bx-loader-alt bx-spin"></i>
+                    Cargando vista previa...
+                </div>
+
+                <div *ngIf="previewError" class="preview-error">
+                    <i class="bx bx-error-circle"></i>
+                    {{ previewError }}
+                </div>
+
+                <!-- PDF -->
+                <iframe
+                    *ngIf="previewTipo === 'pdf' && previewUrl && !previewCargando"
+                    [src]="previewUrl"
+                    class="preview-iframe">
+                </iframe>
+
+                <!-- Imagen -->
+                <div *ngIf="previewTipo === 'imagen' && previewUrl && !previewCargando" class="preview-imagen-container">
+                    <img [src]="previewUrl" [alt]="previewNombre" class="preview-imagen" />
+                </div>
+
+                <!-- Texto -->
+                <div *ngIf="previewTipo === 'texto' && !previewCargando" class="preview-texto-container">
+                    <pre class="preview-texto">{{ previewTextoContenido }}</pre>
+                </div>
+
+                <!-- Excel -->
+                <div *ngIf="previewTipo === 'excel' && !previewCargando" class="preview-excel-msg">
+                    <i class="bx bx-file"></i>
+                    <p>La vista previa de archivos Excel no está disponible en el navegador.</p>
+                    <p>Descargue el archivo para verlo en su aplicativo de hojas de cálculo.</p>
+                    <button class="primary-btn" (click)="descargar(0, previewNombre)">
+                        <i class="bx bx-download"></i>
+                        Descargar archivo
+                    </button>
+                </div>
+
+                <!-- Desconocido -->
+                <div *ngIf="previewTipo === 'desconocido' && !previewCargando" class="preview-excel-msg">
+                    <i class="bx bx-file"></i>
+                    <p>Vista previa no disponible para este tipo de archivo.</p>
+                    <p>Descargue el archivo para verlo en su dispositivo.</p>
+                    <button class="primary-btn" (click)="descargar(0, previewNombre)">
+                        <i class="bx bx-download"></i>
+                        Descargar archivo
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </section>
