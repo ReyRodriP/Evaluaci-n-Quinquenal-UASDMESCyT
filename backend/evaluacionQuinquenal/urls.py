@@ -1,3 +1,10 @@
+"""
+@file urls.py
+@brief URLs principales del proyecto Evaluación Quinquenal.
+@details Define las rutas URL raíz del proyecto, incluyendo
+las URLs de todas las aplicaciones del sistema y el admin.
+"""
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings

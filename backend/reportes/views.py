@@ -1,3 +1,12 @@
+"""
+@file views.py
+@brief Vistas de la app de reportes.
+@details Define las vistas para la generación y exportación de reportes
+del sistema de evaluación quinquenal, incluyendo reportes generales,
+por facultad, por departamento, de evidencias, observaciones,
+auditoría y usuarios.
+"""
+
 import io
 import re
 from datetime import datetime
@@ -286,6 +295,12 @@ def _data_general(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def general(request):
+    """@brief Retorna datos del reporte general del período.
+    @details Calcula estadísticas generales de asignaciones para el
+    período actual o uno específico.
+    @param request Request HTTP autenticada.
+    @return Response con datos del reporte general.
+    """
     return Response(_data_general(request))
 
 
@@ -306,6 +321,10 @@ def _filas_general(data):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def general_exportar(request):
+    """@brief Exporta el reporte general en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @return HttpResponse con el archivo generado.
+    """
     data = _data_general(request)
     return _responder_exportacion(
         'Reporte General del Periodo',
@@ -365,6 +384,11 @@ def _data_por_facultad(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def por_facultad(request, pk=None):
+    """@brief Retorna datos del reporte por facultad.
+    @param request Request HTTP autenticada.
+    @param pk Identificador de la facultad.
+    @return Response con datos del reporte o error 403/404.
+    """
     data = _data_por_facultad(request, pk)
     if data.get('denegado'):
         return Response({'detail': 'No autorizado'}, status=403)
@@ -387,6 +411,11 @@ def _filas_facultad(data):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def por_facultad_exportar(request, pk=None):
+    """@brief Exporta el reporte por facultad en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @param pk Identificador de la facultad.
+    @return HttpResponse con el archivo generado.
+    """
     data = _data_por_facultad(request, pk)
     if data.get('denegado'):
         return Response({'detail': 'No autorizado'}, status=403)
@@ -456,6 +485,11 @@ def _data_por_departamento(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def por_departamento(request, pk=None):
+    """@brief Retorna datos del reporte por departamento.
+    @param request Request HTTP autenticada.
+    @param pk Identificador del departamento.
+    @return Response con datos del reporte o error 403/404.
+    """
     data = _data_por_departamento(request, pk)
     if data.get('denegado'):
         return Response({'detail': 'No autorizado'}, status=403)
@@ -478,6 +512,11 @@ def _filas_departamento(data):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def por_departamento_exportar(request, pk=None):
+    """@brief Exporta el reporte por departamento en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @param pk Identificador del departamento.
+    @return HttpResponse con el archivo generado.
+    """
     data = _data_por_departamento(request, pk)
     if data.get('denegado'):
         return Response({'detail': 'No autorizado'}, status=403)
@@ -543,6 +582,12 @@ def _filas_evidencias(qs):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def evidencias(request):
+    """@brief Retorna datos del reporte de evidencias.
+    @details Lista evidencias con paginación y filtros por estado,
+    departamento, período y criterio.
+    @param request Request HTTP autenticada.
+    @return Response con evidencias paginadas.
+    """
     qs = _base_queryset_evidencias(request)
     filas_completas = _filas_evidencias(qs)
     filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
@@ -572,6 +617,10 @@ def evidencias(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def evidencias_exportar(request):
+    """@brief Exporta el reporte de evidencias en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @return HttpResponse con el archivo generado.
+    """
     qs = _base_queryset_evidencias(request)
     filas = _filas_evidencias(qs)
     return _responder_exportacion(
@@ -589,6 +638,12 @@ def evidencias_exportar(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def observaciones(request):
+    """@brief Retorna datos del reporte de observaciones.
+    @details Lista observaciones de evidencias con paginación
+    y filtros por período, departamento y usuario.
+    @param request Request HTTP autenticada.
+    @return Response con observaciones paginadas.
+    """
     qs = _base_queryset_observaciones(request)
     filas_completas = _filas_observaciones(qs)
 
@@ -623,6 +678,10 @@ def observaciones(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
 def observaciones_exportar(request):
+    """@brief Exporta el reporte de observaciones en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @return HttpResponse con el archivo generado.
+    """
     qs = _base_queryset_observaciones(request)
     filas = _filas_observaciones(qs)
     return _responder_exportacion(
@@ -666,6 +725,12 @@ def _base_queryset_auditoria(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def auditoria(request):
+    """@brief Retorna datos del reporte de auditoría.
+    @details Lista registros de auditoría con paginación y filtros
+    por usuario, fechas, modelo y acción.
+    @param request Request HTTP autenticada.
+    @return Response con registros de auditoría paginados.
+    """
     qs = _base_queryset_auditoria(request)
     filas_completas = _filas_auditoria(qs)
     filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
@@ -694,6 +759,10 @@ def auditoria(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def auditoria_exportar(request):
+    """@brief Exporta el reporte de auditoría en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @return HttpResponse con el archivo generado.
+    """
     qs = _base_queryset_auditoria(request)
     filas = _filas_auditoria(qs)
     return _responder_exportacion(
@@ -729,6 +798,12 @@ def _base_queryset_usuarios(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def usuarios(request):
+    """@brief Retorna datos del reporte de usuarios.
+    @details Lista usuarios con paginación y filtros por rol,
+    departamento y estado.
+    @param request Request HTTP autenticada.
+    @return Response con usuarios paginados.
+    """
     qs = _base_queryset_usuarios(request)
     filas_completas = _filas_usuarios(qs)
     filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
@@ -761,6 +836,10 @@ def usuarios(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
 def usuarios_exportar(request):
+    """@brief Exporta el reporte de usuarios en PDF o XLSX.
+    @param request Request HTTP autenticada.
+    @return HttpResponse con el archivo generado.
+    """
     qs = _base_queryset_usuarios(request)
     filas = _filas_usuarios(qs)
     return _responder_exportacion(

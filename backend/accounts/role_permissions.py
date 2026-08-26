@@ -1,3 +1,9 @@
+"""
+@file role_permissions.py
+@brief Definicion de permisos por rol y utilidades de sincronizacion
+@details Contiene el diccionario ROLE_PERMISSIONS que mapea cada rol a sus permisos
+asignados, junto con funciones para sincronizar y comparar permisos de grupos.
+"""
 ROLE_PERMISSIONS = {
     'Administrador General': None,
     'Coordinador Quinquenal': None,
@@ -97,6 +103,13 @@ OUR_APP_LABELS = [
 
 
 def sync_group_permissions(group):
+    """
+    @brief Sincroniza los permisos de un grupo segun ROLE_PERMISSIONS
+    @param group Instancia del modelo Group cuyos permisos se sincronizan
+    @return None
+    @details Asigna al grupo los permisos definidos en ROLE_PERMISSIONS.
+    Si el rol tiene None, asigna todos los permisos de las apps del sistema.
+    """
     if group.name not in ROLE_PERMISSIONS:
         return
 
@@ -132,7 +145,13 @@ def sync_group_permissions(group):
 
 
 def get_role_permissions_diff(group):
-    """Returns (extra_permissions, missing_permissions) for a group."""
+    """
+    @brief Obtiene la diferencia entre los permisos actuales y esperados de un grupo
+    @param group Instancia del modelo Group a comparar
+    @return Tupla (permisos_extra, permisos_faltantes) como listas de objetos Permission
+    @details Compara los permisos actuales del grupo con los definidos en ROLE_PERMISSIONS
+    y retorna los que sobran y los que faltan.
+    """
     if group.name not in ROLE_PERMISSIONS:
         return [], []
 

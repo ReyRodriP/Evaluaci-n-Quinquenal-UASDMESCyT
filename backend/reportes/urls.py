@@ -1,3 +1,10 @@
+"""
+@file urls.py
+@brief URLs de la app de reportes.
+@details Define las rutas URL para los endpoints de reportes
+y exportación del sistema.
+"""
+
 from django.urls import path
 from . import views
 

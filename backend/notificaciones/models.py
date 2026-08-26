@@ -1,8 +1,20 @@
+"""
+@file models.py
+@brief Modelos de la app de notificaciones.
+@details Define el modelo Notificacion para el envío y gestión
+de notificaciones a los usuarios del sistema.
+"""
+
 from django.db import models
 from django.conf import settings
 
 
 class Notificacion(models.Model):
+    """@class Notificacion
+    @brief Modelo para las notificaciones del sistema.
+    @details Almacena notificaciones enviadas a los usuarios,
+    incluyendo título, mensaje, estado de lectura y fecha de creación.
+    """
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

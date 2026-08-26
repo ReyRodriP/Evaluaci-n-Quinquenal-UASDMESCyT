@@ -1,8 +1,22 @@
+"""
+@file models.py
+@brief Modelos de la app de auditoría.
+@details Define el modelo Auditoria para el registro de acciones
+realizadas sobre los registros del sistema.
+"""
+
 from django.db import models
 from django.conf import settings
 
 
 class Auditoria(models.Model):
+    """@class Auditoria
+    @brief Modelo para el registro de auditoría del sistema.
+    @details Almacena información sobre cada acción realizada
+    por un usuario sobre un registro del sistema, incluyendo
+    la acción, el modelo afectado, el ID del registro y una
+    descripción detallada.
+    """
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

@@ -1,3 +1,11 @@
+"""
+@file views.py
+@brief Vistas de la app de dashboard.
+@details Define las vistas para el panel de control (dashboard)
+del sistema de evaluación quinquenal, incluyendo resumen general,
+detalles por departamento, avance por facultad y filtrado por período.
+"""
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -11,6 +19,12 @@ from accounts.permissions import departamentos_permitidos
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def resumen(request):
+    """@brief Retorna un resumen general del dashboard.
+    @details Calcula y retorna estadísticas generales del sistema
+    incluyendo departamentos, indicadores, asignaciones y estados.
+    @param request Request HTTP autenticada.
+    @return Response con diccionario de estadísticas generales.
+    """
     deptos_ids = departamentos_permitidos(request)
     asig_qs = Asignacion.objects.all()
     if deptos_ids is not None:
@@ -48,6 +62,13 @@ def resumen(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def departamento_dashboard(request, pk):
+    """@brief Retorna estadísticas detalladas de un departamento.
+    @details Calcula indicadores, asignaciones, evidencias y estados
+    de un departamento específico.
+    @param request Request HTTP autenticada.
+    @param pk Identificador del departamento.
+    @return Response con estadísticas del departamento o error 403/404.
+    """
     deptos_ids = departamentos_permitidos(request)
     if deptos_ids is not None and pk not in deptos_ids:
         return Response({'error': 'No tienes acceso a este departamento'}, status=403)
@@ -85,6 +106,12 @@ def departamento_dashboard(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def avance(request):
+    """@brief Retorna el porcentaje de avance por facultad.
+    @details Calcula el porcentaje de asignaciones completadas
+    sobre el total de asignaciones obligatorias para cada facultad.
+    @param request Request HTTP autenticada.
+    @return Response con lista de facultades y su porcentaje de avance.
+    """
     deptos_ids = departamentos_permitidos(request)
 
     facultades_qs = Facultad.objects.filter(activo=True)
@@ -119,6 +146,13 @@ def avance(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def periodo_dashboard(request, pk):
+    """@brief Retorna estadísticas del dashboard filtradas por período.
+    @details Calcula departamentos, indicadores, asignaciones y estados
+    para un período específico.
+    @param request Request HTTP autenticada.
+    @param pk Identificador del período.
+    @return Response con estadísticas del período o error 404.
+    """
     try:
         periodo = Periodo.objects.get(pk=pk)
     except Periodo.DoesNotExist:

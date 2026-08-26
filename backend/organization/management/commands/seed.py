@@ -1,9 +1,27 @@
+"""
+@file seed.py
+@brief Comando de gestión para cargar datos iniciales del sistema.
+@details Define el comando 'seed' que pobla la base de datos con
+facultades, departamentos, períodos, criterios, roles y permisos
+iniciales necesarios para el funcionamiento de la aplicación.
+"""
+
 from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
+    """@class Command
+    @brief Comando de Django management para sembrar datos iniciales.
+    @details Ejecuta una secuencia de métodos de carga que crean registros
+    base para la organización, evaluación, roles y permisos del sistema.
+    """
+
     help = "Carga los datos iniciales del sistema"
 
     def handle(self, *args, **kwargs):
+        """@brief Método principal que orquesta la carga de datos iniciales.
+        @param args Argumentos posicionales adicionales.
+        @param kwargs Argumentos de palabra clave adicionales.
+        """
         self.seed_facultades()
         self.seed_departamentos()
         self.seed_periodos()
@@ -17,6 +35,10 @@ class Command(BaseCommand):
         )
 
     def seed_facultades(self):
+        """@brief Crea las facultades iniciales del sistema.
+        @details Registra las 9 facultades de la universidad usando
+        get_or_create para evitar duplicados.
+        """
         from organization.models import Facultad
 
         facultades = [
@@ -69,6 +91,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Facultades registradas correctamente."))
 
     def seed_departamentos(self):
+        """@brief Crea los departamentos iniciales de la Facultad de Ciencias.
+        @details Registra las 7 escuelas de la Facultad de Ciencias usando
+        get_or_create para evitar duplicados.
+        """
         from organization.models import Facultad, Departamento
 
         facultad_ciencias = Facultad.objects.get(
@@ -120,6 +146,10 @@ class Command(BaseCommand):
         )
 
     def seed_periodos(self):
+        """@brief Crea los períodos de evaluación iniciales.
+        @details Registra los períodos 2019-2024 y 2025-2030 con sus
+        fechas de inicio y fin correspondientes.
+        """
         from evaluation.models import Periodo
         from datetime import date
 
@@ -153,6 +183,10 @@ class Command(BaseCommand):
         )
 
     def seed_criterios(self):
+        """@brief Crea los criterios de evaluación iniciales.
+        @details Registra los 8 criterios de evaluación institucional
+        asociados al período 2025-2030.
+        """
         from evaluation.models import Periodo, Criterio
 
         periodo = Periodo.objects.get(nombre="Periodo 2025-2030")
@@ -209,6 +243,11 @@ class Command(BaseCommand):
     
 
     def seed_roles(self):
+        """@brief Crea los roles iniciales del sistema.
+        @details Registra los 6 grupos de usuarios: Administrador General,
+        Consulta, Responsable Departamental, Revisor Institucional,
+        Coordinador Quinquenal y Evaluador Externo.
+        """
         from django.contrib.auth.models import Group
 
         roles = [
@@ -226,6 +265,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Roles iniciales registrados correctamente.'))
 
     def seed_groups(self):
+        """@brief Asigna permisos a los grupos de usuarios.
+        @details Sincroniza los permisos definidos en ROLE_PERMISSIONS con
+        cada grupo registrado en el sistema.
+        """
         from django.contrib.auth.models import Group
         from accounts.role_permissions import sync_group_permissions, ROLE_PERMISSIONS
 

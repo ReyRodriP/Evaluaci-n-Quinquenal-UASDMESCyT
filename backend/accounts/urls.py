@@ -1,3 +1,9 @@
+"""
+@file urls.py
+@brief Configuracion de URLs para la app de cuentas de usuario
+@details Define las rutas de acceso para autenticacion, gestion de usuarios,
+roles, permisos y operaciones de perfil.
+"""
 from django.urls import path, re_path, include
 from rest_framework.routers import DefaultRouter
 from . import views

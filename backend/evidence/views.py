@@ -1,3 +1,9 @@
+"""@file views.py
+@brief Vistas API para la gestión de evidencias, versiones y observaciones
+@details Implementa los ViewSets de Django REST Framework para el CRUD
+completo de evidencias, subida de versiones, observaciones y descarga
+de archivos, con control de permisos y auditoría integrada."""
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -25,6 +31,12 @@ import os
 
 # CRUD de Evidencias
 class EvidenciaViewSet(viewsets.ModelViewSet):
+    """@class EvidenciaViewSet
+    @brief ViewSet para el CRUD completo de evidencias
+    @details Proporciona operaciones de crear, listar, actualizar y eliminar evidencias,
+    así como acciones personalizadas para subir versiones, obtener detalles
+    con información de asignación, historial de versiones y edición de versiones."""
+
     permission_classes = [
     IsAuthenticated,
     CustomModelPermissions
@@ -33,10 +45,19 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
     serializer_class = EvidenciaSerializer
 
     def get_queryset(self):
+        """@brief Filtra el queryset según el rol del usuario autenticado
+        @return QuerySet filtrado por departamento de la asignación"""
+
         qs = Evidencia.objects.all()
         return filtrar_por_rol(qs, self.request, dept_field='asignacion__departamento')
 
     def create(self, request, *args, **kwargs):
+        """@brief Crea una nueva evidencia o reactiva una existente
+        @details Si ya existe una evidencia para la asignación indicada y está
+        cancelada, la reactiva y retorna la existente. De lo contrario crea una nueva.
+        @param request Solicitud HTTP con los datos de la evidencia
+        @return Response con los datos de la evidencia creada o reactivada"""
+
         asignacion_id = request.data.get("asignacion")
         if asignacion_id:
             existing = Evidencia.objects.filter(asignacion_id=asignacion_id).first()
@@ -51,6 +72,15 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def subir_version(self, request, pk=None):
+        """@brief Sube una nueva versión de archivo para una evidencia
+        @details Valida que la evidencia no esté aprobada, crea una nueva versión
+        incremental con el archivo adjunto y actualiza el estado de la asignación
+        a EN_PROGRESO si estaba en PENDIENTE, OBSERVADA o RECHAZADO.
+        @param request Solicitud HTTP con el archivo y comentario opcional
+        @param pk Identificador de la evidencia
+        @return Response con los datos de la versión creada
+        @raises Response Error 400 si la evidencia está aprobada o no se adjunta archivo"""
+
         evidencia = self.get_object()
 
         if evidencia.asignacion.estado == EstadoAsignacion.APROBADO:
@@ -108,6 +138,14 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def detalle(self, request, pk=None):
+        """@brief Obtiene el detalle completo de una evidencia
+        @details Incluye información de la asignación, historial de estados,
+        permisos del usuario para observar, subir versiones, cambiar estado
+        y editar información.
+        @param request Solicitud HTTP del usuario autenticado
+        @param pk Identificador de la evidencia
+        @return Response con los datos detallados de la evidencia"""
+
         evidencia = self.get_object()
         try:
             asignacion = evidencia.asignacion
@@ -135,6 +173,12 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def historial(self, request, pk=None):
+        """@brief Obtiene el historial de versiones de una evidencia
+        @details Retorna todas las versiones ordenadas de la más reciente a la más antigua.
+        @param request Solicitud HTTP del usuario autenticado
+        @param pk Identificador de la evidencia
+        @return Response con la lista serializada de versiones"""
+
         evidencia = self.get_object()
         versiones = evidencia.versiones.order_by("-version")
 
@@ -143,6 +187,14 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         )
     @action(detail=True, methods=["patch"])
     def editar_version(self, request, pk=None):
+        """@brief Edita la última versión de una evidencia
+        @details Permite modificar el archivo y/o comentario de la versión más
+        reciente. Registra la edición en el sistema de auditoría.
+        @param request Solicitud HTTP con los campos a actualizar
+        @param pk Identificador de la evidencia
+        @return Response con los datos de la versión actualizada
+        @raises Response Error 400 si la evidencia está aprobada o no hay versiones"""
+
         evidencia = self.get_object()
 
         if evidencia.asignacion.estado == EstadoAsignacion.APROBADO:
@@ -179,6 +231,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
 # CRUD de Versiones
 class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
+    """@class VersionEvidenciaViewSet
+    @brief ViewSet de solo lectura para versiones de evidencia
+    @details Permite listar, consultar detalles, descargar archivos,
+    obtener previsualización y listar observaciones de cada versión."""
+
     permission_classes = [
         IsAuthenticated,
         CustomModelPermissions
@@ -187,11 +244,20 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = VersionEvidenciaSerializer
 
     def get_queryset(self):
+        """@brief Filtra el queryset según el rol del usuario autenticado
+        @return QuerySet filtrado por departamento de la evidencia"""
+
         qs = VersionEvidencia.objects.all()
         return filtrar_por_rol(qs, self.request, dept_field='evidencia__asignacion__departamento')
 
     @action(detail=True, methods=["get"])
     def descargar(self, request, pk=None):
+        """@brief Descarga el archivo de una versión de evidencia
+        @details Retorna el archivo como respuesta con attachment para descarga directa.
+        @param request Solicitud HTTP del usuario autenticado
+        @param pk Identificador de la versión
+        @return FileResponse con el archivo adjunto"""
+
         version = self.get_object()
 
         return FileResponse(
@@ -202,6 +268,14 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["get"])
     def preview(self, request, pk=None):
+        """@brief Previsualiza el archivo de una versión de evidencia
+        @details Retorna el archivo con el content-type apropiado para visualización
+        inline en el navegador. Soporta múltiples formatos de imagen, documentos
+        y archivos de texto.
+        @param request Solicitud HTTP del usuario autenticado
+        @param pk Identificador de la versión
+        @return FileResponse con el archivo para previsualización"""
+
         version = self.get_object()
         archivo = version.archivo
 
@@ -247,6 +321,11 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["get"])
     def observaciones(self, request, pk=None):
+        """@brief Lista todas las observaciones de una versión de evidencia
+        @param request Solicitud HTTP del usuario autenticado
+        @param pk Identificador de la versión
+        @return Response con la lista serializada de observaciones"""
+
         version = self.get_object()
 
         return Response(
@@ -258,6 +337,12 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
 
 # CRUD de Observaciones
 class ObservacionViewSet(viewsets.ModelViewSet):
+    """@class ObservacionViewSet
+    @brief ViewSet para el CRUD completo de observaciones
+    @details Permite crear, listar, actualizar y eliminar (soft delete) observaciones.
+    Al crear una observación se registra en auditoría, se notifica al autor
+    de la evidencia y se cambia el estado de la asignación a OBSERVADA."""
+
     queryset = Observacion.objects.filter(activo=True)
     serializer_class = ObservacionSerializer
 
@@ -267,10 +352,19 @@ class ObservacionViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
+        """@brief Filtra el queryset de observaciones activas según el rol del usuario
+        @return QuerySet filtrado por departamento de la evidencia asociada"""
+
         qs = Observacion.objects.filter(activo=True)
         return filtrar_por_rol(qs, self.request, dept_field='version__evidencia__asignacion__departamento')
 
     def perform_create(self, serializer):
+        """@brief Crea una observación y ejecuta acciones secundarias
+        @details Asigna el usuario actual como autor, registra la acción en auditoría,
+        envía notificación al propietario de la evidencia y cambia el estado
+        de la asignación a OBSERVADA.
+        @param serializer Serializer con los datos validados de la observación"""
+
         observacion = serializer.save(usuario=self.request.user)
 
         evidencia = observacion.version.evidencia
@@ -310,5 +404,9 @@ class ObservacionViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
+        """@brief Realiza un soft delete de una observación
+        @details Marca la observación como inactiva en lugar de eliminarla físicamente.
+        @param instance Instancia de la observación a desactivar"""
+
         instance.activo = False
         instance.save()

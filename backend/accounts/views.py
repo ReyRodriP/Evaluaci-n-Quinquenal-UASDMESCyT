@@ -1,3 +1,10 @@
+"""
+@file views.py
+@brief Vistas y ViewSets para la gestion de cuentas de usuario
+@details Implementa endpoints de autenticacion (login, register, logout),
+gestion de perfil, cambio de contrasena, recuperacion de contrasena,
+y ViewSets para usuarios, grupos y permisos.
+"""
 from rest_framework.decorators import api_view, action, permission_classes, authentication_classes
 from rest_framework.response import Response
 from .serializers import (
@@ -6,7 +13,7 @@ from .serializers import (
     UsuarioProfileSerializer
 )
 from .role_permissions import OUR_APP_LABELS
-from rest_framework.authtoken.models import Token 
+from rest_framework.authtoken.models import Token
 from rest_framework import status, viewsets, mixins
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
@@ -28,12 +35,24 @@ from notificaciones.utils import crear_notificacion
 User = get_user_model()
 
 class GroupViewSet(viewsets.ModelViewSet):
+    """
+    @class GroupViewSet
+    @brief ViewSet para la gestion de grupos (roles) del sistema
+    @details Permite CRUD completo de grupos. Al listar, crea roles por defecto
+    si no existen. Solo administradores pueden modificar.
+    """
+
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def list(self, request, *args, **kwargs):
+        """
+        @brief Lista todos los grupos y crea roles por defecto si estan vacios
+        @param request Request HTTP del cliente
+        @return Response con la lista de grupos serializados
+        """
         if not Group.objects.exists():
             default_roles = [
                 'Administrador General',
@@ -49,12 +68,22 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 
 class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    @class PermissionViewSet
+    @brief ViewSet de solo lectura para permisos del sistema
+    @details Filtra permisos para mostrar solo los de las apps del proyecto.
+    """
+
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get_queryset(self):
+        """
+        @brief Retorna permisos filtrados por las apps del proyecto
+        @return QuerySet de Permission filtrado por OUR_APP_LABELS
+        """
         return Permission.objects.filter(
             content_type__app_label__in=OUR_APP_LABELS
         ).order_by('content_type__app_label', 'codename')
@@ -66,11 +95,23 @@ class UserViewSet(mixins.CreateModelMixin,
                   mixins.UpdateModelMixin,
                   mixins.DestroyModelMixin,
                   viewsets.GenericViewSet):
+    """
+    @class UserViewSet
+    @brief ViewSet para la gestion completa de usuarios
+    @details Permite crear, listar, actualizar y eliminar usuarios.
+    Incluye accion personalizada para consultar permisos de un usuario.
+    Registra auditoria en modificaciones y eliminaciones.
+    """
+
     queryset = User.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_serializer_class(self):
+        """
+        @brief Selecciona el serializer adecuado segun la accion
+        @return Clase del serializer a utilizar
+        """
         if self.action == 'list':
             return UsuarioListSerializer
         if self.action == 'permisos':
@@ -80,9 +121,21 @@ class UserViewSet(mixins.CreateModelMixin,
         return UsuarioSerializer
 
     def perform_create(self, serializer):
+        """
+        @brief Guarda un nuevo usuario
+        @param serializer Serializer con los datos validados
+        @return None
+        """
         serializer.save()
 
     def perform_update(self, serializer):
+        """
+        @brief Actualiza un usuario y registra auditoria de cambios de grupo
+        @param serializer Serializer con los datos actualizados
+        @return None
+        @details Registra auditoria de la modificacion y, si los grupos cambiaron,
+        registra el cambio de rol y envia una notificacion al usuario.
+        """
         old_groups = list(self.get_object().groups.all())
         instance = serializer.save()
         new_groups = list(instance.groups.all())
@@ -116,11 +169,23 @@ class UserViewSet(mixins.CreateModelMixin,
 
     @action(detail=True, methods=['get'])
     def permisos(self, request, pk=None):
+        """
+        @brief Retorna los permisos de un usuario especifico
+        @param request Request HTTP del cliente
+        @param pk PK del usuario a consultar
+        @return Response con los permisos del usuario serializados
+        """
         user = self.get_object()
         serializer = UsuarioPermisosSerializer(user)
         return Response(serializer.data)
 
     def perform_destroy(self, instance):
+        """
+        @brief Elimina un usuario y registra auditoria
+        @param instance Instancia del usuario a eliminar
+        @return None
+        @raises ValidationError Si el usuario intenta eliminarse a si mismo
+        """
         if instance.pk == self.request.user.pk:
             raise ValidationError({'detail': 'No puede eliminar su propia cuenta.'})
         username = instance.username
@@ -137,6 +202,12 @@ class UserViewSet(mixins.CreateModelMixin,
 @authentication_classes([])
 @permission_classes([AllowAny])
 def login(request):
+    """
+    @brief Inicia sesion de un usuario en el sistema
+    @param request Request HTTP con campos username y password
+    @return Response con token de autenticacion y datos del usuario
+    @raises ValidationError Si las credenciales son invalidas
+    """
 
     user = authenticate(
         username=request.data['username'],
@@ -176,6 +247,12 @@ def login(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def register(request):
+    """
+    @brief Registra un nuevo usuario en el sistema
+    @param request Request HTTP con datos del usuario a registrar
+    @return Response con token de autenticacion y datos del usuario creado
+    @raises ValidationError Si los datos de validacion son invalidos
+    """
     serializer = UsuarioSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -199,6 +276,11 @@ def register(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def logout(request):
+    """
+    @brief Cierra la sesion del usuario actual eliminando su token
+    @param request Request HTTP autenticado del usuario
+    @return Response con mensaje de confirmacion
+    """
     token = Token.objects.filter(user=request.user).first()
     if token:
         token.delete()
@@ -209,6 +291,12 @@ def logout(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def profile(request):
+    """
+    @brief Obtiene o actualiza el perfil del usuario autenticado
+    @param request Request HTTP con metodo GET para obtener o PUT/PATCH para actualizar
+    @return Response con datos del perfil actualizados o serializados
+    @raises ValidationError Si los datos de actualizacion son invalidos
+    """
     if request.method == 'GET':
         serializer = UsuarioProfileSerializer(request.user, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -230,6 +318,11 @@ def profile(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def me(request):
+    """
+    @brief Retorna los datos del usuario autenticado actual
+    @param request Request HTTP autenticado del usuario
+    @return Response con datos del perfil del usuario
+    """
     serializer = UsuarioProfileSerializer(request.user, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -237,6 +330,12 @@ def me(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def change_password(request): #Para cambiar contraseña de usuario
+    """
+    @brief Cambia la contrasena del usuario autenticado
+    @param request Request HTTP con old_password y new_password
+    @return Response con mensaje de confirmacion o error
+    @raises ValidationError Si la contrasena actual es incorrecta o faltan campos
+    """
 
     user = request.user
 
@@ -268,6 +367,13 @@ def change_password(request): #Para cambiar contraseña de usuario
 @authentication_classes([])
 @permission_classes([AllowAny])
 def forgot_password(request):
+    """
+    @brief Envia un correo de recuperacion de contrasena
+    @param request Request HTTP con campo email
+    @return Response con mensaje generico por seguridad
+    @details Genera un token de recuperacion y envia un correo con el enlace.
+    Siempre retorna el mismo mensaje para no revelar si el correo existe.
+    """
     email = (request.data.get('email') or '').strip()
 
     if email:
@@ -306,6 +412,12 @@ def forgot_password(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def reset_password(request):
+    """
+    @brief Restablece la contrasena de un usuario mediante token de recuperacion
+    @param request Request HTTP con uid, token y new_password
+    @return Response con mensaje de confirmacion o error de enlace invalido
+    @raises ValidationError Si el uid, token son invalidos o faltan campos
+    """
     uid = request.data.get('uid')
     token = request.data.get('token')
     new_password = request.data.get('new_password')
@@ -334,4 +446,3 @@ def reset_password(request):
     user.save()
 
     return Response({"message": "Contraseña restablecida correctamente"}, status=status.HTTP_200_OK)
-    

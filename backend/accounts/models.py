@@ -1,7 +1,21 @@
+"""
+@file models.py
+@brief Modelo de usuario personalizado para el sistema de evaluacion quinquenal UASD-MESCyT
+@details Define el modelo Usuario extendiendo AbstractUser con campos adicionales como
+telefono, foto de perfil y fecha de registro.
+"""
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+
 class Usuario(AbstractUser):
+    """
+    @class Usuario
+    @brief Modelo de usuario personalizado que extiende AbstractUser
+    @details Agrega campos de telefono, foto de perfil y fecha de registro
+    al modelo de usuario estandar de Django.
+    """
+
     email = models.EmailField(
         max_length=254,
         unique=True
@@ -20,4 +34,4 @@ class Usuario(AbstractUser):
 
     fecha_registro = models.DateTimeField(
         auto_now_add=True
-    ) #Para los demas campos utilizaremos las herramientas de django como 
+    ) #Para los demas campos utilizaremos las herramientas de django como

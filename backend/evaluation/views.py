@@ -1,3 +1,10 @@
+"""@file views.py
+@brief Vistas y ViewSets para el módulo de evaluación.
+@details Define los ViewSets de Django REST Framework para gestionar períodos,
+criterios, indicadores y asignaciones, incluyendo acciones personalizadas
+para el flujo de revisión, aprobación y rechazo de evidencias.
+"""
+
 from rest_framework import viewsets, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
@@ -19,6 +26,11 @@ from organization.models import PerfilUsuario
 from evidence.models import Evidencia, VersionEvidencia, Observacion
 
 class PeriodoViewSet(viewsets.ModelViewSet):
+    """@class PeriodoViewSet
+    @brief ViewSet para gestionar períodos de evaluación.
+    @details Proporciona operaciones CRUD completas para el modelo Periodo.
+    Incluye registro de auditoría al eliminar un período.
+    """
     authentication_classes = [TokenAuthentication]
     queryset = Periodo.objects.all().order_by('-fecha_inicio')
     serializer_class = PeriodoSerializer
@@ -36,6 +48,11 @@ class PeriodoViewSet(viewsets.ModelViewSet):
 
 
 class CriterioViewSet(viewsets.ModelViewSet):
+    """@class CriterioViewSet
+    @brief ViewSet para gestionar criterios de evaluación.
+    @details Proporciona operaciones CRUD completas para el modelo Criterio.
+    Incluye registro de auditoría al eliminar un criterio.
+    """
     authentication_classes = [TokenAuthentication]
     queryset = Criterio.objects.all().order_by('nombre')
     serializer_class = CriterioSerializer
@@ -53,6 +70,11 @@ class CriterioViewSet(viewsets.ModelViewSet):
 
 
 class IndicadorViewSet(viewsets.ModelViewSet):
+    """@class IndicadorViewSet
+    @brief ViewSet para gestionar indicadores de evaluación.
+    @details Proporciona operaciones CRUD completas para el modelo Indicador.
+    Incluye registro de auditoría al eliminar un indicador.
+    """
     authentication_classes = [TokenAuthentication]
     queryset = Indicador.objects.all().order_by('nombre')
     serializer_class = IndicadorSerializer
@@ -70,6 +92,12 @@ class IndicadorViewSet(viewsets.ModelViewSet):
 
 
 class AsignacionViewSet(viewsets.ModelViewSet):
+    """@class AsignacionViewSet
+    @brief ViewSet para gestionar asignaciones de indicadores a departamentos.
+    @details Proporciona operaciones CRUD y acciones personalizadas para el flujo
+    de trabajo de evaluación: envío a revisión, aprobación, rechazo y observaciones.
+    Filtra el queryset según el rol del usuario autenticado.
+    """
     authentication_classes = [TokenAuthentication]
     queryset = Asignacion.objects.all().order_by('periodo', 'departamento')
     serializer_class = AsignacionSerializer
@@ -80,6 +108,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         return filtrar_por_rol(qs, self.request, dept_field='departamento')
 
     def _notificar_departamento(self, departamento, titulo, mensaje):
+        """@brief Envía una notificación a todos los usuarios del departamento.
+        @param departamento Instancia del departamento a notificar.
+        @param titulo Título de la notificación.
+        @param mensaje Mensaje descriptivo de la notificación.
+        @return None
+        """
         perfiles = PerfilUsuario.objects.filter(departamento=departamento)
         for perfil in perfiles:
             crear_notificacion(
@@ -89,6 +123,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             )
 
     def _notificar_subido_por(self, instance, titulo, mensaje):
+        """@brief Envía una notificación al usuario que subió la evidencia.
+        @param instance Instancia de la asignación asociada.
+        @param titulo Título de la notificación.
+        @param mensaje Mensaje descriptivo de la notificación.
+        @return None
+        """
         try:
             evidencia = instance.evidencia
             if evidencia and hasattr(evidencia, 'subido_por') and evidencia.subido_por:
@@ -101,6 +141,14 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             pass
 
     def _crear_historial(self, asignacion, estado_anterior, estado_nuevo, usuario, comentario=""):
+        """@brief Crea un registro en el historial de estados.
+        @param asignacion Instancia de la asignación.
+        @param estado_anterior Estado previo de la asignación.
+        @param estado_nuevo Estado nuevo de la asignación.
+        @param usuario Usuario que realizó el cambio de estado.
+        @param comentario Comentario opcional sobre el cambio.
+        @return Instancia del HistorialEstado creado.
+        """
         return HistorialEstado.objects.create(
             asignacion=asignacion,
             estado_anterior=estado_anterior,
@@ -110,6 +158,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         )
 
     def _crear_observacion(self, asignacion, usuario, comentario):
+        """@brief Crea una observación en la última versión de la evidencia.
+        @param asignacion Instancia de la asignación.
+        @param usuario Usuario que realiza la observación.
+        @param comentario Texto de la observación.
+        @return None
+        """
         if not comentario:
             return
         try:
@@ -125,6 +179,11 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             pass
 
     def _validar_transicion(self, estado_actual, estado_nuevo):
+        """@brief Valida si una transición de estado es permitida.
+        @param estado_actual Estado actual de la asignación.
+        @param estado_nuevo Estado al que se desea transicionar.
+        @return True si la transición es válida, False de lo contrario.
+        """
         transiciones_validas = {
             EstadoAsignacion.PENDIENTE: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.OBSERVADA],
             EstadoAsignacion.EN_PROGRESO: [EstadoAsignacion.APROBADO, EstadoAsignacion.RECHAZADO, EstadoAsignacion.OBSERVADA],
@@ -137,6 +196,11 @@ class AsignacionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def resumen(self, request, pk=None):
+        """@brief Obtiene un resumen detallado de una asignación.
+        @param request Objeto de solicitud HTTP.
+        @param pk Identificador de la asignación.
+        @return Response con los datos del resumen incluyendo evidencia e historial reciente.
+        """
         asignacion = self.get_object()
         data = self.get_serializer(asignacion).data
         try:
@@ -153,6 +217,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def en_revision(self, request, pk=None):
+        """@brief Envía una asignación a estado de revisión.
+        @param request Objeto de solicitud HTTP.
+        @param pk Identificador de la asignación.
+        @return Response con el nuevo estado de la asignación.
+        @raises ValidationError Si la transición de estado no es válida.
+        """
         asignacion = self.get_object()
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.EN_PROGRESO):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
@@ -171,6 +241,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def aprobar(self, request, pk=None):
+        """@brief Aprueba la evidencia de una asignación.
+        @param request Objeto de solicitud HTTP.
+        @param pk Identificador de la asignación.
+        @return Response con el nuevo estado de la asignación.
+        @raises ValidationError Si la transición de estado no es válida.
+        """
         asignacion = self.get_object()
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.APROBADO):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
@@ -202,6 +278,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def rechazar(self, request, pk=None):
+        """@brief Rechaza la evidencia de una asignación.
+        @param request Objeto de solicitud HTTP.
+        @param pk Identificador de la asignación.
+        @return Response con el nuevo estado de la asignación.
+        @raises ValidationError Si la transición de estado no es válida.
+        """
         asignacion = self.get_object()
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.RECHAZADO):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
@@ -227,6 +309,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def observada(self, request, pk=None):
+        """@brief Marca una asignación como observada, solicitando cambios.
+        @param request Objeto de solicitud HTTP.
+        @param pk Identificador de la asignación.
+        @return Response con el nuevo estado de la asignación.
+        @raises ValidationError Si la transición de estado no es válida.
+        """
         asignacion = self.get_object()
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.OBSERVADA):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
@@ -251,6 +339,11 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         return Response({"estado": EstadoAsignacion.OBSERVADA})
 
     def _validar_departamento_permitido(self, validated_data):
+        """@brief Valida que el departamento indicado esté permitido para el usuario.
+        @param validated_data Datos validados del serializador.
+        @return None
+        @raises ValidationError Si el departamento no está permitido.
+        """
         departamento = validated_data.get('departamento')
         if not departamento:
             return
@@ -261,6 +354,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             })
 
     def perform_create(self, serializer):
+        """@brief Crea una nueva asignación validando el departamento permitido.
+        @param serializer Serializador con los datos validados.
+        @return None
+        """
         self._validar_departamento_permitido(serializer.validated_data)
         instance = serializer.save()
         registrar_auditoria(
@@ -281,6 +378,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        """@brief Actualiza una asignación, registrando cambios de estado.
+        @param serializer Serializador con los datos validados.
+        @return None
+        """
         self._validar_departamento_permitido(serializer.validated_data)
         old_estado = self.get_object().estado
         instance = serializer.save()
@@ -318,6 +419,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 )
 
     def perform_destroy(self, instance):
+        """@brief Elimina una asignación y registra la acción en auditoría.
+        @param instance Instancia de la asignación a eliminar.
+        @return None
+        """
         registrar_auditoria(
             usuario=self.request.user,
             accion="Eliminar registro",

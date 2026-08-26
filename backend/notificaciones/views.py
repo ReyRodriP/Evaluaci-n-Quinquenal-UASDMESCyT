@@ -1,3 +1,10 @@
+"""
+@file views.py
+@brief Vistas de la app de notificaciones.
+@details Define los viewsets para la gestión de notificaciones
+de los usuarios, incluyendo listado y marcado de leídas.
+"""
+
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +17,12 @@ from .serializers import NotificacionSerializer
 
 class NotificacionViewSet(mixins.ListModelMixin,
                           viewsets.GenericViewSet):
+    """@class NotificacionViewSet
+    @brief ViewSet para la gestión de notificaciones de usuario.
+    @details Permite listar notificaciones del usuario autenticado,
+    marcar una notificación individual como leída y marcar todas
+    las notificaciones como leídas. Solo autenticados.
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = NotificacionSerializer

@@ -1,8 +1,21 @@
+"""
+@file models.py
+@brief Modelos de datos para la aplicación de organización.
+@details Define los modelos Facultad, Departamento y PerfilUsuario que
+representan la estructura organizativa de la institución.
+"""
+
 from django.db import models
 from django.conf import settings
 
 
 class Facultad(models.Model):
+    """@class Facultad
+    @brief Modelo que representa una facultad de la universidad.
+    @details Almacena el nombre, descripción, estado de actividad y fecha
+    de creación de cada facultad registrada en el sistema.
+    """
+
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True)
 
@@ -14,6 +27,12 @@ class Facultad(models.Model):
 
 
 class Departamento(models.Model):
+    """@class Departamento
+    @brief Modelo que representa un departamento dentro de una facultad.
+    @details Cada departamento está vinculado a una facultad mediante una
+    relación ForeignKey. Almacena nombre, descripción, estado y fecha de creación.
+    """
+
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True, null=True)
 
@@ -31,6 +50,12 @@ class Departamento(models.Model):
 
 
 class PerfilUsuario(models.Model):
+    """@class PerfilUsuario
+    @brief Modelo que representa el perfil organizativo de un usuario.
+    @details Vincula un usuario del sistema con un departamento específico,
+    permitiendo la gestión de pertenencia organizativa.
+    """
+
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE

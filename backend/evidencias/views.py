@@ -1,3 +1,10 @@
+"""
+@file views.py
+@brief Vistas de la app de evidencias.
+@details Define el viewset para la gestión de evidencias,
+incluyendo subida, descarga y eliminación de archivos.
+"""
+
 from rest_framework import viewsets, parsers
 from rest_framework.permissions import IsAuthenticated
 from django.http import FileResponse
@@ -11,6 +18,12 @@ from evaluation.models import EstadoAsignacion
 
 
 class EvidenciaViewSet(viewsets.ModelViewSet):
+    """@class EvidenciaViewSet
+    @brief ViewSet completo para la gestión de evidencias.
+    @details Permite crear, listar, descargar y eliminar evidencias.
+    Incluye registro de auditoría y notificaciones. Filtra por
+    departamento según el rol del usuario.
+    """
     queryset = Evidencia.objects.all()
     serializer_class = EvidenciaSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]

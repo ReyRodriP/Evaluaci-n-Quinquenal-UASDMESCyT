@@ -1,3 +1,12 @@
+"""
+@file settings.py
+@brief Configuración del proyecto Evaluación Quinquenal.
+@details Define la configuración de Django para el proyecto,
+incluyendo bases de datos, aplicaciones instaladas,
+middleware, autenticación, CORS y otras configuraciones
+del sistema.
+"""
+
 import os
 from pathlib import Path
 

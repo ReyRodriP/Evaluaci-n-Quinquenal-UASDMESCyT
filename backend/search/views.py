@@ -1,3 +1,10 @@
+"""
+@file views.py
+@brief Vistas de la app de búsqueda.
+@details Define la vista para la búsqueda global de indicadores,
+departamentos, facultades, criterios y usuarios del sistema.
+"""
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,6 +19,12 @@ User = get_user_model()
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search(request):
+    """@brief Realiza una búsqueda global en el sistema.
+    @details Busca indicadores, departamentos, facultades, criterios
+    y usuarios que coincidan con el parámetro de búsqueda.
+    @param request Request HTTP autenticada con parámetro 'q'.
+    @return Response con resultados de búsqueda agrupados por tipo.
+    """
     q = request.query_params.get('q', '').strip()
     if not q:
         return Response({

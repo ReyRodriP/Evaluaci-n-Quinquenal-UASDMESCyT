@@ -1,3 +1,9 @@
+"""
+@file urls.py
+@brief URLs de la app de dashboard.
+@details Define las rutas URL para los endpoints del panel de control.
+"""
+
 from django.urls import path
 from . import views
 

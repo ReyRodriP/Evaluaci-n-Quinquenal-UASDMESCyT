@@ -1,9 +1,8 @@
 """
-WSGI config for evaluacionQuinquenal project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
+@file wsgi.py
+@brief Configuración WSGI del proyecto Evaluación Quinquenal.
+@details Expone el callable WSGI como variable de módulo ``application``.
+Para más información sobre este archivo, consulte:
 https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 """
 

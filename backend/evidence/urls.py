@@ -1,3 +1,8 @@
+"""@file urls.py
+@brief Configuración de rutas URL para la app de evidencias
+@details Define las rutas REST API utilizando un router de DRF para
+los viewsets de Evidencia, Versión de Evidencia y Observación."""
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (

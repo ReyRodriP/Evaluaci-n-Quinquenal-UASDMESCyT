@@ -1,8 +1,22 @@
+"""
+@file serializers.py
+@brief Serializers de la app de evidencias.
+@details Define el serializer para la serialización de datos
+del modelo Evidencia a formato JSON, incluyendo validación
+de archivos.
+"""
+
 from rest_framework import serializers
 from .models import Evidencia
 
 
 class EvidenciaSerializer(serializers.ModelSerializer):
+    """@class EvidenciaSerializer
+    @brief Serializer para el modelo Evidencia.
+    @details Serializa todos los campos de Evidencia con campos
+    calculados para indicador, departamento, período y usuario.
+    Incluye validación de tipo y tamaño de archivo.
+    """
     asignacion_indicador = serializers.CharField(
         source='asignacion.indicador.nombre',
         read_only=True
