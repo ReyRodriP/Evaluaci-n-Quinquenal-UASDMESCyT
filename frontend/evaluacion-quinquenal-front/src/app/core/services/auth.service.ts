@@ -136,6 +136,10 @@ export class AuthService {
     return this.http.get(`${this.apiUrl}/versiones/${id}/descargar/`, { responseType: 'blob' });
   }
 
+  previewVersion(id: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/versiones/${id}/preview/`, { responseType: 'blob' });
+  }
+
   obtenerHistorial(id: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/evidencias/${id}/historial/`);
   }

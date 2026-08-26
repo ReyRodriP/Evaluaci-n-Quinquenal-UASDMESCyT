@@ -201,6 +201,51 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
     @action(detail=True, methods=["get"])
+    def preview(self, request, pk=None):
+        version = self.get_object()
+        archivo = version.archivo
+
+        content_type_map = {
+            '.pdf': 'application/pdf',
+            '.txt': 'text/plain',
+            '.csv': 'text/csv',
+            '.json': 'application/json',
+            '.xml': 'application/xml',
+            '.html': 'text/html',
+            '.htm': 'text/html',
+            '.md': 'text/markdown',
+            '.log': 'text/plain',
+            '.py': 'text/plain',
+            '.js': 'text/plain',
+            '.ts': 'text/plain',
+            '.java': 'text/plain',
+            '.c': 'text/plain',
+            '.cpp': 'text/plain',
+            '.css': 'text/plain',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xls': 'application/vnd.ms-excel',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.doc': 'application/msword',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.svg': 'image/svg+xml',
+            '.bmp': 'image/bmp',
+        }
+
+        ext = os.path.splitext(archivo.name)[1].lower()
+        content_type = content_type_map.get(ext, 'application/octet-stream')
+
+        response = FileResponse(
+            archivo.open('rb'),
+            content_type=content_type
+        )
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(archivo.name)}"'
+        return response
+
+    @action(detail=True, methods=["get"])
     def observaciones(self, request, pk=None):
         version = self.get_object()
 
