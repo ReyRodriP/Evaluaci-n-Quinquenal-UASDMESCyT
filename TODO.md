@@ -4,6 +4,7 @@ Proyecto: Sistema de Evaluación Quinquenal UASD-MESCyT
 Stack: Django 6 + DRF (backend) / Angular 20 (frontend)
 
 > Estado actual (hallazgos al auditar el repo):
+>
 > - `SECRET_KEY` comiteada y `DEBUG=True` + `ALLOWED_HOSTS=['*']` en `backend/evaluacionQuinquenal/settings.py:26-31`
 > - Base de datos SQLite en `settings.py:95-100`
 > - Tokens `rest_framework.authtoken` sin expiración; guardados en `localStorage` (`auth-service.ts:37`)
@@ -68,3 +69,24 @@ python manage.py test
 npm audit
 ng build --configuration production
 ```
+
+Extra:
+1.oculta claves api
+2.elimina secretos de git
+3.clave publica db
+4.seguridad row-level
+5.cifrado de datos
+6.fuerza la autentificacion
+7.restringe acceso a los registros
+8.bloquea la manipulacion de campos
+9.protege las cookies
+10.hashea las contraseñas
+11.limita los login
+12.proteccion bots
+13.parametrizacion de consultas
+14.valida entradas
+15.escapa contenido del usuario
+16.restringe archivo
+17.limita api
+18.cabeceras de seguridad
+19.fuerza https

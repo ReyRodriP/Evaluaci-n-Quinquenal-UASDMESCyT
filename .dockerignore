@@ -1,0 +1,13 @@
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.git
+.gitignore
+.env
+*.sqlite3
+media/
+node_modules/
+dist/
+.angular/
+.vscode/
+*.md

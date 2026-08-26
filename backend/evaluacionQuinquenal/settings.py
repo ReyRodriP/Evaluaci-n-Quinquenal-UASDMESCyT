@@ -94,8 +94,12 @@ AUTH_USER_MODEL = 'accounts.Usuario'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', ''),
     }
 }
 
@@ -165,7 +169,12 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
+    "http://localhost",
+    "http://frontend",
+    "http://frontend:4200",
 ]
+
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 LOGIN_REDIRECT_URL = '/api/'
 LOGOUT_REDIRECT_URL = '/api-auth/login/'
