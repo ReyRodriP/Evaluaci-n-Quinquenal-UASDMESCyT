@@ -8,6 +8,7 @@ from .serializers import (
 from .role_permissions import OUR_APP_LABELS
 from rest_framework.authtoken.models import Token 
 from rest_framework import status, viewsets, mixins
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404 #Para buscar objeto en la base de dato (buscar usuario)
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
@@ -63,6 +64,7 @@ class UserViewSet(mixins.CreateModelMixin,
                   mixins.ListModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
+                  mixins.DestroyModelMixin,
                   viewsets.GenericViewSet):
     queryset = User.objects.all()
     authentication_classes = [TokenAuthentication]
@@ -117,6 +119,19 @@ class UserViewSet(mixins.CreateModelMixin,
         user = self.get_object()
         serializer = UsuarioPermisosSerializer(user)
         return Response(serializer.data)
+
+    def perform_destroy(self, instance):
+        if instance.pk == self.request.user.pk:
+            raise ValidationError({'detail': 'No puede eliminar su propia cuenta.'})
+        username = instance.username
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Eliminar usuario",
+            modelo="Usuario",
+            registro_id=instance.pk,
+            descripcion=f"Se eliminó el usuario {username}"
+        )
+        instance.delete()
 
 @api_view(['POST'])
 @authentication_classes([])

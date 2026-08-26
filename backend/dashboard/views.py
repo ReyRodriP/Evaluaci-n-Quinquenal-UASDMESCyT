@@ -25,11 +25,13 @@ def resumen(request):
     total_indicadores = Indicador.objects.filter(pk__in=indicadores_ids, activo=True).count()
 
     asignaciones = asig_qs.count()
-    pendientes = asig_qs.filter(estado=EstadoAsignacion.PENDIENTE).count()
-    en_progreso = asig_qs.filter(estado=EstadoAsignacion.EN_PROGRESO).count()
-    observadas = asig_qs.filter(estado=EstadoAsignacion.OBSERVADA).count()
-    aprobadas = asig_qs.filter(estado=EstadoAsignacion.APROBADO).count()
-    rechazadas = asig_qs.filter(estado=EstadoAsignacion.RECHAZADO).count()
+
+    obligatorias = asig_qs.filter(indicador__obligatorio=True)
+    pendientes = obligatorias.filter(estado=EstadoAsignacion.PENDIENTE).count()
+    en_progreso = obligatorias.filter(estado=EstadoAsignacion.EN_PROGRESO).count()
+    observadas = obligatorias.filter(estado=EstadoAsignacion.OBSERVADA).count()
+    aprobadas = obligatorias.filter(estado=EstadoAsignacion.APROBADO).count()
+    rechazadas = obligatorias.filter(estado=EstadoAsignacion.RECHAZADO).count()
 
     return Response({
         'departamentos': total_deptos,
@@ -94,9 +96,13 @@ def avance(request):
         deptos = facultad.departamentos.filter(activo=True)
         if deptos_ids is not None:
             deptos = deptos.filter(pk__in=deptos_ids)
-        total_asignaciones = Asignacion.objects.filter(departamento__in=deptos).count()
+        total_asignaciones = Asignacion.objects.filter(
+            departamento__in=deptos,
+            indicador__obligatorio=True,
+        ).count()
         completadas = Asignacion.objects.filter(
             departamento__in=deptos,
+            indicador__obligatorio=True,
             estado__in=[EstadoAsignacion.APROBADO, EstadoAsignacion.COMPLETADO]
         ).count()
 

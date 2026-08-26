@@ -20,6 +20,9 @@ export class EvidenciaDetalle implements OnInit {
   nuevoArchivo: File | null = null;
   comentarioVersion = '';
   confirmandoSubida = false;
+  archivoError = '';
+
+  readonly MAX_ARCHIVO_MB = 50;
 
   comentarioRevision = '';
   estadoSeleccionado = '';
@@ -32,6 +35,7 @@ export class EvidenciaDetalle implements OnInit {
   editandoVersionId: number | null = null;
   versionEditComentario = '';
   versionEditFile: File | null = null;
+  versionEditFileError = '';
   guardandoVersionEdit = false;
 
   constructor(
@@ -61,12 +65,31 @@ export class EvidenciaDetalle implements OnInit {
     });
   }
 
+  private validarTamañoArchivo(file: File | null): string {
+    if (!file) return '';
+    const maxBytes = this.MAX_ARCHIVO_MB * 1024 * 1024;
+    return file.size > maxBytes
+      ? `El archivo supera el tamaño máximo permitido de ${this.MAX_ARCHIVO_MB} MB.`
+      : '';
+  }
+
   onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.nuevoArchivo = input.files?.[0] ?? null;
+    const file = input.files?.[0] ?? null;
+    this.archivoError = this.validarTamañoArchivo(file);
+    if (this.archivoError) {
+      this.nuevoArchivo = null;
+      input.value = '';
+    } else {
+      this.nuevoArchivo = file;
+    }
   }
 
   confirmarSubida(): void {
+    if (this.archivoError) {
+      this.toast.error(this.archivoError);
+      return;
+    }
     if (!this.nuevoArchivo) {
       this.toast.error('Debe seleccionar un archivo');
       return;
@@ -92,6 +115,7 @@ export class EvidenciaDetalle implements OnInit {
         this.toast.success('Versión subida correctamente');
         this.nuevoArchivo = null;
         this.comentarioVersion = '';
+        this.archivoError = '';
         this.cargarDetalle(this.evidencia.id_evidencia);
         this.subiendo = false;
       },
@@ -207,7 +231,14 @@ export class EvidenciaDetalle implements OnInit {
 
   onVersionEditFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.versionEditFile = input.files?.[0] ?? null;
+    const file = input.files?.[0] ?? null;
+    this.versionEditFileError = this.validarTamañoArchivo(file);
+    if (this.versionEditFileError) {
+      this.versionEditFile = null;
+      input.value = '';
+    } else {
+      this.versionEditFile = file;
+    }
   }
 
   cancelarEdicionVersion(): void {
@@ -219,6 +250,11 @@ export class EvidenciaDetalle implements OnInit {
   guardarEdicionVersion(): void {
     const versionId = this.editandoVersionId;
     if (!versionId) return;
+
+    if (this.versionEditFileError) {
+      this.toast.error(this.versionEditFileError);
+      return;
+    }
 
     this.guardandoVersionEdit = true;
     const payload = new FormData();
