@@ -21,6 +21,7 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from auditoria.utils import registrar_auditoria
 from evaluacionQuinquenal.security import _get_client_ip
@@ -245,7 +246,8 @@ def login(request):
     if not user.is_active:
         return Response({"error": "Cuenta desactivada. Contacte al administrador."}, status=status.HTTP_403_FORBIDDEN)
 
-    token, created = Token.objects.get_or_create(user=user)
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
 
     user.last_login = timezone.now()
     user.save(update_fields=["last_login"])
@@ -260,7 +262,14 @@ def login(request):
         descripcion=f"El usuario {user.username} inicio sesion",
     )
 
-    return Response({"token": token.key, "user": serializer.data}, status=status.HTTP_200_OK)
+    return Response(
+        {
+            "access": access_token,
+            "refresh": str(refresh),
+            "user": serializer.data,
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(["POST"])
@@ -285,7 +294,7 @@ def register(request):
 
     if serializer.is_valid():
         user = serializer.save()
-        token = Token.objects.create(user=user)
+        refresh = RefreshToken.for_user(user)
 
         registrar_auditoria(
             usuario=user,
@@ -295,7 +304,14 @@ def register(request):
             descripcion=f"Se registro el usuario {user.username} con email {user.email}",
         )
 
-        return Response({"token": token.key, "user": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -305,14 +321,22 @@ def register(request):
 @permission_classes([IsAuthenticated])
 def logout(request):
     """
-    @brief Cierra la sesion del usuario actual eliminando su token
+    @brief Cierra la sesion del usuario actual invalidando el refresh token
     @param request Request HTTP autenticado del usuario
     @return Response con mensaje de confirmacion
+    @details Agrega el refresh token a la blacklist para prevenir su uso futuro.
     """
-    token = Token.objects.filter(user=request.user).first()
-    if token:
-        token.delete()
-    return Response({"detail": "Sesión cerrada correctamente."}, status=status.HTTP_200_OK)
+    try:
+        refresh_token = request.data.get("refresh")
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+    except Exception:
+        pass
+
+    Token.objects.filter(user=request.user).delete()
+
+    return Response({"detail": "Sesion cerrada correctamente."}, status=status.HTTP_200_OK)
 
 
 @api_view(["GET", "PUT", "PATCH"])
