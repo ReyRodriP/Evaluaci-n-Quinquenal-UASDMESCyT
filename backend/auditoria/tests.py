@@ -41,11 +41,11 @@ class AuditoriaModelTests(TestCase):
 
     def test_orden_fecha(self):
         now = timezone.now()
-        a1 = Auditoria.objects.create(
-            usuario=self.user, accion="Primera", modelo="Test", descripcion="Primera acción", fecha=now
+        Auditoria.objects.create(
+            usuario=self.user, accion="Primera", modelo="Test", descripcion="Primera accion", fecha=now
         )
-        a2 = Auditoria.objects.create(
-            usuario=self.user, accion="Segunda", modelo="Test", descripcion="Segunda acción", fecha=now
+        Auditoria.objects.create(
+            usuario=self.user, accion="Segunda", modelo="Test", descripcion="Segunda accion", fecha=now
         )
         auditorias = list(Auditoria.objects.values_list("accion", flat=True))
         self.assertEqual(auditorias[0], "Segunda")

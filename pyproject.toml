@@ -30,7 +30,12 @@ select = [
 ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # function call in default argument (Django pattern)
+    "B007",   # loop control variable not used (common pattern)
+    "B017",   # assert blind exception (tests)
     "RUF012", # mutable class attribute (Django pattern - false positive)
+    "RUF005", # consider unpacking instead of concatenation
+    "RUF059", # unpacked variable never used
+    "RET504", # unnecessary assignment before return
     "DJ001",  # nullable field (Django pattern)
     "DJ006",  # model without __str__
     "DJ007",  # __str__ not defined
@@ -40,13 +45,22 @@ ignore = [
     "ISC001", # implicit string concatenation (conflicts with formatter)
     "T201",   # print found (allow in management commands)
     "S101",   # assert used (allow in tests)
+    "S104",   # possible binding to all interfaces
+    "S110",   # try-except-pass (logging handled separately)
     "ARG001", # unused argument (Django pattern)
     "ARG002", # unused method argument
     "PTH123", # open() (allow built-in open)
+    "PTH122", # os.path.splitext (allow os.path)
+    "PTH119", # os.path.basename (allow os.path)
     "EM101",  # string in exception
     "EM102",  # f-string in exception
     "TRY003", # long message in exception
     "S106",   # hardcoded password in tests (false positive)
+    "SIM102", # nested if (readability preference)
+    "SIM105", # contextlib.suppress (readability preference)
+    "SIM108", # ternary operator (readability preference)
+    "C401",   # unnecessary generator (minor)
+    "C416",   # unnecessary dict comprehension (minor)
 ]
 
 [tool.ruff.lint.per-file-ignores]

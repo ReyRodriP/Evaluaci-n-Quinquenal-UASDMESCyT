@@ -35,8 +35,8 @@ class NotificacionModelTests(TestCase):
         self.assertEqual(str(notif), "Alerta - notifuser")
 
     def test_orden_fecha(self):
-        n1 = Notificacion.objects.create(usuario=self.user, titulo="Primera", mensaje="Primera")
-        n2 = Notificacion.objects.create(usuario=self.user, titulo="Segunda", mensaje="Segunda")
+        Notificacion.objects.create(usuario=self.user, titulo="Primera", mensaje="Primera")
+        Notificacion.objects.create(usuario=self.user, titulo="Segunda", mensaje="Segunda")
         notifs = list(Notificacion.objects.values_list("titulo", flat=True))
         self.assertEqual(notifs[0], "Segunda")
         self.assertEqual(notifs[1], "Primera")

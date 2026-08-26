@@ -123,7 +123,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         evidencia = self.get_object()
         try:
             asignacion = evidencia.asignacion
-        except:
+        except Exception:
             asignacion = None
 
         data = EvidenciaSerializer(evidencia, context={"request": request}).data

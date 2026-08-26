@@ -103,7 +103,7 @@ class ObjectivesTest(TestCase):
 
     def test_profile_rejects_group_ids(self):
         self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
-        response = self.client.put("/api/profile", {"group_ids": [self.consulta_group.id]})
+        self.client.put("/api/profile", {"group_ids": [self.consulta_group.id]})
         user = User.objects.get(id=self.admin_user.id)
         self.assertEqual(user.groups.first().name, "Administrador General")
 
@@ -282,7 +282,7 @@ class SecurityTests(TestCase):
         token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
         original_username = self.user.username
-        response = self.client.patch("/api/profile", {"username": "hackedname"})
+        self.client.patch("/api/profile", {"username": "hackedname"})
         self.user.refresh_from_db()
         self.assertEqual(self.user.username, original_username)
 

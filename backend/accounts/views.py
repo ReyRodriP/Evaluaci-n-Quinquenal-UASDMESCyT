@@ -346,29 +346,42 @@ def me(request):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def change_password(request):  # Para cambiar contraseña de usuario
+def change_password(request):
     """
     @brief Cambia la contrasena del usuario autenticado
     @param request Request HTTP con old_password y new_password
     @return Response con mensaje de confirmacion o error
-    @raises ValidationError Si la contrasena actual es incorrecta o faltan campos
+    @details Revoca el token actual despues de cambiar la contrasena
+    para forzar re-autenticacion en todos los dispositivos.
     """
-
     user = request.user
 
     old_password = request.data.get("old_password")
     new_password = request.data.get("new_password")
 
     if not old_password or not new_password:
-        return Response({"error": "Debe proporcionar ambas contraseñas"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Debe proporcionar ambas contrasenas"}, status=status.HTTP_400_BAD_REQUEST)
 
     if not user.check_password(old_password):
-        return Response({"error": "La contraseña actual es incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "La contrasena actual es incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
 
     user.set_password(new_password)
     user.save()
 
-    return Response({"message": "Contraseña actualizada correctamente"}, status=status.HTTP_200_OK)
+    Token.objects.filter(user=user).delete()
+
+    registrar_auditoria(
+        usuario=user,
+        accion="Cambiar contrasena",
+        modelo="Usuario",
+        registro_id=user.pk,
+        descripcion=f"El usuario {user.username} cambio su contrasena. Tokens revocados.",
+    )
+
+    return Response(
+        {"message": "Contrasena actualizada correctamente. Debe iniciar sesion nuevamente."},
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(["POST"])

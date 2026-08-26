@@ -138,17 +138,17 @@ class EvidenciaSerializer(serializers.ModelSerializer):
 
         try:
             return obj.asignacion.estado
-        except:
+        except Exception:
             return None
 
     def get_asignacion_estado_display(self, obj):
-        """@brief Obtiene la representación legible del estado de la asignación
+        """@brief Obtiene la representacion legible del estado de la asignacion
         @param obj Instancia de Evidencia
         @return str Nombre legible del estado o None"""
 
         try:
             return obj.asignacion.get_estado_display()
-        except:
+        except Exception:
             return None
 
     def get_ultima_observacion(self, obj):
