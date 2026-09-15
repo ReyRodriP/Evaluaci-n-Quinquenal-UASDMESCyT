@@ -25,6 +25,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -923,3 +924,23 @@ def usuarios_exportar(request):
         request.query_params.get("formato", "xlsx"),
         "reporte_usuarios",
     )
+
+
+class _ApiDocSerializer(serializers.Serializer):
+    """Serializer generico para documentacion OpenAPI."""
+
+
+general.cls.serializer_class = _ApiDocSerializer
+general_exportar.cls.serializer_class = _ApiDocSerializer
+por_facultad.cls.serializer_class = _ApiDocSerializer
+por_facultad_exportar.cls.serializer_class = _ApiDocSerializer
+por_departamento.cls.serializer_class = _ApiDocSerializer
+por_departamento_exportar.cls.serializer_class = _ApiDocSerializer
+evidencias.cls.serializer_class = _ApiDocSerializer
+evidencias_exportar.cls.serializer_class = _ApiDocSerializer
+observaciones.cls.serializer_class = _ApiDocSerializer
+observaciones_exportar.cls.serializer_class = _ApiDocSerializer
+auditoria.cls.serializer_class = _ApiDocSerializer
+auditoria_exportar.cls.serializer_class = _ApiDocSerializer
+usuarios.cls.serializer_class = _ApiDocSerializer
+usuarios_exportar.cls.serializer_class = _ApiDocSerializer

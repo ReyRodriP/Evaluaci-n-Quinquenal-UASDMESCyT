@@ -14,21 +14,23 @@ export class AuthInterceptor implements HttpInterceptor {
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.authService.getToken();
 
+    let authReq = req.clone({ withCredentials: true });
+
     if (token) {
-      req = req.clone({
+      authReq = authReq.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`,
         },
       });
     }
 
-    return next.handle(req).pipe(
+    return next.handle(authReq).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status !== 401 || !token || req.url.includes('/token/')) {
           return throwError(() => error);
         }
 
-        return this.handle401Error(req, next);
+        return this.handle401Error(authReq, next);
       }),
     );
   }
@@ -38,25 +40,19 @@ export class AuthInterceptor implements HttpInterceptor {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
 
-      const refreshToken = this.authService.getRefreshToken();
-
-      if (!refreshToken) {
-        this.isRefreshing = false;
-        this.authService.logout();
-        return throwError(() => new Error('Sesion expirada'));
-      }
-
-      return this.authService.refreshAccessToken(refreshToken).pipe(
+      return this.authService.refreshViaCookie().pipe(
         switchMap((data: any) => {
           this.isRefreshing = false;
           const newToken = data?.access ?? data?.token;
-          if (newToken) {
-            this.authService.saveToken(newToken);
-            if (data?.refresh) {
-              this.authService.saveRefreshToken(data.refresh);
-            }
+
+          if (!newToken) {
+            this.authService.logout();
+            return throwError(() => new Error('Sesion expirada'));
           }
+
+          this.authService.saveToken(newToken);
           this.refreshTokenSubject.next(newToken);
+
           return next.handle(
             request.clone({
               setHeaders: {

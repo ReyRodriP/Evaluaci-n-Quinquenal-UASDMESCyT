@@ -19,7 +19,11 @@ export class AuthService {
   }
 
   login(user:any):Observable<any> {
-    return this.http.post(`${this.baseUrl}login`,user/*, {withCredentials: true}*/);
+    return this.http.post(`${this.baseUrl}login`, user, { withCredentials: true });
+  }
+
+  refreshViaCookie(): Observable<any> {
+    return this.http.post(`${this.baseUrl}token/refresh/cookie`, {}, { withCredentials: true });
   }
 
   refreshAccessToken(refresh: string): Observable<any> {
@@ -35,7 +39,7 @@ export class AuthService {
   }
 
   logoutApi(): Observable<any> {
-    return this.http.post(`${this.baseUrl}logout`, {});
+    return this.http.post(`${this.baseUrl}logout`, {}, { withCredentials: true });
   }
 
   saveToken(token: string): void {

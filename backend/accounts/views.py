@@ -16,7 +16,7 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes, throttle_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -74,6 +74,29 @@ def _registrar_outstanding_token(user, refresh):
             "expires_at": expires_at,
         },
     )
+
+
+REFRESH_COOKIE = "refresh_token"
+REFRESH_COOKIE_MAX_AGE = 7 * 24 * 3600
+
+
+def _set_auth_cookies(response, refresh):
+    """@brief Coloca el refresh token en una cookie HttpOnly (no legible por JS)."""
+    secure = settings.SECURE_SSL_REDIRECT or not settings.DEBUG
+    response.set_cookie(
+        REFRESH_COOKIE,
+        str(refresh),
+        max_age=REFRESH_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=secure,
+        samesite="Lax",
+        path="/",
+    )
+
+
+def _clear_auth_cookies(response):
+    """@brief Elimina la cookie HttpOnly de refresh token."""
+    response.delete_cookie(REFRESH_COOKIE, path="/")
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -311,7 +334,7 @@ def login(request):
         descripcion=f"El usuario {user.username} inicio sesion",
     )
 
-    return Response(
+    response = Response(
         {
             "access": access_token,
             "refresh": str(refresh),
@@ -319,6 +342,8 @@ def login(request):
         },
         status=status.HTTP_200_OK,
     )
+    _set_auth_cookies(response, refresh)
+    return response
 
 
 @api_view(["POST"])
@@ -354,7 +379,7 @@ def register(request):
             descripcion=f"Se registro el usuario {user.username} con email {user.email}",
         )
 
-        return Response(
+        response = Response(
             {
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
@@ -362,6 +387,8 @@ def register(request):
             },
             status=status.HTTP_201_CREATED,
         )
+        _set_auth_cookies(response, refresh)
+        return response
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -383,7 +410,9 @@ def logout(request):
     except Exception:
         pass
 
-    return Response({"detail": "Sesion cerrada correctamente."}, status=status.HTTP_200_OK)
+    response = Response({"detail": "Sesion cerrada correctamente."}, status=status.HTTP_200_OK)
+    _clear_auth_cookies(response)
+    return response
 
 
 @api_view(["GET", "PUT", "PATCH"])
@@ -406,6 +435,42 @@ def profile(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def token_refresh_cookie(request):
+    """
+    @brief Renueva el access token usando la cookie HttpOnly de refresh.
+    @details Lee la cookie 'refresh_token', valida el token y devuelve un
+    nuevo access. Si ROTATE_REFRESH_TOKENS esta activo, rota el refresh
+    (blacklist del anterior + nueva cookie).
+    @param request Request HTTP del cliente.
+    @return Response con nuevo access token o error 401.
+    """
+    refresh_token = request.COOKIES.get(REFRESH_COOKIE)
+    if not refresh_token:
+        return Response({"detail": "No se encontro sesion activa."}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        token = RefreshToken(refresh_token)
+    except Exception:
+        return Response({"detail": "Sesion invalida o expirada."}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS"):
+        user = User.objects.get(pk=token.payload.get("user_id"))
+        nuevo_refresh = RefreshToken.for_user(user)
+        _registrar_outstanding_token(user, nuevo_refresh)
+        try:
+            token.blacklist()
+        except Exception:
+            pass
+
+    response = Response({"access": str(token.access_token)}, status=status.HTTP_200_OK)
+    if settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS"):
+        _set_auth_cookies(response, nuevo_refresh)
+    return response
 
 
 @api_view(["GET"])
@@ -563,3 +628,18 @@ def reset_password(request):
     user.save()
 
     return Response({"message": "Contraseña restablecida correctamente"}, status=status.HTTP_200_OK)
+
+
+class _ApiDocSerializer(serializers.Serializer):
+    """Serializer generico para documentacion OpenAPI."""
+
+
+login.cls.serializer_class = _ApiDocSerializer
+register.cls.serializer_class = _ApiDocSerializer
+logout.cls.serializer_class = _ApiDocSerializer
+profile.cls.serializer_class = _ApiDocSerializer
+me.cls.serializer_class = _ApiDocSerializer
+change_password.cls.serializer_class = _ApiDocSerializer
+token_refresh_cookie.cls.serializer_class = _ApiDocSerializer
+forgot_password.cls.serializer_class = _ApiDocSerializer
+reset_password.cls.serializer_class = _ApiDocSerializer

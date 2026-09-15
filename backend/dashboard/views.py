@@ -7,6 +7,7 @@ detalles por departamento, avance por facultad y filtrado por período.
 """
 
 from django.core.cache import cache
+from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -214,3 +215,13 @@ def periodo_dashboard(request, pk):
             "rechazadas": rechazadas,
         }
     )
+
+
+class _ApiDocSerializer(serializers.Serializer):
+    """Serializer generico para documentacion OpenAPI."""
+
+
+resumen.cls.serializer_class = _ApiDocSerializer
+departamento_dashboard.cls.serializer_class = _ApiDocSerializer
+avance.cls.serializer_class = _ApiDocSerializer
+periodo_dashboard.cls.serializer_class = _ApiDocSerializer

@@ -24,5 +24,6 @@ urlpatterns = [
     re_path(r"^change_password$", views.change_password),
     re_path(r"^forgot_password$", views.forgot_password),
     re_path(r"^reset_password$", views.reset_password),
+    re_path(r"^token/refresh/cookie$", views.token_refresh_cookie),
     path("", include(router.urls)),
 ]

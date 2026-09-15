@@ -329,3 +329,26 @@ class TokenTests(TestCase):
         response = self.client.post("/api/logout", {"refresh": str(refresh)})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(BlacklistedToken.objects.filter(token=outstanding).exists())
+
+
+class CookieAuthTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="cookieuser", password="cookiepass123", email="cookie@test.com")
+
+    def test_login_sets_httponly_refresh_cookie(self):
+        response = self.client.post("/api/login", {"username": "cookieuser", "password": "cookiepass123"})
+        self.assertEqual(response.status_code, 200)
+        set_cookie = response.cookies.get("refresh_token")
+        self.assertIsNotNone(set_cookie)
+        self.assertTrue(set_cookie.get("httponly", False))
+
+    def test_refresh_cookie_returns_access(self):
+        self.client.post("/api/login", {"username": "cookieuser", "password": "cookiepass123"})
+        response = self.client.post("/api/token/refresh/cookie")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.data)
+
+    def test_refresh_cookie_rejects_when_no_cookie(self):
+        response = self.client.post("/api/token/refresh/cookie")
+        self.assertEqual(response.status_code, 401)

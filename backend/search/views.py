@@ -7,6 +7,7 @@ departamentos, facultades, criterios y usuarios del sistema.
 
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -110,3 +111,10 @@ def search(request):
             "usuarios": usuarios_data,
         }
     )
+
+
+class _ApiDocSerializer(serializers.Serializer):
+    """Serializer generico para documentacion OpenAPI."""
+
+
+search.cls.serializer_class = _ApiDocSerializer

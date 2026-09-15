@@ -38,10 +38,6 @@ export class Login {
             this.authService.saveToken(data.access);
           }
 
-          if (data?.refresh) {
-            this.authService.saveRefreshToken(data.refresh);
-          }
-
           if (data?.user) {
             this.authService.saveUser(data.user);
           }
