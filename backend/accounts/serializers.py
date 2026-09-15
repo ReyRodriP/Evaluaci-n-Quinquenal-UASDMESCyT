@@ -140,7 +140,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El telefono debe tener al menos 8 digitos.")
         return value
 
-    def get_rol(self, obj):
+    def get_rol(self, obj) -> str | None:
         """
         @brief Obtiene el nombre del primer grupo del usuario como rol
         @param obj Instancia del modelo User
@@ -198,7 +198,7 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "username", "is_superuser"]
 
-    def get_rol(self, obj):
+    def get_rol(self, obj) -> str | None:
         """
         @brief Obtiene el nombre del primer grupo del usuario como rol
         @param obj Instancia del modelo User
@@ -207,7 +207,7 @@ class UsuarioProfileSerializer(serializers.ModelSerializer):
         groups = obj.groups.all()
         return groups.first().name if groups else None
 
-    def get_permisos(self, obj):
+    def get_permisos(self, obj) -> list[str]:
         """
         @brief Obtiene la lista ordenada de todos los permisos del usuario
         @param obj Instancia del modelo User
@@ -249,7 +249,7 @@ class UsuarioPermisosSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "rol", "permisos"]
 
-    def get_rol(self, obj):
+    def get_rol(self, obj) -> str | None:
         """
         @brief Obtiene el nombre del primer grupo del usuario como rol
         @param obj Instancia del modelo User
@@ -258,7 +258,7 @@ class UsuarioPermisosSerializer(serializers.ModelSerializer):
         groups = obj.groups.all()
         return groups.first().name if groups else None
 
-    def get_permisos(self, obj):
+    def get_permisos(self, obj) -> list[str]:
         """
         @brief Obtiene la lista ordenada de todos los permisos del usuario
         @param obj Instancia del modelo User
@@ -335,7 +335,7 @@ class UsuarioListSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "email", "first_name", "last_name", "telefono", "foto_perfil", "is_active", "rol"]
 
-    def get_rol(self, obj):
+    def get_rol(self, obj) -> str | None:
         """
         @brief Obtiene el nombre del primer grupo del usuario como rol
         @param obj Instancia del modelo User

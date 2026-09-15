@@ -1,27 +1,27 @@
 <div class="reportes-page">
   <h2 class="page-title">Reportes</h2>
 
-  <div class="reportes-tabs">
-    <button class="tab" [class.active]="pestanaActiva === 'general'" (click)="cambiarPestana('general')">
-      <i class="bx bx-line-chart"></i> General
+  <div class="reportes-tabs" role="tablist" aria-label="Tipos de reporte">
+    <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'general'" [class.active]="pestanaActiva === 'general'" (click)="cambiarPestana('general')">
+      <i class="bx bx-line-chart" aria-hidden="true"></i> General
     </button>
-    <button class="tab" [class.active]="pestanaActiva === 'facultad'" (click)="cambiarPestana('facultad')">
-      <i class="bx bx-arch"></i> Por facultad
+    <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'facultad'" [class.active]="pestanaActiva === 'facultad'" (click)="cambiarPestana('facultad')">
+      <i class="bx bx-arch" aria-hidden="true"></i> Por facultad
     </button>
-    <button class="tab" [class.active]="pestanaActiva === 'departamento'" (click)="cambiarPestana('departamento')">
-      <i class="bx bx-building"></i> Por departamento
+    <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'departamento'" [class.active]="pestanaActiva === 'departamento'" (click)="cambiarPestana('departamento')">
+      <i class="bx bx-building" aria-hidden="true"></i> Por departamento
     </button>
-    <button class="tab" [class.active]="pestanaActiva === 'evidencias'" (click)="cambiarPestana('evidencias')">
-      <i class="bx bx-file"></i> Evidencias
+    <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'evidencias'" [class.active]="pestanaActiva === 'evidencias'" (click)="cambiarPestana('evidencias')">
+      <i class="bx bx-file" aria-hidden="true"></i> Evidencias
     </button>
-    <button class="tab" [class.active]="pestanaActiva === 'observaciones'" (click)="cambiarPestana('observaciones')">
-      <i class="bx bx-message-square-error"></i> Observaciones
+    <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'observaciones'" [class.active]="pestanaActiva === 'observaciones'" (click)="cambiarPestana('observaciones')">
+      <i class="bx bx-message-square-error" aria-hidden="true"></i> Observaciones
     </button>
-    <button *ngIf="puedeVerReportesCompletos" class="tab" [class.active]="pestanaActiva === 'auditoria'" (click)="cambiarPestana('auditoria')">
-      <i class="bx bx-history"></i> Auditoría
+    <button *ngIf="puedeVerReportesCompletos" class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'auditoria'" [class.active]="pestanaActiva === 'auditoria'" (click)="cambiarPestana('auditoria')">
+      <i class="bx bx-history" aria-hidden="true"></i> Auditoría
     </button>
-    <button *ngIf="puedeVerReportesCompletos" class="tab" [class.active]="pestanaActiva === 'usuarios'" (click)="cambiarPestana('usuarios')">
-      <i class="bx bx-user"></i> Usuarios
+    <button *ngIf="puedeVerReportesCompletos" class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'usuarios'" [class.active]="pestanaActiva === 'usuarios'" (click)="cambiarPestana('usuarios')">
+      <i class="bx bx-user" aria-hidden="true"></i> Usuarios
     </button>
   </div>
 

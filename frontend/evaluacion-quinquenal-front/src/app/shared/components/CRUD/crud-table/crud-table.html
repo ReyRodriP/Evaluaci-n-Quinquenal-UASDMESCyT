@@ -34,14 +34,14 @@
                         <ng-container *ngTemplateOutlet="accionesTemplate; context: { $implicit: item }"></ng-container>
                     </ng-container>
                     <ng-template #defaultAcciones>
-                        <button *ngIf="mostrarBoton('edit')" title="Editar" (click)="onEdit(item)">
-                            <i class="bx bx-edit"></i>
+                        <button *ngIf="mostrarBoton('edit')" title="Editar" aria-label="Editar" (click)="onEdit(item)">
+                            <i class="bx bx-edit" aria-hidden="true"></i>
                         </button>
-                        <button *ngIf="mostrarBoton('toggle')" title="Activar/Desactivar" (click)="onToggleEstado(item)">
-                            <i class="bx bx-power"></i>
+                        <button *ngIf="mostrarBoton('toggle')" title="Activar/Desactivar" aria-label="Activar o desactivar" (click)="onToggleEstado(item)">
+                            <i class="bx bx-power" aria-hidden="true"></i>
                         </button>
-                        <button *ngIf="mostrarBoton('remove')" title="Eliminar" (click)="onRemove(item)">
-                            <i class="bx bx-trash"></i>
+                        <button *ngIf="mostrarBoton('remove')" title="Eliminar" aria-label="Eliminar" (click)="onRemove(item)">
+                            <i class="bx bx-trash" aria-hidden="true"></i>
                         </button>
                     </ng-template>
                 </td>

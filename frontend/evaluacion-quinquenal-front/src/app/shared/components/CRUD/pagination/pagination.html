@@ -4,12 +4,14 @@
   </span>
 
   <div class="pages">
-    <button (click)="goTo(currentPage - 1)" [class.disabled]="currentPage === 1">◀</button>
+    <button (click)="goTo(currentPage - 1)" [class.disabled]="currentPage === 1" [attr.aria-label]="'Página anterior'" [disabled]="currentPage === 1">◀</button>
     <button
       *ngFor="let p of pages"
       (click)="goTo(p)"
       [class.current]="p === currentPage"
+      [attr.aria-label]="'Ir a la página ' + p"
+      [attr.aria-current]="p === currentPage ? 'page' : null"
     >{{ p }}</button>
-    <button (click)="goTo(currentPage + 1)" [class.disabled]="currentPage === totalPages">▶</button>
+    <button (click)="goTo(currentPage + 1)" [class.disabled]="currentPage === totalPages" [attr.aria-label]="'Página siguiente'" [disabled]="currentPage === totalPages">▶</button>
   </div>
 </div>

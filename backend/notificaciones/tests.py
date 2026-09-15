@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Notificacion
+from .utils import crear_notificacion
 
 User = get_user_model()
 
@@ -67,3 +69,27 @@ class NotificacionViewSetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["titulo"], "Mía")
+
+
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ],
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    NOTIFICACIONES_EMAIL_ENABLED=True,
+)
+class NotificacionEmailTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="emailuser", email="email@test.com", password="testpass123")
+
+    def test_crear_notificacion_envia_email(self):
+        crear_notificacion(self.user, "Alerta", "Tienes un mensaje de prueba")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Alerta", mail.outbox[0].subject)
+        self.assertIn(self.user.email, mail.outbox[0].to)
+
+    @override_settings(NOTIFICACIONES_EMAIL_ENABLED=False)
+    def test_crear_notificacion_sin_email_si_deshabilitado(self):
+        crear_notificacion(self.user, "Titulo", "Mensaje")
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertTrue(Notificacion.objects.filter(usuario=self.user).exists())
