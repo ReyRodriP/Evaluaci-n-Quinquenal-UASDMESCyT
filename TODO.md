@@ -1,6 +1,7 @@
 # Auditoria del Proyecto — Evaluacion Quinquenal UASD-MESCyT
 
 **Fecha de auditoria:** 2026-08-26
+**Actualizado:** 2026-09-14
 **Auditor:** opencode (automatizado)
 
 ---
@@ -14,8 +15,9 @@
 | Base de datos | SQLite (dev) / PostgreSQL (prod) |
 | Docker | Configurado |
 | Kubernetes | Configurado |
-| Tests | 92 tests en 10 apps |
-| Linter/Formatter | Ruff (0 errores) |
+| Tests | 114 tests en 11 apps (incl. health) |
+| Linter/Formatter | Ruff (0 errores, formato aplicado) |
+| Autenticacion | JWT simplejwt + blacklist |
 | Seguridad | 19 medidas implementadas |
 
 ---
@@ -55,9 +57,10 @@
 
 ## FASE 4 — Completado
 
-- [x] **Pines de dependencias** — requirements.txt con versiones exactas (==)
+- [x] **Pines de dependencias** — requirements.txt con versiones (== o >= para evitar conflictos)
 - [x] **.env.example** — Documentado con todas las variables
-- [x] **Ruff** — Linter y formatter configurado, 0 errores
+- [x] **Ruff** — Linter y formatter configurado, 0 errores, formato aplicado
+- [x] **Ruff en CI** — `ruff check` + `ruff format --check` en el pipeline
 
 ---
 
@@ -90,44 +93,75 @@
 ## Pendiente para Produccion
 
 ### Critico
-- [ ] **Migrar tokens a JWT** — `rest_framework.authtoken` no tiene expiracion. Migrar a `djangorestframework-simplejwt` (access 30min + refresh)
-- [ ] **Token fuera de localStorage** — Migrar a cookie HttpOnly + SameSite para prevenir robo por XSS
-- [ ] **Backups cifrados** — Configurar backups automaticos de BD + media con cifrado AES-256
-- [ ] **CI/CD** — Pipeline automatizado con tests, lint, build y deploy
+- [x] **Migrar tokens a JWT** — simplejwt completo: `token_blacklist` instalado, authtoken eliminado, vistas con Bearer, endpoints `/api/token/`, rotacion con blacklist, revocacion de tokens JWT al cambiar contrasena
+- [x] **Token fuera de localStorage** — Access de 30min en cookie JS + header `Bearer`; **refresh de 7 dias en cookie HttpOnly** (no legible por JS) con endpoint `/api/token/refresh/cookie/` (rotacion + blacklist) y `withCredentials` en el frontend; logout elimina la cookie
+- [x] **Backups cifrados** — `backup.sh` con cifrado AES-256-CBC (openssl + pbkdf2), passphrase via `BACKUP_PASSPHRASE`, rotacion de 30 dias
+- [x] **CI/CD** — Pipeline con lint (ruff check+format), tests, `manage.py check` y build/push de imagenes Docker a GHCR en main
 
 ### Alto
-- [ ] **Monitoreo** — Integrar Sentry o similar para errores en produccion
-- [ ] **Health checks** — Endpoint `/health/` para monitoreo de disponibilidad
-- [ ] **Rate limiting por usuario** — Throttling basado en usuario autenticado, no solo IP
-- [ ] **Rotacion de tokens** — Invalidar tokens antiguos despues de cierto tiempo
+- [~] **Monitoreo** — Sentry configurado en settings; falta definir `SENTRY_DSN` real en produccion
+- [x] **Health checks** — Endpoint `/health/` con DB, cache (Redis/locmem) y media; probes k8s corregidos a `/health/`; manifiesto Redis agregado
+- [x] **Rate limiting por usuario** — Throttle global por usuario + `ScopedRateThrottle` por usuario en `change_password` (3/hora)
+- [x] **Rotacion de tokens** — `ROTATE_REFRESH_TOKENS` + `BLACKLIST_AFTER_ROTATION`, refresh y access blacklistables (OutstandingToken en login/register)
 
 ### Medio
-- [ ] **Reportes PDF/Excel** — Verificar que reportlab y openpyxl generan archivos correctos
-- [ ] **Notificaciones por email** — Configurar SMTP real en produccion
-- [ ] **Exportar datos** — Funcionalidad de exportar CSV/Excel desde el frontend
-- [ ] **Perfomance** — Agregar caching (Redis) para consultas frecuentes
+- [x] **Reportes PDF/Excel** — reportlab y openpyxl generan PDF/XLSX con endpoints de exportacion
+- [x] **Notificaciones por email** — copia por email al crear notificaciones si hay SMTP configurado (`NOTIFICACIONES_EMAIL_ENABLED`), fallos no rompen la BD. SMTP real queda configurable por env (`.env.example`)
+- [x] **Exportar datos** — CSV/Excel accesibles desde el frontend (botones en reportes)
+- [x] **Performance** — Redis configurado (`REDIS_URL`); caching de 60s en consultas frecuentes del dashboard (resumen, avance)
 
 ### Bajo
-- [ ] **Documentacion API** — Swagger/OpenAPI para documentar endpoints
-- [ ] **Internacionalizacion** — i18n para espanol/ingles
-- [ ] **Accesibilidad** — WCAG 2.1 compliance
-- [ ] **Tests de carga** — Pruebas con 100+ usuarios concurrentes
+- [x] **Documentacion API** — Swagger/OpenAPI en `/api/docs/` con `@extend_schema` (tags/params/tipos) en reportes, search, logs; type hints en serializers; `check --deploy` sin W001/W002 (0 avisos drf-spectacular)
+- [~] **Internacionalizacion** — Backend: `LANGUAGE_CODE=es`, `America/Santo_Domingo`, `LANGUAGES` es/en. Pendiente: traducciones gettext + `@angular/localize` en frontend
+- [~] **Accesibilidad** — `alt`, `role`, `aria-*`, `for`/`id`, teclado, foco visible + skip-link. Pendiente: auditoria WCAG formal
+- [x] **Tests de carga** — `loadtests/locustfile.py` (locust) con 100+ usuarios concurrentes
+
+---
+
+## TODO Abierto (no bloqueante / requiere credenciales externas)
+
+- [ ] **Sentry DSN real** — infra lista: `SENTRY_DSN` ya se inyecta desde el Secret de k8s; solo falta pegar el DSN real
+- [ ] **SMTP real** — infra lista (`EMAIL_HOST*` en `.env`); solo falta poner credenciales reales
+- [ ] **Dominio + certificado HTTPS** — `SECURE_SSL_REDIRECT=True` y HSTS listos; el 05-ingress.yaml necesita hostname real y cert
+- [ ] **Rotar los secretos de k8s** — `01-secrets.yaml` trae valores fuertes pero de DEMO; rotarlos en prod (SealedSecrets/External-Secrets)
+- [ ] **Token GHCR en el CI** — el job `docker` del pipeline push necesita ese token
+- [ ] **Traducciones gettext** (backend) y `@angular/localize` (frontend) — i18n completa
+- [ ] **Auditoria WCAG** formal (lighthouse/axe)
+- [ ] **Tests de carga** contra el entorno desplegado (locust)
+
+---
+
+## Produccion (resuelto)
+
+- [x] **`check --deploy` en 0 avisos** con `DEBUG=False` + `SECRET_KEY` real + HTTPS
+- [x] **Guarda de SECRET_KEY** — el backend aborta en produccion si la clave es la de dev
+- [x] **`SECURE_SSL_REDIRECT`** por defecto `True` en produccion (sobreescribible)
+- [x] **Secretos k8s** — valores fuertes + `BACKUP_PASSPHRASE` + `SENTRY_DSN` (inyectado al backend)
+- [x] **Backup automatizado** — CronJob diario (02:00) con cifrado AES-256-CBC y retencion de 30 dias
+- [x] **deploy.sh** — incluye Redis, backups, migraciones y collectstatic
 
 ---
 
 ## Comandos de Verificacion
 
 ```bash
-# Backend
-python manage.py check
-python manage.py check --deploy
-python manage.py test
-ruff check backend/
-ruff format backend/ --check
+# Backend (usar ./backend/.venv)
+cd backend
+.venv/Scripts/ruff check .
+.venv/Scripts/ruff format .
+.venv/Scripts/ruff format . --check
+.venv/Scripts/python manage.py check
+.venv/Scripts/python manage.py check --deploy
+.venv/Scripts/python manage.py test
 
 # Frontend
+cd frontend/evaluacion-quinquenal-front
 ng build --configuration production
 npm audit
+
+# Tests de carga
+pip install locust
+locust -f loadtests/locustfile.py --host http://localhost:8000 -u 100 -r 10 -t 5m
 ```
 
 ---
@@ -143,5 +177,7 @@ npm audit
 | `backend/accounts/permissions.py` | Permisos por rol |
 | `pyproject.toml` | Configuracion de Ruff |
 | `docker-compose.yml` | Servicios Docker |
-| `k8s/` | Manifiestos Kubernetes |
+| `k8s/` | Manifiestos Kubernetes (incluye `06-redis.yaml`) |
+| `backup.sh` | Backup cifrado AES-256 (DB + media) |
+| `.github/workflows/ci.yml` | Pipeline CI/CD (lint, tests, Docker) |
 | `frontend/src/environments/` | Variables de entorno Angular |
