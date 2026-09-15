@@ -34,8 +34,12 @@ export class Login {
       this.authService.login(this.loginForm.value).subscribe({
         next:(data)=> {
           this.toast.success('Login completado'); //Notificacion de exito
-          if (data?.token) {
-            this.authService.saveToken(data.token);
+          if (data?.access) {
+            this.authService.saveToken(data.access);
+          }
+
+          if (data?.refresh) {
+            this.authService.saveRefreshToken(data.refresh);
           }
 
           if (data?.user) {

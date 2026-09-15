@@ -6,7 +6,6 @@ de los usuarios, incluyendo listado y marcado de leídas.
 """
 
 from rest_framework import mixins, status, viewsets
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -23,7 +22,6 @@ class NotificacionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     las notificaciones como leídas. Solo autenticados.
     """
 
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = NotificacionSerializer
 

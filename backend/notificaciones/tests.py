@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Notificacion
 
@@ -51,7 +51,7 @@ class NotificacionViewSetTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(username="notifviewer", email="nv@test.com", password="testpass123")
-        self.token = Token.objects.create(user=self.user)
+        self.token = RefreshToken.for_user(self.user).access_token
 
         self.other_user = User.objects.create_user(username="other", email="other@test.com", password="testpass123")
 
@@ -62,7 +62,7 @@ class NotificacionViewSetTests(TestCase):
     def test_list_own_notifications(self):
         Notificacion.objects.create(usuario=self.user, titulo="Mía", mensaje="Para mí")
         Notificacion.objects.create(usuario=self.other_user, titulo="Otra", mensaje="Otro usuario")
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
         response = self.client.get("/api/notificaciones/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)

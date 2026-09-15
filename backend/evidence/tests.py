@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from evaluation.models import Asignacion, Criterio, Indicador, Periodo
 from organization.models import Departamento, Facultad
@@ -122,14 +122,14 @@ class EvidenciaViewSetTests(TestCase):
         self.asignacion = _make_asignacion()
 
         self.admin_user = _make_user("admin", "admin@test.com", is_superuser=True)
-        self.token = Token.objects.create(user=self.admin_user)
+        self.token = RefreshToken.for_user(self.admin_user).access_token
 
     def test_list_requires_auth(self):
         response = self.client.get("/api/evidencias/")
         self.assertEqual(response.status_code, 401)
 
     def test_create_evidencia(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
         response = self.client.post(
             "/api/evidencias/",
             {"titulo": "Nueva Evidencia", "descripcion": "Descripción", "asignacion": self.asignacion.pk},

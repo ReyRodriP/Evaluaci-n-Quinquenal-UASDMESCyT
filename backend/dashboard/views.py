@@ -6,6 +6,7 @@ del sistema de evaluación quinquenal, incluyendo resumen general,
 detalles por departamento, avance por facultad y filtrado por período.
 """
 
+from django.core.cache import cache
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,6 +15,12 @@ from accounts.permissions import departamentos_permitidos
 from evaluation.models import Asignacion, EstadoAsignacion, Indicador, Periodo
 from evidencias.models import Evidencia
 from organization.models import Departamento, Facultad
+
+CACHE_TTL = 60
+
+
+def _cache_key(user, name, extra=""):
+    return f"dashboard:{name}:{user.pk}:{extra}"
 
 
 @api_view(["GET"])
@@ -25,6 +32,11 @@ def resumen(request):
     @param request Request HTTP autenticada.
     @return Response con diccionario de estadísticas generales.
     """
+    key = _cache_key(request.user, "resumen")
+    cached = cache.get(key)
+    if cached is not None:
+        return Response(cached)
+
     deptos_ids = departamentos_permitidos(request)
     asig_qs = Asignacion.objects.all()
     if deptos_ids is not None:
@@ -47,18 +59,18 @@ def resumen(request):
     aprobadas = obligatorias.filter(estado=EstadoAsignacion.APROBADO).count()
     rechazadas = obligatorias.filter(estado=EstadoAsignacion.RECHAZADO).count()
 
-    return Response(
-        {
-            "departamentos": total_deptos,
-            "indicadores": total_indicadores,
-            "asignaciones": asignaciones,
-            "pendientes": pendientes,
-            "en_progreso": en_progreso,
-            "observadas": observadas,
-            "aprobadas": aprobadas,
-            "rechazadas": rechazadas,
-        }
-    )
+    data = {
+        "departamentos": total_deptos,
+        "indicadores": total_indicadores,
+        "asignaciones": asignaciones,
+        "pendientes": pendientes,
+        "en_progreso": en_progreso,
+        "observadas": observadas,
+        "aprobadas": aprobadas,
+        "rechazadas": rechazadas,
+    }
+    cache.set(key, data, CACHE_TTL)
+    return Response(data)
 
 
 @api_view(["GET"])
@@ -116,6 +128,11 @@ def avance(request):
     @param request Request HTTP autenticada.
     @return Response con lista de facultades y su porcentaje de avance.
     """
+    key = _cache_key(request.user, "avance")
+    cached = cache.get(key)
+    if cached is not None:
+        return Response(cached)
+
     deptos_ids = departamentos_permitidos(request)
 
     facultades_qs = Facultad.objects.filter(activo=True)
@@ -146,6 +163,7 @@ def avance(request):
             }
         )
 
+    cache.set(key, resultado, CACHE_TTL)
     return Response(resultado)
 
 

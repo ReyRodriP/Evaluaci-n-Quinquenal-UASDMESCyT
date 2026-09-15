@@ -6,7 +6,6 @@ para el flujo de revisión, aprobación y rechazo de evidencias.
 """
 
 from rest_framework import status, viewsets
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -35,7 +34,6 @@ class PeriodoViewSet(viewsets.ModelViewSet):
     Incluye registro de auditoría al eliminar un período.
     """
 
-    authentication_classes = [TokenAuthentication]
     queryset = Periodo.objects.all().order_by("-fecha_inicio")
     serializer_class = PeriodoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -58,7 +56,6 @@ class CriterioViewSet(viewsets.ModelViewSet):
     Incluye registro de auditoría al eliminar un criterio.
     """
 
-    authentication_classes = [TokenAuthentication]
     queryset = Criterio.objects.all().order_by("nombre")
     serializer_class = CriterioSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -81,7 +78,6 @@ class IndicadorViewSet(viewsets.ModelViewSet):
     Incluye registro de auditoría al eliminar un indicador.
     """
 
-    authentication_classes = [TokenAuthentication]
     queryset = Indicador.objects.all().order_by("nombre")
     serializer_class = IndicadorSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
@@ -105,7 +101,6 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     Filtra el queryset según el rol del usuario autenticado.
     """
 
-    authentication_classes = [TokenAuthentication]
     queryset = Asignacion.objects.all().order_by("periodo", "departamento")
     serializer_class = AsignacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]

@@ -6,6 +6,8 @@ gestion de perfil, cambio de contrasena, recuperacion de contrasena,
 y ViewSets para usuarios, grupos y permisos.
 """
 
+from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Group, Permission
@@ -15,12 +17,11 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import mixins, status, viewsets
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes, throttle_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from auditoria.utils import registrar_auditoria
@@ -42,6 +43,39 @@ from .serializers import (
 User = get_user_model()
 
 
+def _blacklist_tokens_de_usuario(user):
+    """
+    @brief Anade a la blacklist todos los tokens JWT emitidos para un usuario.
+    @param user Instancia del usuario cuyos tokens deben revocarse.
+    @return None
+    """
+    from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+    for token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=token)
+
+
+def _registrar_outstanding_token(user, refresh):
+    """
+    @brief Registra un refresh token como OutstandingToken para permitir su blacklist.
+    @param user Usuario dueno del token.
+    @param refresh Instancia de RefreshToken a registrar.
+    @return None
+    """
+    from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+
+    jti = refresh.payload.get("jti")
+    expires_at = datetime.fromtimestamp(refresh.payload["exp"], tz=timezone.get_current_timezone())
+    OutstandingToken.objects.get_or_create(
+        user=user,
+        jti=jti,
+        defaults={
+            "token": str(refresh),
+            "expires_at": expires_at,
+        },
+    )
+
+
 class GroupViewSet(viewsets.ModelViewSet):
     """
     @class GroupViewSet
@@ -52,7 +86,6 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def list(self, request, *args, **kwargs):
@@ -84,7 +117,6 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get_queryset(self):
@@ -114,7 +146,6 @@ class UserViewSet(
     """
 
     queryset = User.objects.all()
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_serializer_class(self):
@@ -234,6 +265,23 @@ def login(request):
     user = authenticate(username=username, password=password)
 
     if user is None:
+        try:
+            candidate = User.objects.get(username=username)
+        except User.DoesNotExist:
+            candidate = None
+
+        if candidate is not None and not candidate.is_active:
+            registrar_auditoria(
+                usuario=None,
+                accion="Login bloqueado",
+                modelo="Usuario",
+                registro_id=candidate.pk,
+                descripcion=f"Intento de login para cuenta desactivada '{username}' desde {_get_client_ip(request)}",
+            )
+            return Response(
+                {"error": "Cuenta desactivada. Contacte al administrador."}, status=status.HTTP_403_FORBIDDEN
+            )
+
         registrar_auditoria(
             usuario=None,
             accion="Login fallido",
@@ -248,6 +296,7 @@ def login(request):
 
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
+    _registrar_outstanding_token(user, refresh)
 
     user.last_login = timezone.now()
     user.save(update_fields=["last_login"])
@@ -295,6 +344,7 @@ def register(request):
     if serializer.is_valid():
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
+        _registrar_outstanding_token(user, refresh)
 
         registrar_auditoria(
             usuario=user,
@@ -317,7 +367,6 @@ def register(request):
 
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def logout(request):
     """
@@ -334,13 +383,10 @@ def logout(request):
     except Exception:
         pass
 
-    Token.objects.filter(user=request.user).delete()
-
     return Response({"detail": "Sesion cerrada correctamente."}, status=status.HTTP_200_OK)
 
 
 @api_view(["GET", "PUT", "PATCH"])
-@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def profile(request):
     """
@@ -363,7 +409,6 @@ def profile(request):
 
 
 @api_view(["GET"])
-@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def me(request):
     """
@@ -376,14 +421,14 @@ def me(request):
 
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@throttle_classes([ScopedRateThrottle])
 def change_password(request):
     """
     @brief Cambia la contrasena del usuario autenticado
     @param request Request HTTP con old_password y new_password
     @return Response con mensaje de confirmacion o error
-    @details Revoca el token actual despues de cambiar la contrasena
+    @details Revoca todos los tokens JWT activos despues de cambiar la contrasena
     para forzar re-autenticacion en todos los dispositivos.
     """
     user = request.user
@@ -400,7 +445,7 @@ def change_password(request):
     user.set_password(new_password)
     user.save()
 
-    Token.objects.filter(user=user).delete()
+    _blacklist_tokens_de_usuario(user)
 
     registrar_auditoria(
         usuario=user,
@@ -414,6 +459,9 @@ def change_password(request):
         {"message": "Contrasena actualizada correctamente. Debe iniciar sesion nuevamente."},
         status=status.HTTP_200_OK,
     )
+
+
+change_password.throttle_scope = "change_password"
 
 
 @api_view(["POST"])

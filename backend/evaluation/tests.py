@@ -1,11 +1,11 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError, transaction
 from django.test import TestCase
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from organization.models import Departamento, Facultad
 
@@ -280,6 +280,7 @@ class PeriodoViewSetTests(TestCase):
         self.admin_group, _ = Group.objects.get_or_create(
             name="Administrador General",
         )
+        self.admin_group.permissions.set(Permission.objects.all())
         self.consulta_group, _ = Group.objects.get_or_create(
             name="Consulta",
         )
@@ -290,7 +291,7 @@ class PeriodoViewSetTests(TestCase):
             email="admin_p@test.com",
         )
         self.admin_user.groups.add(self.admin_group)
-        self.admin_token = Token.objects.create(user=self.admin_user)
+        self.admin_token = RefreshToken.for_user(self.admin_user).access_token
 
         self.consulta_user = User.objects.create_user(
             username="consulta_p",
@@ -298,7 +299,7 @@ class PeriodoViewSetTests(TestCase):
             email="consulta_p@test.com",
         )
         self.consulta_user.groups.add(self.consulta_group)
-        self.consulta_token = Token.objects.create(user=self.consulta_user)
+        self.consulta_token = RefreshToken.for_user(self.consulta_user).access_token
 
         self.periodo = Periodo.objects.create(
             nombre="P1",
@@ -311,17 +312,13 @@ class PeriodoViewSetTests(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_list_periodos_admin(self):
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Token " + self.admin_token.key,
-        )
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get("/api/periodos/")
         self.assertEqual(response.status_code, 200)
         self.assertGreaterEqual(len(response.data), 1)
 
     def test_create_periodo_admin(self):
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Token " + self.admin_token.key,
-        )
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         payload = {
             "nombre": "Nuevo Periodo",
             "fecha_inicio": "2027-01-01",
@@ -335,9 +332,7 @@ class PeriodoViewSetTests(TestCase):
         )
 
     def test_create_periodo_consulta_denied(self):
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Token " + self.consulta_token.key,
-        )
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         payload = {
             "nombre": "Denegado",
             "fecha_inicio": "2027-01-01",
@@ -360,6 +355,7 @@ class AsignacionViewSetTests(TestCase):
         self.admin_group, _ = Group.objects.get_or_create(
             name="Administrador General",
         )
+        self.admin_group.permissions.set(Permission.objects.all())
 
         self.admin_user = User.objects.create_user(
             username="admin_a",
@@ -367,7 +363,7 @@ class AsignacionViewSetTests(TestCase):
             email="admin_a@test.com",
         )
         self.admin_user.groups.add(self.admin_group)
-        self.admin_token = Token.objects.create(user=self.admin_user)
+        self.admin_token = RefreshToken.for_user(self.admin_user).access_token
 
         self.facultad = Facultad.objects.create(nombre="Facultad X")
         self.departamento = Departamento.objects.create(
@@ -393,9 +389,7 @@ class AsignacionViewSetTests(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_create_asignacion_admin(self):
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Token " + self.admin_token.key,
-        )
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         payload = {
             "indicador": self.indicador.pk,
             "departamento": self.departamento.pk,

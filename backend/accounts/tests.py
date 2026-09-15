@@ -10,8 +10,9 @@ from django.test import TestCase, override_settings
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from PIL import Image
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -49,7 +50,7 @@ class PasswordRecoveryTests(TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("recuperar tu contraseña", response.json()["message"])
+        self.assertIn("recuperar tu contrasena", response.json()["message"])
 
     def test_reset_password_accepts_valid_uid_and_token(self):
         user_model = get_user_model()
@@ -88,28 +89,34 @@ class ObjectivesTest(TestCase):
         )
         self.consulta_user.groups.add(self.consulta_group)
 
-        self.admin_token = Token.objects.create(user=self.admin_user)
-        self.consulta_token = Token.objects.create(user=self.consulta_user)
+        self.admin_token = RefreshToken.for_user(self.admin_user).access_token
+        self.consulta_token = RefreshToken.for_user(self.consulta_user).access_token
 
     # --- Objective 1: group_ids not allowed in register/profile ---
     def test_register_rejects_group_ids(self):
         response = self.client.post(
             "/api/register",
-            {"username": "newuser", "email": "new@test.com", "password": "pass123", "group_ids": [self.admin_group.id]},
+            {
+                "username": "newuser",
+                "email": "new@test.com",
+                "password": "password123!",
+                "group_ids": [self.admin_group.id],
+            },
         )
+        self.assertEqual(response.status_code, 201)
         self.assertNotIn("group_ids", response.data.get("user", {}))
         user = User.objects.get(username="newuser")
         self.assertEqual(user.groups.count(), 0)
 
     def test_profile_rejects_group_ids(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         self.client.put("/api/profile", {"group_ids": [self.consulta_group.id]})
         user = User.objects.get(id=self.admin_user.id)
         self.assertEqual(user.groups.first().name, "Administrador General")
 
     # --- Objective 2: permisos endpoint ---
     def test_permisos_endpoint_structure(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get(f"/api/usuarios/{self.admin_user.id}/permisos/")
         self.assertEqual(response.status_code, 200)
         self.assertIn("id", response.data)
@@ -122,7 +129,7 @@ class ObjectivesTest(TestCase):
         self.assertGreater(len(response.data["permisos"]), 0)
 
     def test_permisos_endpoint_consulta(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get(f"/api/usuarios/{self.consulta_user.id}/permisos/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["rol"], "Consulta")
@@ -138,37 +145,37 @@ class ObjectivesTest(TestCase):
 
     # --- Objective 4: CRUD protection ---
     def test_consulta_user_cannot_access_facultades(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.consulta_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.get("/api/facultades/")
         self.assertEqual(response.status_code, 403)
 
     def test_admin_user_can_access_facultades(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get("/api/facultades/")
         self.assertEqual(response.status_code, 200)
 
     def test_consulta_user_cannot_access_periodos(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.consulta_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.get("/api/periodos/")
         self.assertEqual(response.status_code, 403)
 
     def test_admin_user_can_access_periodos(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get("/api/periodos/")
         self.assertEqual(response.status_code, 200)
 
     def test_consulta_user_cannot_access_usuarios(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.consulta_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.get("/api/usuarios/")
         self.assertEqual(response.status_code, 403)
 
     def test_consulta_user_cannot_create_facultad(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.consulta_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.post("/api/facultades/", {"nombre": "Test", "descripcion": "test"})
         self.assertEqual(response.status_code, 403)
 
     def test_profile_endpoint_updates_user_data(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.patch(
             "/api/profile", {"first_name": "Ana", "last_name": "Pérez", "telefono": "8095551234"}
         )
@@ -180,7 +187,7 @@ class ObjectivesTest(TestCase):
         self.assertEqual(self.admin_user.telefono, "8095551234")
 
     def test_change_password_endpoint_updates_password(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.post(
             "/api/change_password", {"old_password": "admin123", "new_password": "newpassword123!"}
         )
@@ -190,7 +197,7 @@ class ObjectivesTest(TestCase):
         self.assertTrue(self.admin_user.check_password("newpassword123!"))
 
     def test_profile_endpoint_accepts_profile_image(self):
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         img_buffer = io.BytesIO()
         img = Image.new("RGB", (1, 1), color="red")
         img.save(img_buffer, format="JPEG")
@@ -226,6 +233,11 @@ class SecurityTests(TestCase):
         response = self.client.post("/api/login", {"username": "testuser", "password": "wrongpassword"})
         self.assertEqual(response.status_code, 403)
 
+        from django.core.cache import cache
+
+        cache.delete("login_attempts_127.0.0.1")
+        cache.delete("ip_blocked_127.0.0.1")
+
     def test_register_rejects_short_password(self):
         response = self.client.post(
             "/api/register", {"username": "newuser", "email": "new@example.com", "password": "abc"}
@@ -250,16 +262,18 @@ class SecurityTests(TestCase):
 
     def test_superuser_can_access_anything(self):
         superuser = User.objects.create_superuser(username="admin", password="adminpass123", email="admin@example.com")
-        token = Token.objects.create(user=superuser)
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+        token = RefreshToken.for_user(superuser).access_token
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token))
         response = self.client.get("/api/usuarios/")
         self.assertEqual(response.status_code, 200)
 
     def test_user_cannot_delete_self(self):
-        token = Token.objects.create(user=self.user)
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
-        with self.assertRaises(Exception):
-            self.client.delete(f"/api/usuarios/{self.user.id}/")
+        self.user.is_superuser = True
+        self.user.save()
+        token = RefreshToken.for_user(self.user).access_token
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token))
+        response = self.client.delete(f"/api/usuarios/{self.user.id}/")
+        self.assertEqual(response.status_code, 400)
         self.assertTrue(User.objects.filter(id=self.user.id).exists())
 
     def test_login_inactive_user(self):
@@ -267,8 +281,8 @@ class SecurityTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_change_password_wrong_old_password(self):
-        token = Token.objects.create(user=self.user)
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+        token = RefreshToken.for_user(self.user).access_token
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token))
         response = self.client.post(
             "/api/change_password", {"old_password": "wrongoldpassword", "new_password": "newpassword123!"}
         )
@@ -279,8 +293,8 @@ class SecurityTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_profile_read_only_fields(self):
-        token = Token.objects.create(user=self.user)
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+        token = RefreshToken.for_user(self.user).access_token
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token))
         original_username = self.user.username
         self.client.patch("/api/profile", {"username": "hackedname"})
         self.user.refresh_from_db()
@@ -289,22 +303,29 @@ class SecurityTests(TestCase):
 
 class TokenTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(username="tokentest", password="tokenpass123", email="token@example.com")
 
-    def test_token_created_on_login(self):
-        self.client.post("/api/login", {"username": "tokentest", "password": "tokenpass123"})
-        self.assertTrue(Token.objects.filter(user=self.user).exists())
+    def test_login_returns_jwt_tokens(self):
+        response = self.client.post("/api/login", {"username": "tokentest", "password": "tokenpass123"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.data)
+        self.assertIn("refresh", response.data)
+        self.assertIn("user", response.data)
 
-    def test_token_reused_on_second_login(self):
+    def test_login_creates_outstanding_token(self):
         self.client.post("/api/login", {"username": "tokentest", "password": "tokenpass123"})
-        first_token = Token.objects.get(user=self.user)
-        self.client.post("/api/login", {"username": "tokentest", "password": "tokenpass123"})
-        second_token = Token.objects.get(user=self.user)
-        self.assertEqual(first_token.key, second_token.key)
+        self.assertTrue(OutstandingToken.objects.filter(user=self.user).exists())
 
-    def test_token_deleted_on_logout(self):
-        token = Token.objects.create(user=self.user)
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
-        self.client.post("/api/logout")
-        self.assertFalse(Token.objects.filter(user=self.user).exists())
+    def test_logout_blacklists_refresh_token(self):
+        login = self.client.post("/api/login", {"username": "tokentest", "password": "tokenpass123"})
+        access = login.data["access"]
+        refresh = login.data["refresh"]
+        outstanding = OutstandingToken.objects.get(jti=RefreshToken(refresh).payload["jti"])
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(access))
+        response = self.client.post("/api/logout", {"refresh": str(refresh)})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(BlacklistedToken.objects.filter(token=outstanding).exists())

@@ -1,10 +1,10 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from rest_framework import status
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Departamento, Facultad, PerfilUsuario
 
@@ -103,18 +103,19 @@ class FacultadViewSetTests(TestCase):
         self.facultad_data = {"nombre": "Derecho", "descripcion": "Facultad de Derecho"}
 
         self.admin_group, _ = Group.objects.get_or_create(name="Administrador General")
+        self.admin_group.permissions.set(Permission.objects.all())
         self.admin_user = User.objects.create_user(
             username="admin_user", email="admin@test.com", password="testpass123"
         )
         self.admin_user.groups.add(self.admin_group)
-        self.admin_token = Token.objects.create(user=self.admin_user)
+        self.admin_token = RefreshToken.for_user(self.admin_user).access_token
 
         self.consulta_group, _ = Group.objects.get_or_create(name="Consulta")
         self.consulta_user = User.objects.create_user(
             username="consulta_user", email="consulta@test.com", password="testpass123"
         )
         self.consulta_user.groups.add(self.consulta_group)
-        self.consulta_token = Token.objects.create(user=self.consulta_user)
+        self.consulta_token = RefreshToken.for_user(self.consulta_user).access_token
 
         self.facultad = Facultad.objects.create(nombre="Ciencias Economicas", descripcion="Facultad de Economia")
 
@@ -123,25 +124,25 @@ class FacultadViewSetTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_list_facultades_admin(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get("/api/facultades/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
 
     def test_create_facultad_admin(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.post("/api/facultades/", self.facultad_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Facultad.objects.count(), 2)
         self.assertEqual(response.data["nombre"], "Derecho")
 
     def test_create_facultad_consulta_denied(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.consulta_token.key}")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.post("/api/facultades/", self.facultad_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_update_facultad_admin(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         update_data = {"nombre": "Ciencias Economicas Update", "descripcion": "Actualizado"}
         response = self.client.put(f"/api/facultades/{self.facultad.pk}/", update_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -149,7 +150,7 @@ class FacultadViewSetTests(TestCase):
         self.assertEqual(self.facultad.nombre, "Ciencias Economicas Update")
 
     def test_delete_facultad_admin(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.delete(f"/api/facultades/{self.facultad.pk}/")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Facultad.objects.filter(pk=self.facultad.pk).exists())
@@ -170,18 +171,19 @@ class DepartamentoViewSetTests(TestCase):
         }
 
         self.admin_group, _ = Group.objects.get_or_create(name="Administrador General")
+        self.admin_group.permissions.set(Permission.objects.all())
         self.admin_user = User.objects.create_user(
             username="admin_dept", email="admin_dept@test.com", password="testpass123"
         )
         self.admin_user.groups.add(self.admin_group)
-        self.admin_token = Token.objects.create(user=self.admin_user)
+        self.admin_token = RefreshToken.for_user(self.admin_user).access_token
 
     def test_list_departamentos_requires_auth(self):
         response = self.client.get("/api/departamentos/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_departamento_admin(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.admin_token.key}")
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.post("/api/departamentos/", self.departamento_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Departamento.objects.count(), 1)

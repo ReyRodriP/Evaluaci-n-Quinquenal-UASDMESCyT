@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Auditoria
 
@@ -64,10 +64,10 @@ class AuditoriaViewSetTests(TestCase):
         self.admin_user = User.objects.create_superuser(
             username="admin_aud", email="admin_aud@test.com", password="testpass123"
         )
-        self.admin_token = Token.objects.create(user=self.admin_user)
+        self.admin_token = RefreshToken.for_user(self.admin_user).access_token
 
         self.regular_user = User.objects.create_user(username="regular", email="reg@test.com", password="testpass123")
-        self.regular_token = Token.objects.create(user=self.regular_user)
+        self.regular_token = RefreshToken.for_user(self.regular_user).access_token
 
     def test_list_requires_auth(self):
         response = self.client.get("/api/auditoria/")
@@ -77,7 +77,7 @@ class AuditoriaViewSetTests(TestCase):
         Auditoria.objects.create(
             usuario=self.admin_user, accion="Test", modelo="Evidencia", descripcion="Test admin access"
         )
-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.admin_token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get("/api/auditoria/")
         self.assertEqual(response.status_code, 200)
         self.assertGreaterEqual(len(response.data["results"]), 1)

@@ -6,7 +6,6 @@ de auditoría del sistema.
 """
 
 from rest_framework import mixins, viewsets
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 from accounts.permissions import PuedeVerAuditoria
@@ -23,7 +22,6 @@ class AuditoriaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
     Solo usuarios con permisos especiales pueden acceder a la información.
     """
 
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, PuedeVerAuditoria]
     queryset = Auditoria.objects.all()
     serializer_class = AuditoriaSerializer

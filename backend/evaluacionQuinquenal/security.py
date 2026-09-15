@@ -238,17 +238,27 @@ class SQLInjectionProtectionMiddleware:
                     status=400,
                 )
 
-        if request.method in ("POST", "PUT", "PATCH") and hasattr(request, "body"):
-            try:
-                body = request.body.decode("utf-8", errors="ignore")[:2000]
-                if self._detect_injection(body):
-                    logger.warning(f"Posible SQL injection en body desde {_get_client_ip(request)}")
-                    return JsonResponse(
-                        {"error": "Contenido de solicitud invalido."},
-                        status=400,
-                    )
-            except Exception:
-                pass
+        if request.method in ("POST", "PUT", "PATCH"):
+            content_type = request.content_type or ""
+            if "multipart/form-data" in content_type:
+                for value in request.POST.values():
+                    if self._detect_injection(value):
+                        logger.warning(f"Posible SQL injection en formulario desde {_get_client_ip(request)}")
+                        return JsonResponse(
+                            {"error": "Contenido de solicitud invalido."},
+                            status=400,
+                        )
+            elif hasattr(request, "body"):
+                try:
+                    body = request.body.decode("utf-8", errors="ignore")[:2000]
+                    if self._detect_injection(body):
+                        logger.warning(f"Posible SQL injection en body desde {_get_client_ip(request)}")
+                        return JsonResponse(
+                            {"error": "Contenido de solicitud invalido."},
+                            status=400,
+                        )
+                except Exception:
+                    pass
 
         return self.get_response(request)
 

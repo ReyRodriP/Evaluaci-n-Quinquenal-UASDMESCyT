@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from evaluation.models import Asignacion, Criterio, Indicador, Periodo
 from organization.models import Departamento, Facultad
@@ -76,7 +76,7 @@ class EvidenciaViewSetTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(username="viewer", email="view@test.com", password="testpass123")
-        self.token = Token.objects.create(user=self.user)
+        self.token = RefreshToken.for_user(self.user).access_token
 
     def test_list_requires_auth(self):
         response = self.client.get("/api/evidencias/")

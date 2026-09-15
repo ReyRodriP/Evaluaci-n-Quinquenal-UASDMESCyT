@@ -22,6 +22,10 @@ export class AuthService {
     return this.http.post(`${this.baseUrl}login`,user/*, {withCredentials: true}*/);
   }
 
+  refreshAccessToken(refresh: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}token/refresh/`, { refresh });
+  }
+
   forgotPassword(payload:any): Observable<any> {
     return this.http.post(`${this.baseUrl}forgot_password`, payload);
   }
@@ -36,6 +40,19 @@ export class AuthService {
 
   saveToken(token: string): void {
     document.cookie = `access_token=${token}; path=/; max-age=1800; SameSite=Lax; ${window.location.protocol === 'https:' ? 'Secure;' : ''}`;
+  }
+
+  saveRefreshToken(token: string): void {
+    document.cookie = `refresh_token=${token}; path=/; max-age=604800; SameSite=Lax; ${window.location.protocol === 'https:' ? 'Secure;' : ''}`;
+  }
+
+  getRefreshToken(): string | null {
+    const match = document.cookie.match(/(?:^|;\s*)refresh_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  removeRefreshToken(): void {
+    document.cookie = 'refresh_token=; path=/; max-age=0';
   }
 
   saveUser(user: any): void {
@@ -78,6 +95,7 @@ export class AuthService {
 
   logout(): void {
     this.removeToken();
+    this.removeRefreshToken();
     this.removeUser();
   }
 
