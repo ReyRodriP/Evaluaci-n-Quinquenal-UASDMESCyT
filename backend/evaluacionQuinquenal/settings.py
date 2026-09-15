@@ -50,7 +50,7 @@ DEBUG = os.getenv("DEBUG", "True").lower() in ("1", "true", "yes", "on")
 if not DEBUG and SECRET_KEY.startswith("django-insecure-"):
     raise RuntimeError(
         "SECRET_KEY insegura para produccion. Genera una con: "
-        "python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\" "
+        'python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())" '
         "y configurala en la variable de entorno SECRET_KEY."
     )
 
