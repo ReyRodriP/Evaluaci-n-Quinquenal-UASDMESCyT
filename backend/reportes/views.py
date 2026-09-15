@@ -111,19 +111,17 @@ def _filas_observaciones(qs):
 
 
 def _filas_auditoria(qs):
-    filas = []
-    for registro in qs:
-        filas.append(
-            [
-                registro.usuario.username if registro.usuario else "",
-                registro.accion,
-                registro.modelo,
-                registro.registro_id or "",
-                registro.descripcion,
-                _formato_fecha(registro.fecha),
-            ]
-        )
-    return filas
+    return [
+        [
+            registro.usuario.username if registro.usuario else "",
+            registro.accion,
+            registro.modelo,
+            registro.registro_id or "",
+            registro.descripcion,
+            _formato_fecha(registro.fecha),
+        ]
+        for registro in qs
+    ]
 
 
 def _filas_usuarios(qs):
@@ -440,18 +438,16 @@ def por_facultad(request, pk=None):
 
 
 def _filas_facultad(data):
-    filas = []
-    for dept in data["departamentos"]:
-        filas.append(
-            [
-                dept["nombre"],
-                dept["total_asignaciones"],
-                dept["evidencias"],
-                dept["pendientes"],
-                dept["aprobadas"],
-            ]
-        )
-    return filas
+    return [
+        [
+            dept["nombre"],
+            dept["total_asignaciones"],
+            dept["evidencias"],
+            dept["pendientes"],
+            dept["aprobadas"],
+        ]
+        for dept in data["departamentos"]
+    ]
 
 
 @api_view(["GET"])

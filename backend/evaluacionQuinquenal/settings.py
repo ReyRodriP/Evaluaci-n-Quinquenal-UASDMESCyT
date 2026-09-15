@@ -23,10 +23,10 @@ def load_env_file(path: Path) -> None:
         return
 
     for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+        linea = line.strip()
+        if not linea or linea.startswith("#") or "=" not in linea:
             continue
-        key, value = line.split("=", 1)
+        key, value = linea.split("=", 1)
         os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 

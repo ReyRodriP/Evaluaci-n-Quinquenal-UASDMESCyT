@@ -25,6 +25,7 @@ select = [
     "EM",   # flake8-errmsg
     "TRY",  # tryceratops
     "TCH",  # flake8-type-checking
+    "G",    # flake8-logging-format (f-strings en logging)
 ]
 
 ignore = [
@@ -61,6 +62,7 @@ ignore = [
     "SIM108", # ternary operator (readability preference)
     "C401",   # unnecessary generator (minor)
     "C416",   # unnecessary dict comprehension (minor)
+    "PLC0415", # imports lazy dentro de funciones (patron Django: evita import circular y carga de apps no registradas)
 ]
 
 [tool.ruff.lint.per-file-ignores]

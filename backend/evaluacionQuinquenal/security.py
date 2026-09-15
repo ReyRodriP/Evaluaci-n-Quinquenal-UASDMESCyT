@@ -78,7 +78,7 @@ class LoginRateLimitMiddleware:
             attempts = cache.get(cache_key, 0)
 
             if attempts >= self.MAX_ATTEMPTS:
-                logger.warning(f"Login bloqueado para IP {ip}: {attempts} intentos fallidos")
+                logger.warning("Login bloqueado para IP %s: %s intentos fallidos", ip, attempts)
                 return JsonResponse(
                     {"error": "Demasiados intentos. Intente de nuevo en 15 minutos."},
                     status=403,
@@ -122,7 +122,7 @@ class RateLimitMiddleware:
 
         block_key = f"ip_blocked_{ip}"
         if cache.get(block_key):
-            logger.warning(f"IP bloqueada: {ip}")
+            logger.warning("IP bloqueada: %s", ip)
             return JsonResponse(
                 {"error": "Su IP ha sido bloqueada temporalmente por exceso de solicitudes."},
                 status=429,
@@ -135,7 +135,7 @@ class RateLimitMiddleware:
         request_count = cache.get(cache_key, 0)
         if request_count >= limit:
             cache.set(block_key, True, self.BLOCK_DURATION)
-            logger.warning(f"Rate limit excedido para IP {ip} en {request.path}: {request_count} requests")
+            logger.warning("Rate limit excedido para IP %s en %s: %s requests", ip, request.path, request_count)
             return JsonResponse(
                 {"error": "Demasiadas solicitudes. Su IP ha sido bloqueada temporalmente."},
                 status=429,
@@ -165,8 +165,9 @@ class RequestSizeLimitMiddleware:
             if content_length and content_length.isdigit():
                 if int(content_length) > self.MAX_BODY_SIZE:
                     logger.warning(
-                        f"Request rechazado: body excesivamente grande "
-                        f"({content_length} bytes) desde {_get_client_ip(request)}"
+                        "Request rechazado: body excesivamente grande (%s bytes) desde %s",
+                        content_length,
+                        _get_client_ip(request),
                     )
                     return JsonResponse(
                         {"error": "El tamanio del request excede el limite permitido."},
@@ -192,7 +193,9 @@ class QueryParameterLimitMiddleware:
     def __call__(self, request):
         if len(request.GET) > self.MAX_QUERY_PARAMS:
             logger.warning(
-                f"Request rechazado: exceso de query params ({len(request.GET)}) desde {_get_client_ip(request)}"
+                "Request rechazado: exceso de query params (%s) desde %s",
+                len(request.GET),
+                _get_client_ip(request),
             )
             return JsonResponse(
                 {"error": f"Exceso de parametros de consulta (maximo {self.MAX_QUERY_PARAMS})."},
@@ -231,7 +234,9 @@ class SQLInjectionProtectionMiddleware:
         for param_value in request.GET.values():
             if self._detect_injection(param_value):
                 logger.warning(
-                    f"Posible SQL injection detectada desde {_get_client_ip(request)}: param={param_value[:100]}"
+                    "Posible SQL injection detectada desde %s: param=%s",
+                    _get_client_ip(request),
+                    param_value[:100],
                 )
                 return JsonResponse(
                     {"error": "Parametros de solicitud invalidos."},
@@ -243,7 +248,7 @@ class SQLInjectionProtectionMiddleware:
             if "multipart/form-data" in content_type:
                 for value in request.POST.values():
                     if self._detect_injection(value):
-                        logger.warning(f"Posible SQL injection en formulario desde {_get_client_ip(request)}")
+                        logger.warning("Posible SQL injection en formulario desde %s", _get_client_ip(request))
                         return JsonResponse(
                             {"error": "Contenido de solicitud invalido."},
                             status=400,
@@ -252,7 +257,7 @@ class SQLInjectionProtectionMiddleware:
                 try:
                     body = request.body.decode("utf-8", errors="ignore")[:2000]
                     if self._detect_injection(body):
-                        logger.warning(f"Posible SQL injection en body desde {_get_client_ip(request)}")
+                        logger.warning("Posible SQL injection en body desde %s", _get_client_ip(request))
                         return JsonResponse(
                             {"error": "Contenido de solicitud invalido."},
                             status=400,
@@ -302,7 +307,7 @@ class BotProtectionMiddleware:
         if user_agent:
             for pattern in self._compiled:
                 if pattern.search(user_agent):
-                    logger.warning(f"Bot bloqueado: {user_agent[:100]} desde {_get_client_ip(request)}")
+                    logger.warning("Bot bloqueado: %s desde %s", user_agent[:100], _get_client_ip(request))
                     return JsonResponse(
                         {"error": "Solicitud no permitida."},
                         status=403,
@@ -365,11 +370,13 @@ class FileUploadSecurityMiddleware:
         if request.method in ("POST", "PUT", "PATCH") and request.content_type:
             if "multipart/form-data" in request.content_type:
                 if hasattr(request, "FILES"):
-                    for field_name, uploaded_file in request.FILES.items():
+                    for uploaded_file in request.FILES.values():
                         ext = "." + uploaded_file.name.rsplit(".", 1)[-1].lower() if "." in uploaded_file.name else ""
 
                         if ext not in self.ALLOWED_EXTENSIONS:
-                            logger.warning(f"Archivo rechazado: {uploaded_file.name} (extension no permitida: {ext})")
+                            logger.warning(
+                                "Archivo rechazado: %s (extension no permitida: %s)", uploaded_file.name, ext
+                            )
                             return JsonResponse(
                                 {"error": "Tipo de archivo no permitido"},
                                 status=403,
@@ -377,8 +384,9 @@ class FileUploadSecurityMiddleware:
 
                         if uploaded_file.content_type not in self.ALLOWED_MIME_TYPES:
                             logger.warning(
-                                f"Archivo rechazado: {uploaded_file.name} "
-                                f"(MIME type no permitido: {uploaded_file.content_type})"
+                                "Archivo rechazado: %s (MIME type no permitido: %s)",
+                                uploaded_file.name,
+                                uploaded_file.content_type,
                             )
                             return JsonResponse(
                                 {"error": "Tipo de archivo no permitido"},
@@ -387,8 +395,10 @@ class FileUploadSecurityMiddleware:
 
                         if uploaded_file.size > self.MAX_FILE_SIZE:
                             logger.warning(
-                                f"Archivo rechazado: {uploaded_file.name} "
-                                f"(tamanio {uploaded_file.size} excede maximo {self.MAX_FILE_SIZE})"
+                                "Archivo rechazado: %s (tamanio %s excede maximo %s)",
+                                uploaded_file.name,
+                                uploaded_file.size,
+                                self.MAX_FILE_SIZE,
                             )
                             return JsonResponse(
                                 {"error": "Archivo excede el tamanio maximo de 50MB"},
