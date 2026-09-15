@@ -23,6 +23,7 @@ class NotificacionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
 
     permission_classes = [IsAuthenticated]
+    queryset = Notificacion.objects.all()
     serializer_class = NotificacionSerializer
 
     def get_queryset(self):

@@ -58,7 +58,7 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
             "observaciones",
         ]
 
-    def get_descargar_url(self, obj):
+    def get_descargar_url(self, obj) -> str | None:
         """@brief Genera la URL de descarga del archivo de la versión
         @param obj Instancia de VersionEvidencia
         @return str URL de descarga o None si no hay archivo"""
@@ -67,7 +67,7 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
             return f"/api/versiones/{obj.id_version}/descargar/"
         return None
 
-    def get_nombre_archivo(self, obj):
+    def get_nombre_archivo(self, obj) -> str | None:
         """@brief Extrae el nombre del archivo sin la ruta
         @param obj Instancia de VersionEvidencia
         @return str Nombre del archivo o None si no hay archivo"""
@@ -121,7 +121,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         model = Evidencia
         fields = "__all__"
 
-    def get_ultima_version(self, obj):
+    def get_ultima_version(self, obj) -> str | None:
         """@brief Obtiene la versión más reciente de la evidencia
         @param obj Instancia de Evidencia
         @return dict Datos serializados de la última versión o None"""
@@ -131,7 +131,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
             return VersionEvidenciaSerializer(ultima).data
         return None
 
-    def get_asignacion_estado(self, obj):
+    def get_asignacion_estado(self, obj) -> str | None:
         """@brief Obtiene el estado actual de la asignación asociada
         @param obj Instancia de Evidencia
         @return str Código del estado o None"""
@@ -141,7 +141,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
-    def get_asignacion_estado_display(self, obj):
+    def get_asignacion_estado_display(self, obj) -> str | None:
         """@brief Obtiene la representacion legible del estado de la asignacion
         @param obj Instancia de Evidencia
         @return str Nombre legible del estado o None"""
@@ -151,7 +151,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
-    def get_ultima_observacion(self, obj):
+    def get_ultima_observacion(self, obj) -> str | None:
         """@brief Obtiene la observación más reciente de la última versión
         @param obj Instancia de Evidencia
         @return dict Datos de la última observación activa o None"""

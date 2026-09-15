@@ -14,6 +14,10 @@ kubectl apply -f k8s/01-secrets.yaml
 echo "3. Desplegando PostgreSQL..."
 kubectl apply -f k8s/02-postgres.yaml
 
+echo "3b. Desplegando Redis (cache)..."
+kubectl apply -f k8s/06-redis.yaml
+kubectl rollout status deployment/redis -n $NAMESPACE --timeout=120s
+
 echo "4. Esperando a que PostgreSQL esté listo..."
 kubectl rollout status deployment/postgres -n $NAMESPACE --timeout=120s
 

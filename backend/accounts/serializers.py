@@ -29,7 +29,7 @@ class PermissionSerializer(serializers.ModelSerializer):
         model = Permission
         fields = ["id", "name", "codename", "content_type", "app_label"]
 
-    def get_app_label(self, obj):
+    def get_app_label(self, obj) -> str:
         """
         @brief Obtiene el app_label del content_type del permiso
         @param obj Instancia del modelo Permission

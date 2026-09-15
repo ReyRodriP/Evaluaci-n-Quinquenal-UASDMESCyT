@@ -6,11 +6,13 @@ del modelo Evidencia a formato JSON, incluyendo validación
 de archivos.
 """
 
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from .models import Evidencia
 
 
+@extend_schema_serializer(component_name="EvidenciaEvidencias")
 class EvidenciaSerializer(serializers.ModelSerializer):
     """@class EvidenciaSerializer
     @brief Serializer para el modelo Evidencia.
