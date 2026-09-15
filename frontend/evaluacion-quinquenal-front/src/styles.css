@@ -145,3 +145,31 @@ body.dark .menu-bar .mode i.moon {
     padding:30px;
 }
 
+/* =========== Accesibilidad (WCAG 2.1) =========== */
+/* Foco visible (2.4.7) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid #2d56c8;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Saltar al contenido (2.4.1) */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: #2d56c8;
+    color: #ffffff;
+    padding: 0.6rem 1rem;
+    z-index: 9999;
+}
+
+.skip-link:focus {
+    left: 0;
+}
+

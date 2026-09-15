@@ -6,6 +6,7 @@ departamentos, facultades, criterios y usuarios del sistema.
 """
 
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +20,11 @@ User = get_user_model()
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+@extend_schema(
+    tags=["search"],
+    parameters=[OpenApiParameter("q", str, description="Termino de busqueda")],
+    responses=OpenApiTypes.OBJECT,
+)
 def search(request):
     """@brief Realiza una búsqueda global en el sistema.
     @details Busca indicadores, departamentos, facultades, criterios

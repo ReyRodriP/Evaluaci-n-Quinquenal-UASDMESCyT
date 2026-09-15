@@ -211,10 +211,15 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@uasd.edu.do")
 # INTERNATIONALIZATION
 # =============================================================================
 
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "es"
+TIME_ZONE = "America/Santo_Domingo"
 USE_I18N = True
 USE_TZ = True
+
+LANGUAGES = [
+    ("es", "Español"),
+    ("en", "English"),
+]
 
 
 # =============================================================================

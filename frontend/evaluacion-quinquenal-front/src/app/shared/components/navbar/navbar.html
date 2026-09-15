@@ -1,4 +1,4 @@
-<header class="barra-navegacion" [class.close]="!sidebarOpen">
+<header class="barra-navegacion" [class.close]="!sidebarOpen" role="banner">
 
   <div class="izquierda">
 
@@ -57,9 +57,9 @@
   <div class="derecha">
 
     <div class="notif-wrapper">
-      <button class="btn-notification" (click)="toggleDropdown()">
-        <i class="bx bx-bell-ring"></i>
-        <span class="notification-badge" *ngIf="noLeidas > 0">
+      <button class="btn-notification" (click)="toggleDropdown()" aria-label="Notificaciones">
+        <i class="bx bx-bell-ring" aria-hidden="true"></i>
+        <span class="notification-badge" *ngIf="noLeidas > 0" aria-hidden="true">
           {{ noLeidas > 99 ? '99+' : noLeidas }}
         </span>
       </button>

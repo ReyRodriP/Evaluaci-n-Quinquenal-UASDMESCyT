@@ -16,6 +16,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -320,6 +321,11 @@ def _data_general(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
+@extend_schema(
+    tags=["reportes"],
+    parameters=[OpenApiParameter("periodo", int, description="ID del periodo")],
+    responses=OpenApiTypes.OBJECT,
+)
 def general(request):
     """@brief Retorna datos del reporte general del período.
     @details Calcula estadísticas generales de asignaciones para el
@@ -346,6 +352,14 @@ def _filas_general(data):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
+@extend_schema(
+    tags=["reportes"],
+    parameters=[
+        OpenApiParameter("periodo", int, description="ID del periodo"),
+        OpenApiParameter("formato", str, description="pdf | xlsx"),
+    ],
+    responses=OpenApiTypes.BINARY,
+)
 def general_exportar(request):
     """@brief Exporta el reporte general en PDF o XLSX.
     @param request Request HTTP autenticada.
@@ -411,6 +425,7 @@ def _data_por_facultad(request, pk):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
+@extend_schema(tags=["reportes"], responses=OpenApiTypes.OBJECT)
 def por_facultad(request, pk=None):
     """@brief Retorna datos del reporte por facultad.
     @param request Request HTTP autenticada.
@@ -440,6 +455,11 @@ def _filas_facultad(data):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
+@extend_schema(
+    tags=["reportes"],
+    parameters=[OpenApiParameter("formato", str, description="pdf | xlsx")],
+    responses=OpenApiTypes.BINARY,
+)
 def por_facultad_exportar(request, pk=None):
     """@brief Exporta el reporte por facultad en PDF o XLSX.
     @param request Request HTTP autenticada.
@@ -516,6 +536,7 @@ def _data_por_departamento(request, pk):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
+@extend_schema(tags=["reportes"], responses=OpenApiTypes.OBJECT)
 def por_departamento(request, pk=None):
     """@brief Retorna datos del reporte por departamento.
     @param request Request HTTP autenticada.
@@ -543,6 +564,11 @@ def _filas_departamento(data):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportes])
+@extend_schema(
+    tags=["reportes"],
+    parameters=[OpenApiParameter("formato", str, description="pdf | xlsx")],
+    responses=OpenApiTypes.BINARY,
+)
 def por_departamento_exportar(request, pk=None):
     """@brief Exporta el reporte por departamento en PDF o XLSX.
     @param request Request HTTP autenticada.
@@ -837,6 +863,7 @@ def _base_queryset_usuarios(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
+@extend_schema(tags=["reportes"], responses=OpenApiTypes.OBJECT)
 def usuarios(request):
     """@brief Retorna datos del reporte de usuarios.
     @details Lista usuarios con paginación y filtros por rol,
@@ -877,6 +904,11 @@ def usuarios(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, PuedeVerReportesCompletos])
+@extend_schema(
+    tags=["reportes"],
+    parameters=[OpenApiParameter("formato", str, description="pdf | xlsx")],
+    responses=OpenApiTypes.BINARY,
+)
 def usuarios_exportar(request):
     """@brief Exporta el reporte de usuarios en PDF o XLSX.
     @param request Request HTTP autenticada.
