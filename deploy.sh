@@ -36,6 +36,9 @@ kubectl apply -f k8s/04-frontend.yaml
 echo "8. Configurando Ingress..."
 kubectl apply -f k8s/05-ingress.yaml
 
+echo "9. Programando backups automaticos (diarios, cifrados AES-256)..."
+kubectl apply -f k8s/07-backup.yaml
+
 echo "=== Despliegue completado ==="
 echo "Frontend: http://localhost"
 echo "Backend API: http://localhost/api/"

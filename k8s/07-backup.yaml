@@ -1,0 +1,71 @@
+# Backup automatico diario: pg_dump + media, cifrado AES-256-CBC (AES-256-CBC openssl)
+# Los archivos .enc se guardan en el PVC backups-pvc.
+# Restaurar: openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE -in db_XXX.sql.gz.enc | gunzip | psql ...
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+  namespace: evaluacion-quinquenal
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: DB_PASSWORD
+                - name: DB_USER
+                  value: "evaluacion_user"
+                - name: DB_NAME
+                  value: "evaluacion_quinquenal"
+                - name: DB_HOST
+                  value: "postgres"
+                - name: BACKUP_PASSPHRASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: BACKUP_PASSPHRASE
+                - name: BACKUP_DIR
+                  value: "/backups"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  mkdir -p "$BACKUP_DIR"
+                  DATE=$(date +%Y%m%d_%H%M%S)
+                  pg_dump -U "$DB_USER" -d "$DB_NAME" -h "$DB_HOST" | gzip > "/tmp/db_$DATE.sql.gz"
+                  openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE \
+                    -in "/tmp/db_$DATE.sql.gz" -out "$BACKUP_DIR/db_$DATE.sql.gz.enc"
+                  rm -f "/tmp/db_$DATE.sql.gz"
+                  find "$BACKUP_DIR" -name "*.enc" -mtime +30 -delete
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: backups-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backups-pvc
+  namespace: evaluacion-quinquenal
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

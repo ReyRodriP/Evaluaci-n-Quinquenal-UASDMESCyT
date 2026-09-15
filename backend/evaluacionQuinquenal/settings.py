@@ -47,6 +47,13 @@ SECRET_KEY = os.getenv(
 # 19. Forzar HTTPS en produccion
 DEBUG = os.getenv("DEBUG", "True").lower() in ("1", "true", "yes", "on")
 
+if not DEBUG and SECRET_KEY.startswith("django-insecure-"):
+    raise RuntimeError(
+        "SECRET_KEY insegura para produccion. Genera una con: "
+        "python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\" "
+        "y configurala en la variable de entorno SECRET_KEY."
+    )
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
@@ -332,7 +339,7 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # 19. Forzar HTTPS
 # =============================================================================
 
-SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False").lower() in ("1", "true", "yes", "on")
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", str(not DEBUG)).lower() in ("1", "true", "yes", "on")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if not DEBUG else None
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
