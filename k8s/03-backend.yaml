@@ -25,6 +25,14 @@ spec:
               value: "evaluacionQuinquenal.settings"
             - name: DEBUG
               value: "False"
+            - name: SECURE_SSL_REDIRECT
+              value: "False"
+            - name: SESSION_COOKIE_SECURE
+              value: "False"
+            - name: CSRF_COOKIE_SECURE
+              value: "False"
+            - name: SECURE_HSTS_SECONDS
+              value: "0"
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
