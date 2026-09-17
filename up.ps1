@@ -40,10 +40,13 @@ if ($mode -eq 'docker') {
     Write-Host '2. Esperando a que el backend este sano...'
     Wait-BackendHealth
 
-    Write-Host '3. Aplicando migraciones...'
+    Write-Host '3. Asegurando permisos del volumen media/logs...'
+    docker compose exec -u root -T backend chown -R appuser:appuser /app/media /app/logs | Out-Null
+
+    Write-Host '4. Aplicando migraciones...'
     docker compose exec -T backend python manage.py migrate --noinput
 
-    Write-Host '4. Recopilando archivos estaticos...'
+    Write-Host '5. Recopilando archivos estaticos...'
     docker compose exec -T backend python manage.py collectstatic --noinput
 
     Write-Host '=== Despliegue local (docker) completado ==='
