@@ -1,0 +1,341 @@
+============================================================
+MANUAL DE ADMINISTRACIÓN
+Sistema de Gestión de Evidencias para la Evaluación Quinquenal
+UASD - MESCyT
+============================================================
+
+República Dominicana
+Universidad Autónoma de Santo Domingo
+Facultad de Ciencias - Escuela de Informática
+
+Sustentantes:
+- Reynaldo Rodríguez Polanco — 100655341
+- Ramón Paulino Gil — 100345706
+- José Manuel Otaño Hernández — 100320080
+
+Coordinador: Mtro. Erick Minor
+Asesora Metodológica: Mtra. Jacqueline Tejada Tio
+Asesora de Contenido: Mtra. Martha Lidia Pérez Medina
+
+Santo Domingo, Distrito Nacional - Julio 2026
+
+------------------------------------------------------------
+CONTENIDO
+------------------------------------------------------------
+1.  Introducción
+2.  Acceso y URLs del sistema
+3.  Despliegue plug-and-play (todo automático)
+4.  Superusuario (creación y manejo de contraseñas)
+5.  Roles y permisos
+6.  Gestión de usuarios y módulos
+7.  Seguridad y variables de entorno
+8.  Despliegue manual (Docker y Kubernetes)
+9.  Despliegue automático por internet (CI/CD)
+10. Mantenimiento
+11. Respaldo y restauración
+12. Solución de problemas
+
+------------------------------------------------------------
+1. INTRODUCCIÓN
+------------------------------------------------------------
+Este manual está dirigido al administrador del Sistema de Gestión
+de Evidencias para la Evaluación Quinquenal UASD-MESCyT. Cubre la
+gestión de usuarios, roles, módulos de evaluación, seguridad,
+despliegue, mantenimiento y respaldo de la plataforma.
+
+El administrador es responsable de:
+- Crear y administrar usuarios y sus roles.
+- Configurar períodos, criterios, indicadores y asignaciones.
+- Vigilar la integridad de la información (auditoría).
+- Garantizar la disponibilidad del sistema (despliegue, respaldo,
+  recuperación).
+
+------------------------------------------------------------
+2. ACCESO Y URLs DEL SISTEMA
+------------------------------------------------------------
+Frontend (usuarios):          http://localhost
+API REST:                     http://localhost:8000/api/
+Documentación API (Swagger):  http://localhost:8000/api/docs/
+Admin de Django:              http://localhost:8000/admin/
+Salud del sistema:            http://localhost:8000/health/
+
+El frontend es una SPA (Angular) servida por Nginx, que también
+hace de proxy hacia el backend para /api/, /media/ y /static/.
+
+------------------------------------------------------------
+3. DESPLIEGUE PLUG-AND-PLAY (TODO AUTOMÁTICO)
+------------------------------------------------------------
+Requisitos: tener Docker Desktop instalado y ejecutándose.
+
+UN SOLO COMANDO:
+
+  .\setup-todo.ps1                 (modo docker, recomendado)
+  .\setup-todo.ps1 -Mode k8s       (clúster Kubernetes de Docker Desktop)
+  .\setup-todo.ps1 -Git            (además hace commit+push a git)
+
+Este comando hace, automáticamente:
+1. Levanta Postgres, Redis, Backend y Frontend (construye imágenes).
+2. Espera a que el backend esté sano en /health/.
+3. Aplica migraciones y recopila archivos estáticos.
+4. Crea o actualiza el superusuario con una contraseña aleatoria.
+5. Guarda la contraseña en el archivo .env (variable SUPERUSER_PASSWORD),
+   que NO se sube al repositorio (está en .gitignore).
+6. Verifica health + frontend + login y muestra en pantalla:
+   - URLs del sistema
+   - Usuario y contraseña de acceso
+   (las credenciales se muestran una sola vez)
+
+Notas:
+- Si ya existe SUPERUSER_PASSWORD en .env, se reutiliza esa misma
+  contraseña en corridas siguientes (no cambia la del usuario).
+- Para resetear la contraseña más adelante: borrar la línea
+  SUPERUSER_PASSWORD=... de .env y volver a ejecutar setup-todo.ps1.
+
+------------------------------------------------------------
+4. SUPERUSUARIO (CREACIÓN Y MANEJO DE CONTRASEÑAS)
+------------------------------------------------------------
+El sistema NO tiene contraseñas por defecto publicadas. El
+superusuario se crea con una contraseña propia del administrador.
+
+Opción A) Automático (recomendado):
+  .\setup-todo.ps1
+  -> genera contraseña aleatoria, la guarda en .env y la muestra.
+
+Opción B) Manual:
+  .\crear_superusuario.ps1 -Username admin -Email admin@uasd.edu.do -Password ClaveSegura123
+  Sin -Password, pregunta de forma OCULTA (no se ve mientras se escribe).
+  También se puede usar la variable de entorno SUPERUSER_PASSWORD.
+
+Opción C) En Kubernetes (si se desplegó con -Mode k8s):
+  .\crear_superusuario.ps1 -Mode k8s -Username admin -Password ClaveSegura123
+
+Comandos útiles:
+- Diagnóstico de un usuario:
+    docker compose exec backend python manage.py check_usuario <usuario>
+- Cambiar contraseña de un usuario:
+    docker compose exec -it backend python manage.py changepassword <usuario>
+- El comando crear_superusuario es IDEMPOTENTE: crea el usuario si no
+  existe o actualiza su contraseña/estado si ya existe.
+
+REGLAS DE SEGURIDAD IMPORTANTES:
+- Nunca publicar credenciales en la documentación ni en el repo.
+- La contraseña debe tener al menos 8 caracteres (el script lo exige).
+- Rotar (cambiar) la contraseña del superusuario periódicamente.
+
+------------------------------------------------------------
+5. ROLES Y PERMISOS
+------------------------------------------------------------
+Los roles se gestionan como grupos de Django. Roles predefinidos:
+
+- Administrador General: acceso total a todos los módulos.
+- Coordinador Quinquenal: coordinación, reportes completos y auditoría.
+- Revisor Institucional: revisión de evidencias y acceso a reportes.
+- Evaluador Externo: revisión de evidencias.
+- Responsable Departamental: asignaciones y evidencias de su depto.
+- Consulta: solo lectura.
+
+Si se modifican los permisos de los roles:
+  docker compose exec backend python manage.py sync_roles
+
+Datos de demostración completos (datos iniciales):
+  docker compose exec backend python manage.py seed
+
+Permisos de otros usuarios:
+- Las contraseñas de los usuarios NORMALES se almacenan cifradas
+  (argon2) en la base de datos. No existen contraseñas por defecto.
+- Si un administrador crea un usuario sin contraseña, ese usuario
+  NO puede iniciar sesión hasta restablecerla por correo
+  (flujo "¿Olvidaste tu contraseña?").
+
+------------------------------------------------------------
+6. GESTIÓN DE USUARIOS Y MÓDULOS
+------------------------------------------------------------
+Todos los módulos se administran desde la interfaz web con permisos
+de Administrador General / Coordinador Quinquenal:
+
+- Usuarios: crear, editar, activar/desactivar cuentas, asignar roles.
+- Facultades y Departamentos: estructuras académicas.
+- Períodos: intervalos de evaluación (nombre, fechas, activo).
+- Criterios: áreas de evaluación por período.
+- Indicadores: elementos evaluados por criterio (obligatorio o no).
+- Asignaciones: indicador + departamento + período.
+  Estados: pendiente -> en_progreso -> completado -> aprobado/rechazado.
+- Evidencias: subida de archivos (máx. 50 MB; PDF, DOC, DOCX, XLS,
+  XLSX, JPG, PNG, GIF, TXT, ZIP, RAR). Versionado automático.
+- Auditoría: bitácora de solo lectura con todas las operaciones.
+- Notificaciones y Reportes: avisos automáticos y exportación de datos.
+
+------------------------------------------------------------
+7. SEGURIDAD Y VARIABLES DE ENTORNO
+------------------------------------------------------------
+Configuración en el archivo .env (raíz del proyecto); existe
+.env.example como plantilla. NUNCA subir .env al repositorio.
+
+Variables principales:
+- DEBUG                False en producción.
+- SECRET_KEY           Clave de Django >= 50 caracteres. Generar con:
+                       python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+- ALLOWED_HOSTS        Dominios permitidos (separados por coma).
+- DB_PASSWORD          Contraseña de PostgreSQL.
+- SECURE_SSL_REDIRECT  True si hay HTTPS, False si el despliegue es HTTP.
+- SESSION_COOKIE_SECURE / CSRF_COOKIE_SECURE  True con HTTPS.
+- SECURE_HSTS_SECONDS  31536000 con HTTPS, 0 en HTTP.
+- EMAIL_HOST / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD  SMTP para
+                       recuperación de contraseña.
+- SENTRY_DSN           Monitoreo de errores.
+- SUPERUSER_PASSWORD   Contraseña del superusuario (solo la usa el script).
+
+En Kubernetes los secretos se inyectan desde k8s/01-secrets.yaml.
+Estos valores DEBEN rotarse en cada despliegue real (o usar
+SealedSecrets / External Secrets / Vault) y nunca versionarse.
+Para rotar: generar nuevos valores, reemplazarlos en el manifest y
+regenerar el Secret en el clúster (kubectl delete/apply).
+
+------------------------------------------------------------
+8. DESPLIEGUE MANUAL (DOCKER Y KUBERNETES)
+------------------------------------------------------------
+Docker:
+  .\up.ps1                 levanta todo y deja el sistema en marcha
+  .\crear_superusuario.ps1 crear el superusuario (si no usas setup-todo)
+
+Kubernetes local (Docker Desktop):
+  1. Activar Kubernetes en Docker Desktop (Settings > Kubernetes >
+     Enable cluster) y reiniciar Docker.
+  2. .\up.ps1 -mode k8s
+  3. .\crear_superusuario.ps1 -Mode k8s
+
+Detener el sistema:
+  docker compose down                 detiene contenedores
+  docker compose down -v              ADVERTENCIA: borra los datos
+  kubectl delete ns evaluacion-quinquenal    elimina todo el despliegue k8s
+
+------------------------------------------------------------
+9. DESPLIEGUE AUTOMÁTICO POR INTERNET (CI/CD)
+------------------------------------------------------------
+El flujo de GitHub Actions .github/workflows/deploy.yml despliega
+automáticamente Docker + Kubernetes al hacer push a main, o manualmente
+desde la web/telefono (pestaña Actions > "Deploy a Kubernetes" >
+Run workflow). Permite desplegar desde cualquier dispositivo.
+
+Requisitos previos:
+1. Un clúster accesible por internet (por ejemplo k3s en una VPS).
+2. Secret de GitHub KUBECONFIG con el kubeconfig del clúster en base64.
+3. Variable de GitHub DOMAIN (opcional) con el dominio/IP del ingress
+   (ej. 123.45.67.89.nip.io).
+
+Qué hace:
+- Construye las imágenes y las publica en GHCR.
+- Aplica los manifests de k8s en orden (namespace, secrets, postgres,
+  redis, backend, frontend, ingress, backups).
+- Espera rollouts, aplica migraciones y estáticos.
+
+Crear clúster k3s y usuario para el CI (en la VPS):
+  curl -sfL https://get.k3s.io | sh -
+  sudo kubectl create serviceaccount github-actions -n kube-system
+  sudo kubectl create clusterrolebinding github-actions \
+    --clusterrole=cluster-admin --serviceaccount=kube-system:github-actions
+  (generar kubeconfig y ponerlo en base64 como secret KUBECONFIG)
+
+------------------------------------------------------------
+10. MANTENIMIENTO
+------------------------------------------------------------
+- Salud: GET /health/ responde 200 cuando BD, caché y media están ok;
+  responde 503 si algún componente está degradado.
+- Migraciones y estáticos:
+    docker compose exec backend python manage.py migrate --noinput
+    docker compose exec backend python manage.py collectstatic --noinput
+- Logs:
+    docker compose logs -f backend
+    docker compose logs -f frontend
+    kubectl logs -n evaluacion-quinquenal -l app=backend -f   (k8s)
+- Verificación periódica:
+  · Revisar la bitácora de auditoría.
+  · Comprobar que los backups se generan (ver sección 11).
+  · Probar login, carga de evidencias y recuperación de contraseña.
+
+------------------------------------------------------------
+11. RESPALDO Y RESTAURACIÓN
+------------------------------------------------------------
+Respaldo manual (Linux/nginx vs. bash):
+    export BACKUP_PASSPHRASE='frase-de-cifrado-segura'
+    ./backup.sh
+Crea un backup CIFRADO AES-256 de la base de datos (PostgreSQL) y de
+las evidencias (media) en /backups/evaluacion-quinquenal, con rotación
+de archivos de más de 30 días.
+
+En Kubernetes existe además un CronJob diario (02:00) en
+k8s/07-backup.yaml.
+
+Restaurar la base de datos:
+    export BACKUP_PASSPHRASE='frase-de-cifrado-segura'
+    openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE \
+      -in /backups/evaluacion-quinquenal/db_AAAAMMDD_HHMMSS.sql.gz.enc \
+      | gunzip | psql -U evaluacion_user -h localhost evaluacion_quinquenal
+
+Restaurar evidencias (media):
+    export BACKUP_PASSPHRASE='frase-de-cifrado-segura'
+    openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE \
+      -in /backups/evaluacion-quinquenal/media_AAAAMMDD_HHMMSS.tar.gz.enc \
+      | tar -xz -C backend/
+
+GUARDAR LA FRASE (BACKUP_PASSPHRASE) EN UN LUGAR SEGURO: sin ella no
+se pueden descifrar los backups.
+
+------------------------------------------------------------
+12. SOLUCIÓN DE PROBLEMAS
+------------------------------------------------------------
+
+Problema: El backend no responde en /health/ tras levantar
+Causa:    HTTP redirige a HTTPS (SECURE_SSL_REDIRECT=True) o el
+          servicio no arrancó.
+Solución: Verificar SECURE_SSL_REDIRECT=False en .env (despliegue HTTP)
+          y revisar: docker compose logs backend
+
+Problema: No se cargan las listas de los módulos (o errores en F12:
+          "e.map is not a function", "filter is not a function")
+Causa:    La API devuelve listados PAGINADOS ({results:[...]}) y el
+          frontend los trataba como arrays. YA CORREGIDO en los
+          servicios auth-service.ts y auth.service.ts.
+Solución: Recargar con Ctrl+F5. Si es una versión vieja, reconstruir:
+          docker compose up -d --build frontend
+
+Problema: No inicia sesión
+Causa:    Credenciales incorrectas o cuenta inactiva.
+Solución: Usar .\setup-todo.ps1 (regenera credenciales) o
+          docker compose exec -it backend python manage.py changepassword <user>
+
+Problema: No se ven botones de crear/editar aunque soy superusuario
+Causa:    Permisos desactualizados en el navegador (localStorage).
+Solución: La app ahora refresca el usuario con /api/me al arrancar.
+          Hacer Ctrl+F5 y volver a iniciar sesión.
+
+Problema: Se ven credenciales en el repositorio/documentación
+Causa:    Contraseñas por defecto publicadas.
+Solución: Ya eliminadas. No publicar credenciales; usar SUPERUSER_PASSWORD
+          en .env y rotar los secretos de k8s.
+
+Problema: No llegan correos de recuperación
+Causa:    SMTP no configurado o correo en spam.
+Solución: Configurar EMAIL_* en .env y revisar la bandeja de spam.
+
+Problema: El despliegue k8s de GitHub falla
+Causa:    KUBECONFIG inválido o caducado.
+Solución: Regenerar el kubeconfig y actualizar el secret en GitHub.
+
+Problema: Los pods de k8s no quedan Ready
+Causa:    Imagen no disponible o recursos insuficientes.
+Solución: kubectl describe pod -n evaluacion-quinquenal
+
+Problema: No se descifra un backup
+Causa:    Frase de cifrado incorrecta.
+Solución: Verificar BACKUP_PASSPHRASE.
+
+------------------------------------------------------------
+Documento elaborado por el equipo de desarrollo:
+- Reynaldo Rodríguez Polanco
+- Ramón Paulino Gil
+- José Manuel Otaño Hernández
+
+Universidad Autónoma de Santo Domingo (UASD)
+Julio 2026
+============================================================
