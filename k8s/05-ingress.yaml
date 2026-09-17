@@ -4,11 +4,10 @@ metadata:
   name: evaluacion-ingress
   namespace: evaluacion-quinquenal
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    # Limite de subida para evidencias (Traefik de k3s no filtra el body, el backend lo valida)
+    traefik.ingress.kubernetes.io/router.middlewares: ""
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
     - host: localhost
       http:
