@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
@@ -12,6 +13,10 @@ export class AuthService {
 
   constructor(private http:HttpClient) {
 
+  }
+
+  private toList(obs: Observable<any>): Observable<any[]> {
+    return obs.pipe(map((data: any) => (Array.isArray(data) ? data : data?.results ?? [])));
   }
 
   register(user:any):Observable<any> {
@@ -121,7 +126,7 @@ export class AuthService {
   }
 
   listarFacultades(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}facultades/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}facultades/`));
   }
 
   actualizarFacultad(id:any, facultad:any): Observable<any> {
@@ -138,7 +143,7 @@ export class AuthService {
   }
 
   listarDepartamentos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}departamentos/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}departamentos/`));
   }
 
   actualizarDepartamento(id:any, departamento:any): Observable<any> {
@@ -151,7 +156,7 @@ export class AuthService {
 
   // Usuarios CRUD operations
   listarUsuarios(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}usuarios/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}usuarios/`));
   }
 
   crearUsuario(usuario:any): Observable<any> {
@@ -168,11 +173,11 @@ export class AuthService {
 
   // Roles CRUD operations
   listarRoles(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}roles/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}roles/`));
   }
 
   listarPermisos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}permisos/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}permisos/`));
   }
 
   crearRol(rol:any): Observable<any> {
@@ -185,7 +190,7 @@ export class AuthService {
 
   // Perfiles CRUD operations
   listarPerfiles(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}perfiles/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}perfiles/`));
   }
 
   crearPerfil(perfil:any): Observable<any> {
@@ -203,12 +208,12 @@ export class AuthService {
 
   // Auditoria
   listarAuditorias(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}auditoria/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}auditoria/`));
   }
 
   // Notificaciones
   listarNotificaciones(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}notificaciones/`);
+    return this.toList(this.http.get<any>(`${this.baseUrl}notificaciones/`));
   }
 
   marcarNotificacionLeida(id: number): Observable<any> {

@@ -27,7 +27,7 @@ export class Notificaciones implements OnInit {
     this.loading = true
     this.authService.listarNotificaciones().subscribe({
       next: (data) => {
-        this.notificaciones = data
+        this.notificaciones = data ?? []
         this.loading = false
       },
       error: () => {

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -11,9 +12,13 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
+  private toList(obs: Observable<any>): Observable<any[]> {
+    return obs.pipe(map((data: any) => (Array.isArray(data) ? data : data?.results ?? [])));
+  }
+
   // Periodos
   listarPeriodos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/periodos/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/periodos/`));
   }
 
   crearPeriodo(payload: any): Observable<any> {
@@ -34,7 +39,7 @@ export class AuthService {
 
   // Criterios
   listarCriterios(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/criterios/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/criterios/`));
   }
 
   crearCriterio(payload: any): Observable<any> {
@@ -55,7 +60,7 @@ export class AuthService {
 
   // Asignaciones
   listarAsignaciones(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/asignaciones/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/asignaciones/`));
   }
 
   crearAsignacion(payload: any): Observable<any> {
@@ -102,7 +107,7 @@ export class AuthService {
 
   // Evidencias
   listarEvidencias(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/evidencias/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/evidencias/`));
   }
 
   crearEvidencia(payload: FormData): Observable<any> {
@@ -147,7 +152,7 @@ export class AuthService {
 
   // Indicadores
   listarIndicadores(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/indicadores/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/indicadores/`));
   }
 
   crearIndicador(payload: any): Observable<any> {
@@ -168,7 +173,7 @@ export class AuthService {
 
   // Departamentos
   listarDepartamentos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/departamentos/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/departamentos/`));
   }
 
   crearDepartamento(payload: any): Observable<any> {
@@ -185,17 +190,17 @@ export class AuthService {
 
   // Facultades
   listarFacultades(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/facultades/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/facultades/`));
   }
 
   // Usuarios
   listarUsuarios(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/usuarios/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/usuarios/`));
   }
 
   // Roles
   listarRoles(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/roles/`);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/roles/`));
   }
 
   // Reportes

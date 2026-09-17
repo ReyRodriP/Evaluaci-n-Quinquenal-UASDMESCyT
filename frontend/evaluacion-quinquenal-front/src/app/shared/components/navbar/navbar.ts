@@ -118,7 +118,7 @@ export class Navbar implements OnInit, OnDestroy {
 
   cargarNotificaciones(): void {
     this.authService.listarNotificaciones().subscribe({
-      next: (data) => this.notificaciones = data,
+      next: (data) => this.notificaciones = data ?? [],
     })
   }
 
