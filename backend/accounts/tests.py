@@ -218,6 +218,9 @@ class ObjectivesTest(TestCase):
 
 class SecurityTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="testpass123", email="test@example.com")
         self.active_user = User.objects.create_user(

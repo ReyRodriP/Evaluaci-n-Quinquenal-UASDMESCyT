@@ -898,8 +898,19 @@
 ==========================*/
 
 .preview-btn {
-    padding: 8px 12px !important;
+    padding: 10px 16px !important;
     min-width: auto !important;
+    border: 1px solid var(--primary-color);
+    background: transparent;
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.preview-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
 }
 
 .preview-overlay {

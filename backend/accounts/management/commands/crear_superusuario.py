@@ -21,7 +21,9 @@ class Command(BaseCommand):
 
         if not password:
             self.stderr.write(
-                self.style.ERROR("Debes indicar una contrasena con --password o la variable de entorno SUPERUSER_PASSWORD.")
+                self.style.ERROR(
+                    "Debes indicar una contrasena con --password o la variable de entorno SUPERUSER_PASSWORD."
+                )
             )
             raise SystemExit(1)
 
