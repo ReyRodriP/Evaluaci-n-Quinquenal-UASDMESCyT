@@ -1,12 +1,23 @@
 param(
     [string]$Mode = 'docker',
-    [string]$Username = 'mrPopoMaster',
-    [string]$Email = 'popomrMaster001@gmail.com',
-    [string]$Password = '12345678'
+    [string]$Username,
+    [string]$Email,
+    [string]$Password
 )
 
 $ErrorActionPreference = 'Stop'
 $NAMESPACE = 'evaluacion-quinquenal'
+
+if (-not $Username) { $Username = Read-Host 'Usuario' }
+if (-not $Email)    { $Email = Read-Host 'Email' }
+if (-not $Password) {
+    $Password = $env:SUPERUSER_PASSWORD
+    if (-not $Password) {
+        $Password = Read-Host -AsSecureString 'Password'
+        $Password = [System.Net.NetworkCredential]::new('', $Password).Password
+    }
+}
+if ($Password.Length -lt 8) { Write-Error 'La contrasena debe tener al menos 8 caracteres.' }
 
 if ($Mode -eq 'k8s') {
     $ctx = @(kubectl config get-contexts -o name 2>$null)

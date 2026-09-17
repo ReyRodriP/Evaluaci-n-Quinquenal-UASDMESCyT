@@ -75,17 +75,15 @@ El administrador es responsable de:
 | Panel de administración de Django | `http://localhost:8000/admin/` |
 | Verificación de salud | `http://localhost:8000/health/` |
 
-### 2.2 Superusuario por Defecto
+### 2.2 Superusuario
 
-El superusuario por defecto del sistema es:
+El sistema **no** tiene contraseñas por defecto. Al desplegar, el administrador crea o actualiza el superusuario con su propia contraseña:
 
-| Campo | Valor |
-|-------|-------|
-| Usuario | `mrPopoMaster` |
-| Correo | `popomrMaster001@gmail.com` |
-| Contraseña | `12345678` |
+```powershell
+.\crear_superusuario.ps1 -Username admin -Email admin@uasd.edu.do -Password ClaveSegura123
+```
 
-> **IMPORTANTE:** en producción esta contraseña **debe cambiarse** inmediatamente. Puede regenerarse con el comando `crear_superusuario` (sección 4.1). El superusuario tiene acceso total a todos los módulos sin importar el grupo al que pertenezca.
+Si no se indica `-Password`, el script lo pregunta de forma oculta. El superusuario tiene acceso total a todos los módulos sin importar el grupo al que pertenezca. **No deben publicarse estas credenciales en la documentación ni en el repositorio.**
 
 ### 2.3 Primeros Pasos
 
@@ -136,9 +134,8 @@ docker compose exec backend python manage.py sync_roles
 Desde la raíz del proyecto (requiere el stack levantado):
 
 ```powershell
-.\crear_superusuario.ps1                                  # valores por defecto
-.\crear_superusuario.ps1 -Username admin -Email admin@uasd.edu.do -Password ClaveSegura123
-.\crear_superusuario.ps1 -Mode k8s                        # si el despliegue fue con Kubernetes
+.\crear_superusuario.ps1 -Username admin -Email admin@uasd.edu.do -Password ClaveSegura123   # sin -Password pregunta de forma oculta
+.\crear_superusuario.ps1 -Mode k8s -Username admin -Password ClaveSegura123                   # si el despliegue fue con Kubernetes
 ```
 
 El script es **idempotente**: crea el usuario si no existe o actualiza su contraseña, correo y estado si ya existe.

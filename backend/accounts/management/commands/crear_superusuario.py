@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
@@ -10,12 +12,22 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--username", default="mrPopoMaster")
         parser.add_argument("--email", default="popomrMaster001@gmail.com")
-        parser.add_argument("--password", default="12345678")
+        parser.add_argument("--password", default="")
 
     def handle(self, *args, **options):
         username = options["username"]
         email = options["email"]
-        password = options["password"]
+        password = options["password"] or os.getenv("SUPERUSER_PASSWORD", "")
+
+        if not password:
+            self.stderr.write(
+                self.style.ERROR("Debes indicar una contrasena con --password o la variable de entorno SUPERUSER_PASSWORD.")
+            )
+            raise SystemExit(1)
+
+        if len(password) < 8:
+            self.stderr.write(self.style.ERROR("La contrasena debe tener al menos 8 caracteres."))
+            raise SystemExit(1)
 
         user, created = User.objects.get_or_create(
             username=username,

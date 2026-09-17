@@ -112,13 +112,15 @@ npm start
 
 El backend corre en `http://127.0.0.1:8000` y el frontend en `http://localhost:4200`.
 
-### Superusuario por defecto
+### Superusuario
 
+La contraseña del superusuario no está fija. Para crear o actualizar el superusuario, ejecutar desde la raíz del proyecto (con el stack levantado):
+
+```powershell
+.\crear_superusuario.ps1 -Username tuUsuario -Email tu@correo.com -Password TuClaveSegura
 ```
-Username: mrPopoMaster
-Email: popomrMaster001@gmail.com
-Password: 12345678
-```
+
+Si no se usa `-Password`, preguntará interactivamente (no se muestra mientras se escribe).
 
 ## API Endpoints
 
