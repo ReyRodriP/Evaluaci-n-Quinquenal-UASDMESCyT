@@ -54,6 +54,17 @@ class SecurityHeadersMiddleware:
         if hasattr(settings, "SECURE_SSL_REDIRECT") and settings.SECURE_SSL_REDIRECT:
             response["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
 
+        csp = getattr(settings, "SECURE_CSP", None)
+        if csp:
+            parts = []
+            for directive, values in csp.items():
+                if isinstance(values, str):
+                    values = [values]
+                if values:
+                    parts.append(f"{directive} {' '.join(values)}")
+            if parts:
+                response["Content-Security-Policy"] = "; ".join(parts)
+
         return response
 
 
@@ -112,7 +123,14 @@ class RateLimitMiddleware:
     SENSITIVE_LIMIT = 20
     BLOCK_DURATION = 600
 
-    SENSITIVE_PATHS = {"/login", "/register", "/forgot_password", "/reset_password", "/change_password"}
+    SENSITIVE_PATHS = {
+        "/api/login",
+        "/api/register",
+        "/api/forgot_password",
+        "/api/reset_password",
+        "/api/change_password",
+        "/api/token/",
+    }
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -154,7 +172,7 @@ class RequestSizeLimitMiddleware:
     ataques de denegacion de servicio (DoS) por payload grande.
     """
 
-    MAX_BODY_SIZE = 10 * 1024 * 1024
+    MAX_BODY_SIZE = 50 * 1024 * 1024
 
     def __init__(self, get_response):
         self.get_response = get_response

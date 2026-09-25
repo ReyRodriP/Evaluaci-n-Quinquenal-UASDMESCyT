@@ -6,12 +6,15 @@ gestion de perfil, cambio de contrasena, recuperacion de contrasena,
 y ViewSets para usuarios, grupos y permisos.
 """
 
+import logging
 from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
@@ -41,6 +44,7 @@ from .serializers import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def _registrar_outstanding_token(user, refresh):
@@ -389,14 +393,16 @@ def logout(request):
     @param request Request HTTP autenticado del usuario
     @return Response con mensaje de confirmacion
     @details Agrega el refresh token a la blacklist para prevenir su uso futuro.
+    Tambien invalida el refresh que viaja en la cookie HttpOnly.
     """
-    try:
-        refresh_token = request.data.get("refresh")
-        if refresh_token:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-    except Exception:
-        pass
+    refresh_tokens = [request.data.get("refresh"), request.COOKIES.get(REFRESH_COOKIE)]
+    for token_str in refresh_tokens:
+        if not token_str:
+            continue
+        try:
+            RefreshToken(token_str).blacklist()
+        except Exception as exc:
+            logger.info("No se pudo revocar refresh token en logout: %s", exc)
 
     response = Response({"detail": "Sesion cerrada correctamente."}, status=status.HTTP_200_OK)
     _clear_auth_cookies(response)
@@ -493,6 +499,12 @@ def change_password(request):
 
     if not user.check_password(old_password):
         return Response({"error": "La contrasena actual es incorrecta"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(new_password, user)
+    except (DjangoValidationError, ValidationError) as exc:
+        messages = getattr(exc, "messages", [str(exc)])
+        return Response({"error": " ".join(messages)}, status=status.HTTP_400_BAD_REQUEST)
 
     user.set_password(new_password)
     user.save()
@@ -608,6 +620,12 @@ def reset_password(request):
 
     if not default_token_generator.check_token(user, token):
         return Response({"error": "El enlace de recuperación ya no es válido"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(new_password, user)
+    except (DjangoValidationError, ValidationError) as exc:
+        messages = getattr(exc, "messages", [str(exc)])
+        return Response({"error": " ".join(messages)}, status=status.HTTP_400_BAD_REQUEST)
 
     user.set_password(new_password)
     user.save()

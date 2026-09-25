@@ -11,12 +11,24 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve as _serve_file
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+
+
+class LoginThrottledTokenObtainPairView(TokenObtainPairView):
+    """@class LoginThrottledTokenObtainPairView
+    @brief Aplica el mismo limite de intentos que /api/login al endpoint /api/token/.
+    """
+
+    throttle_classes = [ScopedRateThrottle]
+
+
+LoginThrottledTokenObtainPairView.throttle_scope = "login"
 
 urlpatterns = [
     path("admin/", admin.site.urls),  # Proteger en produccion con staff_member_required (ver settings.py)
     path("", include("health.urls")),
-    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/", LoginThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path("api/", include("dashboard.urls")),

@@ -2,6 +2,8 @@
 set -e
 
 NAMESPACE="evaluacion-quinquenal"
+BACKEND_IMAGE="${BACKEND_IMAGE:-ghcr.io/ReyRodriP/Evaluaci-n-Quinquenal-UASDMESCyT/backend:latest}"
+FRONTEND_IMAGE="${FRONTEND_IMAGE:-ghcr.io/ReyRodriP/Evaluaci-n-Quinquenal-UASDMESCyT/frontend:latest}"
 
 echo "=== Desplegando Evaluación Quinquenal UASD-MESCyT ==="
 
@@ -9,6 +11,10 @@ echo "1. Creando namespace..."
 kubectl apply -f k8s/00-namespace.yaml
 
 echo "2. Aplicando secrets..."
+if [ ! -f k8s/01-secrets.yaml ]; then
+    echo "ERROR: k8s/01-secrets.yaml no existe. No puede desplegarse sin secretos." >&2
+    exit 1
+fi
 kubectl apply -f k8s/01-secrets.yaml
 
 echo "3. Desplegando PostgreSQL..."
@@ -21,8 +27,8 @@ kubectl rollout status deployment/redis -n $NAMESPACE --timeout=120s
 echo "4. Esperando a que PostgreSQL esté listo..."
 kubectl rollout status deployment/postgres -n $NAMESPACE --timeout=120s
 
-echo "5. Desplegando Backend..."
-kubectl apply -f k8s/03-backend.yaml
+echo "5. Desplegando Backend ($BACKEND_IMAGE)..."
+kubectl apply -f <(sed -e "s|evaluacion-quinquenal/backend:latest|$BACKEND_IMAGE|g" k8s/03-backend.yaml)
 
 echo "6. Ejutando migraciones..."
 kubectl wait --for=condition=ready pod -l app=backend -n $NAMESPACE --timeout=120s
@@ -30,8 +36,8 @@ MIGRATION_POD=$(kubectl get pods -n $NAMESPACE -l app=backend -o jsonpath='{.ite
 kubectl exec -n $NAMESPACE $MIGRATION_POD -- python manage.py migrate --noinput
 kubectl exec -n $NAMESPACE $MIGRATION_POD -- python manage.py collectstatic --noinput
 
-echo "7. Desplegando Frontend..."
-kubectl apply -f k8s/04-frontend.yaml
+echo "7. Desplegando Frontend ($FRONTEND_IMAGE)..."
+kubectl apply -f <(sed -e "s|evaluacion-quinquenal/frontend:latest|$FRONTEND_IMAGE|g" k8s/04-frontend.yaml)
 
 echo "8. Configurando Ingress..."
 kubectl apply -f k8s/05-ingress.yaml

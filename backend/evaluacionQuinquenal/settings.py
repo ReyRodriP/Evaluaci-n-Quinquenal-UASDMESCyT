@@ -40,12 +40,10 @@ load_env_file(BASE_DIR / ".env")
 # =============================================================================
 
 # 1. Ocultar claves API - SECRET_KEY desde variable de entorno
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-cambiar-en-produccion-w@ii_-rppf_7)*7u10w!cfz!u*lu^$g$0souiqh6!oy42m(73z"
-)
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-cambiar-en-produccion")
 
 # 19. Forzar HTTPS en produccion
-DEBUG = os.getenv("DEBUG", "True").lower() in ("1", "true", "yes", "on")
+DEBUG = os.getenv("DEBUG", "False").lower() in ("1", "true", "yes", "on")
 
 if not DEBUG and SECRET_KEY.startswith("django-insecure-"):
     raise RuntimeError(
@@ -278,6 +276,11 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API para la gestion de evidencias de evaluacion quinquenal",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
+    "SERVE_AUTHENTICATION": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
 }
 
 
