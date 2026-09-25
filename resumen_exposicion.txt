@@ -1,0 +1,68 @@
+Página 9: Gestión de Asignaciones y Gestión de Evidencias
+
+Ahora pasamos al corazón del sistema. Aquí tenemos dos módulos fundamentales:
+
+Gestión de Asignaciones: Esta vista permite vincular un indicador con un departamento y un período específico. En la tabla se muestra el departamento responsable, los indicadores asignados, el período y el estado actual. Cada asignación sigue un flujo claro: empieza como Pendiente, pasa a En progreso cuando se comienzan a subir evidencias, llega a Completado y finalmente se Aprueba o Rechaza. El usuario puede crear nuevas asignaciones, buscar por nombre y gestionar cada registro.
+
+Gestión de Evidencias: Este es el módulo central del sistema. Desde aquí los departamentos suben los documentos de respaldo que demuestran el cumplimiento de cada indicador. La tabla muestra el departamento, el indicador, el período, el estado del archivo y las observaciones. Para subir una evidencia, solo se hace clic en "Subir evidencia", se selecciona el archivo —acepta PDF, Word, Excel, imágenes, ZIP, entre otros— y se asocia a la asignación correspondiente. El sistema además maneja versionado automático, así que cada vez que se sube un nuevo archivo para la misma asignación, se crea una nueva versión sin perder la anterior.
+
+
+Página 10: Gestión de Usuarios y Gestión de Roles
+
+Gestión de Usuarios: Aquí el administrador administra todas las cuentas del sistema. La tabla lista cada usuario con su nombre de usuario, nombre completo, correo, departamento al que pertenece, su rol y si está activo o no. En la captura podemos ver tres ejemplos: un administrador, un evaluador y un coordinador, cada uno en su departamento. Se pueden crear nuevos usuarios, buscar por nombre o correo, y editar o eliminar registros existentes.
+
+Gestión de Roles: Este módulo define qué puede hacer cada tipo de usuario en el sistema. Actualmente existen dos roles principales: Administrador y Evaluador. Cada rol tiene permisos específicos asignados —por ejemplo, el administrador puede crear asignaciones y subir evidencias, mientras que el evaluador solo puede visualizar—. El sistema utiliza grupos de Django con permisos granulares que controlan no solo qué módulos puede ver el usuario, sino también qué acciones puede realizar dentro de cada uno.
+
+
+Página 11: Funciones Extras
+
+Además de los módulos principales, el sistema cuenta con varias funciones complementarias:
+
+Dashboard: Es la primera pantalla que ve el usuario al iniciar sesión. Muestra tarjetas con estadísticas generales: cantidad de departamentos, indicadores, asignaciones pendientes, aprobadas y observadas. También incluye un gráfico circular con el estado de las asignaciones y un gráfico de barras que muestra el avance por facultad. Esto permite al administrador tener una visión general del estado de la evaluación en tiempo real.
+
+Notificaciones: El sistema envía alertas automáticas al usuario cuando se le asigna un nuevo indicador o cuando cambia el estado de una asignación. Las notificaciones aparecen en la barra superior con un contador y se pueden marcar como leídas.
+
+Auditoría: Es una bitácora automática que registra cada operación que se realiza en el sistema: quién la hizo, qué acción realizó, en qué modelo y cuándo ocurrió. Esta información es de solo lectura, lo que garantiza la trazabilidad y seguridad de todas las operaciones.
+
+Búsqueda Global: La barra de búsqueda en el navbar filtra resultados según los permisos del usuario. Si un usuario no tiene permiso para ver indicadores, simplemente no aparecerán en los resultados.
+
+Modo Oscuro: El usuario puede alternar entre un tema claro y oscuro desde el sidebar, mejorando la experiencia visual según sus preferencias.
+
+Control de Permisos en UI: Existe un servicio central llamado PermisosService que determina qué puede ver y hacer cada usuario. Junto con el PermisoGuard, protege las rutas y oculta botones de acciones CRUD que el usuario no está autorizado a realizar.
+
+
+Página 12: Conclusiones y Recomendaciones
+
+Conclusiones
+
+El sistema logra centralizar de manera efectiva toda la gestión de evidencias para la evaluación quinquenal UASD–MESCyT, eliminando la dependencia de procesos manuales y archivos dispersos. La arquitectura elegida —Django en el backend y Angular en el frontend— ofrece escalabilidad, seguridad mediante autenticación por token y permisos granulares, y una interfaz moderna y responsiva.
+
+El módulo de evidencias con versionado automático y soporte para múltiples formatos facilita significativamente el trabajo de los departamentos. La auditoría automática garantiza trazabilidad completa, y el control de roles y permisos permite un acceso seguro y diferenciado según el tipo de usuario.
+
+En general, el sistema cumple con su objetivo de proporcionar una plataforma confiable, organizada y fácil de usar para el proceso de evaluación institucional.
+
+Recomendaciones a Seguir
+
+- Capacitación continua a todos los usuarios sobre el uso correcto del sistema.
+- Respaldo periódico tanto de la base de datos como de los archivos subidos al servidor.
+- Monitoreo constante de la auditoría para detectar actividades inusuales.
+- Actualización regular de las dependencias del sistema (Django, Angular, librerías).
+- Completar funcionalidades pendientes como la recuperación de contraseña por correo y el perfil de usuario editable.
+- Implementar exportación de reportes para facilitar la generación de documentos para MESCyT.
+- Realizar pruebas de carga antes de una implementación a nivel institucional completo.
+
+
+Contribución por Integrante (según Git)
+
+Basado en el historial de commits y líneas de código del repositorio:
+
+Reynaldo Rodríguez Polanco (ReyRodriP): 39,022 líneas — 58.1%
+Desarrolló la mayor parte del sistema, incluyendo el backend, frontend y la integración de módulos principales.
+
+Ramon Paulino Gil: 26,375 líneas — 39.3%
+Contribuyó de forma significativa en diversas partes del proyecto, incluyendo funcionalidades del sistema y configuraciones.
+
+José Manuel Otaño Hernández: 1,720 líneas — 2.6%
+Participó en funciones puntuales del sistema.
+
+Nota: Estos porcentajes reflejan líneas de código escritas en commits de Git. No incluyen trabajo fuera de Git como diseño, documentación, pruebas o planificación.

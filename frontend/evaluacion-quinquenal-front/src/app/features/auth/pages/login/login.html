@@ -6,7 +6,7 @@
     <h1>Inicio de Sesión</h1>
 
     <p class="subtitle">
-        Accede a tu seguimiento académico
+        Accede a la plataforma de Evaluación Quinquenal
     </p>
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
@@ -17,8 +17,11 @@
         </div>
 
         <div class="input-group">
-            <i class='bx bx-lock-alt'></i>
-            <input type="password" placeholder="Contraseña" formControlName="password" required minlength="6">
+            <i class="bx bx-lock"></i>
+            <input [type]="showPassword ? 'text' : 'password'" placeholder="Contraseña" formControlName="password" required minlength="6">
+            <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" aria-label="Mostrar u ocultar contraseña">
+                <i class="bx" [ngClass]="showPassword ? 'bx bx-eye' : 'bx bx-eye-closed'"></i>
+            </button>
         </div>
 
         <div class="forgot-link">
@@ -30,6 +33,10 @@
         </button>
 
     </form>
+
+    <div class="register-link">
+        <a routerLink="/auth/forgot-password">¿Olvidaste tu contraseña?</a>
+    </div>
 
     <div class="register-link">
         <p>¿No estás registrado?</p>

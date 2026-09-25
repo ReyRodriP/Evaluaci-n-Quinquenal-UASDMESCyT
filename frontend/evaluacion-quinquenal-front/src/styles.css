@@ -1,10 +1,11 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'ngx-toastr/toastr';
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap');
 
 /*Colores a usar*/
 :root {
-    --text-title-color: #053D4E;
-    --text-color: #32363B;
+    --text-title-color: #2d56c8;
+    --text-color: #707070;
     --icon-color: #32363B;
     --menu-color: #707780;
     --icon-menu-color: #707780;
@@ -14,15 +15,44 @@
     --background-hover: #F7F9FA;
 
     --border-color: #E6E9ED;
+    --table-bg: #ffffff;
+    --table-head-bg: #003366;
+    --table-head-text: #ffffff;
+    --button-bg: #f1f5f9;
+    --button-hover-bg: #dbeafe;
+    --badge-active-bg: #e8f7ee;
+    --badge-active-text: #1b8f4e;
+    --badge-inactive-bg: #fdeaea;
+    --badge-inactive-text: #d32f2f;
+    --indicator-badge-bg: #e3f2fd;
+    --indicator-badge-text: #1976d2;
+    --table-shadow: 0 3px 10px rgba(0,0,0,.08);
+
+    --modal-header-bg: linear-gradient(135deg, var(--primary-color), #4cc2ff);
+    --modal-header-color: #ffffff;
+    --modal-body-bg: var(--sidebar-color);
+    --modal-label-color: #0f172a;
+    --modal-input-bg: #ffffff;
+    --modal-input-text: #111827;
+    --modal-input-border: var(--border-color);
+    --modal-checkbox-bg: #ffffff;
+    --modal-btn-cancel-bg: #f1f5f9;
+    --modal-btn-cancel-text: #e7e7e7;
+    --modal-btn-cancel-hover: #e2e8f0;
+    --modal-btn-save-bg: linear-gradient(135deg, #2563eb, #38bdf8);
+    --modal-btn-save-text: #ffffff;
+    --modal-btn-save-shadow: 0 6px 18px rgba(37,99,235,.35);
 
     /*--------Global Colors---------*/
-    --body-color: #fff;
+    --body-color: #ffffff;
     --background-color: #E4E9F7;
-    --sidebar-color: #fff;
+    --sidebar-color: #ffffff;
     --primary-color: #0091ff;
     --primary-color-light: #f6f5ff;
     --toggle-color: #000;
-    --text-color: #707070;
+
+    --heading-color: #1e293b;
+    --text-secondary: #64748b;
 
     /*--------Transitions---------*/
     --tran-02: all 0.2s ease;
@@ -35,11 +65,13 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: 'Public Sans', sans-serif;
 }
 
 body {
     height: 100vh;
     background-color: var(--body-color);
+    color: var(--text-color);
     transition: var(--tran-04);
 }
 
@@ -50,6 +82,37 @@ body.dark {
     --primary-color-light: #3a3b3c;
     --toggle-color: #fff;
     --text-color: #ccc;
+    --border-color: #444;
+    --background-selected: rgba(255,255,255,0.06);
+    --background-hover: rgba(255,255,255,0.08);
+    --table-bg: #242526;
+    --table-head-bg: #35373b;
+    --table-head-text: #ffffff;
+    --button-bg: #2b2d31;
+    --button-hover-bg: #3d3f43;
+    --badge-active-bg: #1d3c27;
+    --badge-active-text: #b8e5c6;
+    --badge-inactive-bg: #432c2c;
+    --badge-inactive-text: #f4b4b4;
+    --indicator-badge-bg: #273447;
+    --indicator-badge-text: #b3d2ff;
+    --table-shadow: 0 3px 10px rgba(255,255,255,.05);
+    --heading-color: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --modal-header-bg: linear-gradient(135deg, #161b22, #252b33);
+    --modal-header-color: #f8fafc;
+    --modal-body-bg: #1f2226;
+    --modal-label-color: #f8fafc;
+    --modal-input-bg: #17191d;
+    --modal-input-text: #e5e7eb;
+    --modal-input-border: #3f4146;
+    --modal-checkbox-bg: #17191d;
+    --modal-btn-cancel-bg: #2b2d31;
+    --modal-btn-cancel-text: #282828;
+    --modal-btn-cancel-hover: #3e4147;
+    --modal-btn-save-bg: linear-gradient(135deg, #2563eb, #1d4ed8);
+    --modal-btn-save-text: #ffffff;
+    --modal-btn-save-shadow: 0 6px 18px rgba(37,99,235,.35);
 }
 
 body.dark .switch::before {
@@ -74,312 +137,39 @@ body.dark .menu-bar .mode i.sun {
 }
 
 body.dark .menu-bar .mode i.moon {
-  opacity: 0;
+    opacity: 0;
 }
 
-/* Page Container */
-.page-container {
-  padding: 20px;
-  margin-top: 60px;
+/*CRUD Container*/
+.crud-container{
+    padding:30px;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+/* =========== Accesibilidad (WCAG 2.1) =========== */
+/* Foco visible (2.4.7) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid #2d56c8;
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
-.page-header h1 {
-  font-size: 24px;
-  color: var(--text-title-color);
+/* Saltar al contenido (2.4.1) */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: #2d56c8;
+    color: #ffffff;
+    padding: 0.6rem 1rem;
+    z-index: 9999;
 }
 
-.text-muted {
-  color: var(--text-color);
-  font-size: 14px;
+.skip-link:focus {
+    left: 0;
 }
 
-/* Buttons */
-.btn {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--tran-02);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  opacity: 0.9;
-}
-
-.btn-edit {
-  background: #0091ff;
-  color: white;
-  padding: 4px 12px;
-  font-size: 12px;
-}
-
-.btn-edit:hover {
-  opacity: 0.9;
-}
-
-.btn-delete {
-  background: #dc3545;
-  color: white;
-  padding: 4px 12px;
-  font-size: 12px;
-}
-
-.btn-delete:hover {
-  opacity: 0.9;
-}
-
-.btn-sm {
-  padding: 4px 12px;
-  font-size: 12px;
-}
-
-/* Tables */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--sidebar-color);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.table thead {
-  background: var(--primary-color);
-  color: white;
-}
-
-.table th {
-  padding: 12px 15px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.table td {
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 14px;
-  color: var(--text-color);
-}
-
-.table tbody tr:hover {
-  background: var(--background-hover);
-}
-
-.actions {
-  display: flex;
-  gap: 5px;
-}
-
-.text-center {
-  text-align: center;
-  padding: 20px !important;
-  color: var(--text-color);
-}
-
-/* Badges */
-.badge {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.badge-success { background: #d4edda; color: #155724; }
-.badge-danger { background: #f8d7da; color: #721c24; }
-.badge-warning { background: #fff3cd; color: #856404; }
-.badge-info { background: #d1ecf1; color: #0c5460; }
-.badge-primary { background: #cce5ff; color: #004085; }
-.badge-secondary { background: #e2e3e5; color: #383d41; }
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: var(--sidebar-color);
-  border-radius: 12px;
-  width: 500px;
-  max-width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-}
-
-.modal h2 {
-  padding: 20px;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 18px;
-  color: var(--text-title-color);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-footer {
-  padding: 15px 20px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* Forms */
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-color);
-}
-
-.form-control {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 14px;
-  background: var(--body-color);
-  color: var(--text-color);
-  transition: var(--tran-02);
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(0,145,255,0.2);
-}
-
-textarea.form-control {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-}
-
-/* Filters */
-.filtros {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.filtros label {
-  font-size: 14px;
-  color: var(--text-color);
-  font-weight: 500;
-}
-
-.filter-select {
-  width: 300px;
-}
-
-/* Facultad cards */
-.facultad-card {
-  background: var(--sidebar-color);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.facultad-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 15px;
-}
-
-.facultad-header h3 {
-  font-size: 18px;
-  color: var(--text-title-color);
-  margin-bottom: 5px;
-}
-
-.facultad-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dept-table {
-  box-shadow: none;
-  margin: 0;
-}
-
-/* width */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-  background: #666;
-}

@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -15,19 +14,26 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Notificacion',
+            name="Notificacion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('titulo', models.CharField(max_length=255)),
-                ('mensaje', models.TextField()),
-                ('leida', models.BooleanField(default=False)),
-                ('fecha_creacion', models.DateTimeField(auto_now_add=True)),
-                ('usuario', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notificaciones', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("titulo", models.CharField(max_length=255)),
+                ("mensaje", models.TextField()),
+                ("leida", models.BooleanField(default=False)),
+                ("fecha_creacion", models.DateTimeField(auto_now_add=True)),
+                (
+                    "usuario",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notificaciones",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Notificación',
-                'verbose_name_plural': 'Notificaciones',
-                'ordering': ['-fecha_creacion'],
+                "verbose_name": "Notificación",
+                "verbose_name_plural": "Notificaciones",
+                "ordering": ["-fecha_creacion"],
             },
         ),
     ]

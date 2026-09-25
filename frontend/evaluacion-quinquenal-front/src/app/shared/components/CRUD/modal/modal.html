@@ -1,0 +1,76 @@
+<div class="modal-overlay" *ngIf="open" role="dialog" aria-modal="true" [attr.aria-label]="getModalTitle()">
+
+  <div class="crud-modal">
+
+    <div class="modal-header">
+      <h2>{{ getModalTitle() }}</h2>
+      <button class="close-btn" (click)="onCancel()" aria-label="Cerrar">
+        <i class='bx bx-x' aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form class="modal-form" (ngSubmit)="onSave()">
+      <ng-container *ngFor="let field of fields">
+        <div class="form-group" *ngIf="field.type !== 'hidden'">
+          <label [for]="field.name">{{ field.label }}</label>
+
+          <input *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'date' || field.type === 'password'"
+            [type]="field.type"
+            [(ngModel)]="model[field.name]"
+            [name]="field.name"
+            [id]="field.name"
+            [placeholder]="field.placeholder || ''" />
+
+          <textarea *ngIf="field.type === 'textarea'" rows="4"
+            [(ngModel)]="model[field.name]"
+            [name]="field.name"
+            [id]="field.name"
+            [placeholder]="field.placeholder || ''"></textarea>
+
+          <input *ngIf="field.type === 'select' && field.searchable" class="select-search"
+            type="text" placeholder="Buscar {{ field.label | lowercase }}..."
+            [(ngModel)]="searchTexts[field.name]" (click)="$event.stopPropagation()"
+            [name]="'search_' + field.name" [id]="'search_' + field.name" />
+
+          <select *ngIf="field.type === 'select'"
+            [(ngModel)]="model[field.name]"
+            [name]="field.name"
+            [id]="field.name">
+            <option *ngIf="field.allowClear" [ngValue]="null">--- Sin {{ field.label | lowercase }} ---</option>
+            <option *ngFor="let option of getFilteredOptions(field)" [ngValue]="option?.value ?? option">{{ option?.label ?? option }}</option>
+          </select>
+
+          <div *ngIf="field.type === 'checkboxgroup'" class="checkbox-group">
+            <div class="checkbox-controls">
+              <button type="button" class="btn-secondary" (click)="selectAll(field.name, field.options)">Seleccionar todos</button>
+              <button type="button" class="btn-secondary" (click)="clearAll(field.name)">Limpiar selección</button>
+            </div>
+            <div *ngFor="let option of field.options" class="checkbox-option">
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="model[field.name]?.includes(option?.value ?? option)"
+                  (change)="toggleCheckbox(field.name, option?.value ?? option)"
+                />
+                {{ option?.label ?? option }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="onCancel()">
+          Cancelar
+        </button>
+
+        <button type="submit" class="btn-save">
+          Guardar
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>

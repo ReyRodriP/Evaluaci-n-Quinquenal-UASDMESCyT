@@ -1,0 +1,21 @@
+.crud-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.crud-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+app-crud-table {
+  display: block;
+}
+
+app-pagination {
+  display: block;
+  margin-top: 0.5rem;
+}

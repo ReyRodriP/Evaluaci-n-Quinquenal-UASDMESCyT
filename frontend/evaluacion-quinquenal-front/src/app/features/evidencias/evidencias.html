@@ -1,0 +1,63 @@
+<section class="evidencias-page">
+  <div *ngIf="loading" class="state-message">Cargando asignaciones...</div>
+
+  <ng-container *ngIf="!loading">
+    <app-search-bar
+      [titulo]="'Evidencias'"
+      [placeholder]="'Buscar por indicador, departamento, estado...'"
+      [stateOptions]="[]"
+      [showCreate]="false"
+      [showState]="false"
+      [pageSize]="pageSize"
+      (search)="onSearch($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-search-bar>
+
+    <app-crud-table
+      [columnas]="['Departamento', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
+      [datos]="rowsPaginados"
+      [ocultarAcciones]="['edit', 'toggle', 'remove']">
+      <ng-template #acciones let-row>
+        <div class="action-group">
+          <button *ngIf="!row.evidenciaId && puedeSubir" type="button" class="action-btn action-primary" (click)="openManage(row)">
+            Subir evidencia
+          </button>
+          <button *ngIf="row.evidenciaId" type="button" class="action-btn action-secondary" (click)="openManage(row)">
+            Ver detalle
+          </button>
+          <button *ngIf="row.evidenciaId" type="button" class="action-btn action-secondary" (click)="descargarUltimoArchivo(row)">
+            Descargar
+          </button>
+          <button *ngIf="row.evidenciaId" type="button" class="action-btn action-secondary" (click)="verHistorial(row)">
+            Ver historial
+          </button>
+          <button *ngIf="row.evidenciaId && row.evidencia?.estado !== 'cancelada' && puedeCancelarReactivar" type="button" class="action-btn action-danger" (click)="cancelar(row)">
+            Cancelar
+          </button>
+          <button *ngIf="row.evidenciaId && row.evidencia?.estado === 'cancelada' && puedeCancelarReactivar" type="button" class="action-btn action-secondary" (click)="reactivar(row)">
+            Reactivar
+          </button>
+        </div>
+      </ng-template>
+    </app-crud-table>
+
+    <app-pagination
+      [total]="rowsFiltrados.length"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage"
+      (pageChange)="onPageChange($event)">
+    </app-pagination>
+
+    <div *ngIf="!rowsFiltrados.length && !loading" class="state-message">No hay asignaciones disponibles para gestionar evidencias.</div>
+  </ng-container>
+
+  <app-modal
+    [open]="historialAbierto"
+    [data]="historialData"
+    [title]="'Historial'"
+    [editTitle]="'Historial de versiones'"
+    [fields]="historialCampos"
+    (close)="cerrarHistorial()"
+    (save)="cerrarHistorial()">
+  </app-modal>
+</section>

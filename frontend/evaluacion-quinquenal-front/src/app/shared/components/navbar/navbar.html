@@ -1,4 +1,4 @@
-<header class="barra-navegacion" [class.close]="!sidebarOpen">
+<header class="barra-navegacion" [class.close]="!sidebarOpen" role="banner">
 
   <div class="izquierda">
 
@@ -10,40 +10,90 @@
     <div class="info-sistema">
 
       <span class="titulo">
-        Sistema de Gestión de Evidencias
+        Sistema de Gestión de Evidencias para la Evaluación Quinquenal UASD-MESCYT
       </span>
 
       <span class="subtitulo">
-        Evaluación Quinquenal UASD - MESCyT
+        Universidad Autónoma de Santo Domingo
       </span>
 
     </div>
 
   </div>
 
-  <div class="derecha" *ngIf="!isLoggedIn">
+  <div class="buscador-wrapper" #buscadorWrapper>
+    <i class="bx bx-search buscador-icon"></i>
+    <input
+      class="buscador-input"
+      type="text"
+      placeholder="Buscar indicadores, departamentos..."
+      [ngModel]="searchQuery"
+      (ngModelChange)="onSearchInput($event)"
+      (focus)="searchOpen = true"
+      (keydown.escape)="cerrarBusqueda()">
 
-    <a routerLink="auth/login" class="btn-login">
-      Iniciar Sesión
-    </a>
+    <div class="buscador-dropdown" *ngIf="searchOpen && (searchQuery.length >= 2 || totalResultados > 0)">
+      <div *ngIf="searching" class="buscador-empty">Buscando...</div>
 
-    <a routerLink="auth/register" class="btn-register">
-      Registrarse
-    </a>
+      <ng-container *ngIf="!searching">
+        <div *ngIf="!totalResultados" class="buscador-empty">Sin resultados</div>
 
+        <ng-container *ngFor="let grupo of gruposResultados">
+          <div *ngIf="grupo.items.length" class="buscador-grupo">
+            <div class="buscador-grupo-titulo">{{ grupo.key }}</div>
+            <div
+              *ngFor="let item of grupo.items"
+              class="buscador-item"
+              (click)="irAResultado(item)">
+              <div class="buscador-item-nombre">{{ item.nombre || item.username }}</div>
+              <div class="buscador-item-sub">{{ item.facultad || item.criterio || item.periodo || item.email || item.nombre_completo }}</div>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
   </div>
 
-  <div class="derecha" *ngIf="isLoggedIn">
+  <div class="derecha">
 
-    <span class="user-info">
-      <i class='bx bx-user-circle'></i>
-      {{ user?.first_name }} {{ user?.last_name }}
-      <span class="user-rol">({{ user?.rol }})</span>
-    </span>
+    <div class="notif-wrapper">
+      <button class="btn-notification" (click)="toggleDropdown()" aria-label="Notificaciones">
+        <i class="bx bx-bell-ring" aria-hidden="true"></i>
+        <span class="notification-badge" *ngIf="noLeidas > 0" aria-hidden="true">
+          {{ noLeidas > 99 ? '99+' : noLeidas }}
+        </span>
+      </button>
 
-    <a class="btn-logout" (click)="logout()">
-      <i class='bx bx-log-out'></i> Cerrar sesión
-    </a>
+      <div class="notif-dropdown" *ngIf="dropdownOpen" (mouseleave)="cerrarDropdown()">
+        <div class="notif-header">
+          <i class="bx bx-bell"></i>
+          <span>Notificaciones</span>
+        </div>
+
+        <div class="notif-list">
+          <div *ngIf="!notificaciones.length" class="notif-empty">
+            No hay notificaciones
+          </div>
+
+          <div
+            *ngFor="let n of ultimas"
+            class="notif-item"
+            [class.no-leida]="!n.leida"
+            (click)="marcarYcerrar(n.id)">
+            <div class="notif-dot" *ngIf="!n.leida"></div>
+            <div class="notif-content">
+              <div class="notif-titulo">{{ n.titulo }}</div>
+              <div class="notif-mensaje">{{ n.mensaje }}</div>
+              <div class="notif-fecha">{{ n.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="notif-ver-todas" (click)="irATodas()">
+          Ver todas
+        </button>
+      </div>
+    </div>
 
   </div>
 

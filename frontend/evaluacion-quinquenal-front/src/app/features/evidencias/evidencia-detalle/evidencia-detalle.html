@@ -1,0 +1,605 @@
+<section class="detalle-page">
+
+    <!-- ===========================
+         CABECERA
+    ============================ -->
+
+    <div class="page-header">
+
+        <div>
+
+            <a routerLink="/evidencias" class="back-link">
+              <i class="bx bx-arrow-from-right-stroke"></i>
+              Volver a evidencias
+            </a>
+
+            <h2>Detalle de Evidencia</h2>
+
+        </div>
+
+    </div>
+
+    <!-- ===========================
+         MENSAJES
+    ============================ -->
+
+    <div *ngIf="loading" class="state-msg">
+        <i class="bx bx-loader-alt bx-spin"></i>
+        Cargando información...
+    </div>
+
+    <div *ngIf="error" class="state-msg error">
+        {{ error }}
+    </div>
+
+    <!-- ===========================
+         CONTENIDO
+    ============================ -->
+
+    <ng-container *ngIf="!loading && evidencia">
+
+        <!-- =======================
+             INFORMACIÓN GENERAL
+        ======================== -->
+
+        <div class="card info-card">
+
+            <div class="info-header">
+
+                <div *ngIf="!editandoInfo">
+
+                    <h3>{{ evidencia.titulo }}</h3>
+
+                    <p class="descripcion">
+                        {{ evidencia.descripcion }}
+                    </p>
+
+                    <button *ngIf="evidencia.puede_editar_info" type="button" class="secondary-btn" (click)="editarInfo()" style="margin-top:8px">
+                        <i class="bx bx-edit-alt"></i>
+                        Editar información
+                    </button>
+
+                </div>
+
+                <div *ngIf="editandoInfo" class="edit-info-form">
+
+                    <div class="field-group">
+                        <label>Título</label>
+                        <input type="text" [(ngModel)]="infoEditada.titulo" placeholder="Título de la evidencia" />
+                    </div>
+
+                    <div class="field-group">
+                        <label>Descripción</label>
+                        <textarea rows="3" [(ngModel)]="infoEditada.descripcion" placeholder="Descripción de la evidencia"></textarea>
+                    </div>
+
+                    <div class="edit-info-actions">
+                        <button type="button" class="secondary-btn" (click)="cancelarEdicion()" [disabled]="guardandoInfo">
+                            Cancelar
+                        </button>
+                        <button type="button" class="primary-btn" (click)="guardarInfo()" [disabled]="guardandoInfo">
+                            {{ guardandoInfo ? 'Guardando...' : 'Guardar' }}
+                        </button>
+                    </div>
+
+                </div>
+
+                <span
+                    class="status-badge"
+                    [class.approved]="evidencia.asignacion_info?.estado === 'aprobado'"
+                    [class.rejected]="evidencia.asignacion_info?.estado === 'rechazado'"
+                    [class.observed]="evidencia.asignacion_info?.estado === 'observada'"
+                    [class.uploaded]="evidencia.asignacion_info?.estado === 'en_progreso'"
+                    [class.pending]="evidencia.asignacion_info?.estado === 'pendiente'">
+
+                    {{ evidencia.asignacion_info?.estado_display || evidencia.estado }}
+
+                </span>
+
+            </div>
+
+            <div class="info-grid">
+
+                <div class="info-item">
+                    <span>Versiones</span>
+                    <strong>{{ versionesOrdenadas.length }}</strong>
+                </div>
+
+                <div class="info-item">
+                    <span>Última actualización</span>
+                    <strong>
+                        {{
+                            versionesOrdenadas.length
+                            ? (versionesOrdenadas[0].fecha_subida | date:'dd/MM/yyyy')
+                            : '--'
+                        }}
+                    </strong>
+                </div>
+
+                <div class="info-item">
+                    <span>Estado actual</span>
+                    <strong>
+                        {{ evidencia.asignacion_info?.estado_display || evidencia.estado }}
+                    </strong>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =======================
+             GRID
+        ======================== -->
+
+        <div class="content-grid">
+
+            <!-- ===================
+                 VERSIONES
+            ==================== -->
+
+            <div class="card versiones-card">
+
+                <div class="card-title">
+
+                    <h3>
+                        <i class="bx bx-history"></i>
+                        Historial de Versiones
+                    </h3>
+
+                </div>
+
+                <div
+                    *ngIf="versionesOrdenadas.length === 0"
+                    class="state-msg">
+
+                    No existen versiones registradas.
+
+                </div>
+
+                <div
+                    *ngFor="let version of versionesOrdenadas; let i = index"
+                    class="version-item">
+
+                    <div class="version-header">
+
+                        <div>
+
+                            <strong>
+                                Versión {{ version.version }}
+                                <span *ngIf="i === 0" class="latest-badge">(última)</span>
+                            </strong>
+
+                            <div class="fecha">
+                                {{ version.fecha_subida | date:'dd/MM/yyyy HH:mm' }}
+                            </div>
+
+                        </div>
+
+                        <div class="version-actions">
+                            <button
+                                *ngIf="i === 0 && evidencia.puede_editar_info && editandoVersionId !== version.id_version"
+                                class="secondary-btn small"
+                                (click)="editarVersion(version)">
+
+                                <i class="bx bx-edit-alt"></i>
+                                Editar
+
+                            </button>
+
+                            <button
+                                class="secondary-btn preview-btn"
+                                (click)="abrirPreview(version)">
+
+                                <i class="bx bx-show"></i>
+                                Vista previa
+
+                            </button>
+
+                            <button
+                                class="secondary-btn"
+
+                                (click)="descargar(version.id_version, version.nombre_archivo)">
+
+                                <i class="bx bx-download"></i>
+
+                                {{ version.nombre_archivo || 'Descargar' }}
+
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div *ngIf="editandoVersionId !== version.id_version">
+                        <div
+                            *ngIf="version.comentario"
+                            class="comentario">
+
+                            <i class="bx bx-message-rounded-detail"></i>
+
+                            {{ version.comentario }}
+
+                        </div>
+                    </div>
+
+                    <div *ngIf="editandoVersionId === version.id_version" class="edit-version-form">
+
+                        <div class="field-group">
+                            <label>Archivo (dejar vacío para mantener el actual)</label>
+                            <input type="file" (change)="onVersionEditFileChange($event)" />
+                            <small class="file-limit">Tamaño máximo permitido: {{ MAX_ARCHIVO_MB }} MB</small>
+                            <div *ngIf="versionEditFileError" class="file-error">
+                                <i class="bx bx-error-circle"></i>
+                                {{ versionEditFileError }}
+                            </div>
+                            <small class="current-file">Archivo actual: {{ version.nombre_archivo }}</small>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Comentario</label>
+                            <textarea rows="3" [(ngModel)]="versionEditComentario" placeholder="Comentario de la versión"></textarea>
+                        </div>
+
+                        <div class="edit-info-actions">
+                            <button type="button" class="secondary-btn" (click)="cancelarEdicionVersion()" [disabled]="guardandoVersionEdit">
+                                Cancelar
+                            </button>
+                            <button type="button" class="primary-btn" (click)="guardarEdicionVersion()" [disabled]="guardandoVersionEdit">
+                                {{ guardandoVersionEdit ? 'Guardando...' : 'Guardar cambios' }}
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- Observaciones -->
+
+                    <div
+                        *ngIf="version.observaciones?.length"
+                        class="observaciones-list">
+
+                        <h4>
+
+                            <i class="bx bx-comment-detail"></i>
+
+                            Observaciones
+
+                        </h4>
+
+                        <div
+                            *ngFor="let obs of version.observaciones"
+                            class="observacion-item">
+
+                            <div class="obs-header">
+
+                                <strong>
+
+                                    <i class="bx bx-user-circle"></i>
+
+                                    {{ obs.usuario_nombre }}
+
+                                </strong>
+
+                                <span class="fecha">
+
+                                    {{ obs.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}
+
+                                </span>
+
+                            </div>
+
+                            <p>
+
+                                {{ obs.comentario }}
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ===================
+                 PANEL DERECHO
+            ==================== -->
+
+            <div class="card actions-card">
+
+                <div class="card-title">
+
+                    <h3>
+
+                        <i class="bx bx-cog"></i>
+
+                        Acciones
+
+                    </h3>
+
+                </div>
+
+                <!-- ==================
+                     NUEVA VERSIÓN
+                =================== -->
+
+                <div
+                    *ngIf="evidencia.asignacion_info?.estado === 'aprobado'"
+                    class="action-section locked-section">
+
+                    <h4>
+
+                        <i class="bx bx-lock-alt"></i>
+
+                        Evidencia aprobada
+
+                    </h4>
+
+                    <p class="locked-msg">
+                        Esta evidencia ha sido aprobada y no puede ser modificada.
+                    </p>
+
+                </div>
+
+                <div
+                    *ngIf="evidencia.puede_subir_version"
+                    class="action-section">
+
+                    <div class="field-group">
+
+                        <label>Archivo</label>
+
+                        <input
+                            type="file"
+                            (change)="onFileChange($event)">
+
+                        <small class="file-limit">Tamaño máximo permitido: {{ MAX_ARCHIVO_MB }} MB</small>
+
+                        <div *ngIf="archivoError" class="file-error">
+                            <i class="bx bx-error-circle"></i>
+                            {{ archivoError }}
+                        </div>
+
+                    </div>
+
+                    <div class="field-group">
+
+                        <label>Comentario</label>
+
+                        <textarea
+                            rows="4"
+                            [(ngModel)]="comentarioVersion"
+                            placeholder="Describe brevemente qué cambió en esta nueva versión...">
+                        </textarea>
+
+                    </div>
+
+                    <ng-container *ngIf="!confirmandoSubida">
+                        <button
+                            class="primary-btn"
+                            (click)="confirmarSubida()"
+                            [disabled]="subiendo">
+
+                            <i class="bx bx-cloud-upload"></i>
+
+                            {{ subiendo ? 'Subiendo...' : 'Subir versión' }}
+
+                        </button>
+                    </ng-container>
+
+                    <div *ngIf="confirmandoSubida" class="confirm-upload">
+                        <p class="confirm-msg">
+                            <i class="bx bx-info-circle"></i>
+                            ¿Está seguro de que desea subir esta versión? Una vez subida, pasará a revisión.
+                        </p>
+                        <div class="confirm-details">
+                            <div *ngIf="nuevoArchivo" class="confirm-detail">
+                                <strong>Archivo:</strong> {{ nuevoArchivo.name }}
+                            </div>
+                            <div *ngIf="comentarioVersion" class="confirm-detail">
+                                <strong>Comentario:</strong> {{ comentarioVersion }}
+                            </div>
+                        </div>
+                        <div class="confirm-actions">
+                            <button type="button" class="secondary-btn" (click)="cancelarConfirmacion()">
+                                Cancelar
+                            </button>
+                            <button type="button" class="primary-btn" (click)="subirVersion()" [disabled]="subiendo">
+                                <i class="bx bx-check"></i>
+                                {{ subiendo ? 'Subiendo...' : 'Confirmar' }}
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ==================
+                     REVISIÓN
+                =================== -->
+
+                <div
+                    *ngIf="evidencia.puede_cambiar_estado"
+                    class="action-section">
+
+                    <h4>
+
+                        <i class="bx bx-check-shield"></i>
+
+                        Revisar evidencia
+
+                    </h4>
+
+                    <div class="field-group">
+
+                        <label>Observación</label>
+
+                        <textarea
+
+                            rows="5"
+
+                            [(ngModel)]="comentarioRevision"
+
+                            placeholder="Escriba una observación para el responsable...">
+
+                        </textarea>
+
+                    </div>
+
+                    <div class="field-group">
+
+                        <label>Estado</label>
+
+                        <div class="radio-group">
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="estado"
+
+                                    value="aprobado"
+
+                                    [(ngModel)]="estadoSeleccionado">
+
+                                Aprobar
+
+                            </label>
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="estado"
+
+                                    value="observada"
+
+                                    [(ngModel)]="estadoSeleccionado">
+
+                                Solicitar cambios
+
+                            </label>
+
+                            <label>
+
+                                <input
+
+                                    type="radio"
+
+                                    name="estado"
+
+                                    value="rechazado"
+
+                                    [(ngModel)]="estadoSeleccionado">
+
+                                Rechazar
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                    <button
+
+                        class="primary-btn"
+
+                        (click)="guardarRevision()"
+
+                        [disabled]="guardandoRevision || !estadoSeleccionado">
+
+                        <i class="bx bx-save"></i>
+
+                        {{ guardandoRevision ? 'Guardando...' : 'Guardar revisión' }}
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </ng-container>
+
+    <!-- ===========================
+         MODAL DE VISTA PREVIA
+    ============================ -->
+
+    <div *ngIf="previewAbierto" class="preview-overlay" (click)="cerrarPreview()">
+
+        <div class="preview-modal" (click)="$event.stopPropagation()">
+
+            <div class="preview-header">
+
+                <h3>
+                    <i class="bx bx-show"></i>
+                    Vista Previa: {{ previewNombre }}
+                </h3>
+
+                <button class="close-btn" (click)="cerrarPreview()">
+                    <i class="bx bx-x"></i>
+                </button>
+
+            </div>
+
+            <div class="preview-body">
+
+                <div *ngIf="previewCargando" class="preview-loading">
+                    <i class="bx bx-loader-alt bx-spin"></i>
+                    Cargando vista previa...
+                </div>
+
+                <div *ngIf="previewError" class="preview-error">
+                    <i class="bx bx-error-circle"></i>
+                    {{ previewError }}
+                </div>
+
+                <!-- PDF -->
+                <iframe
+                    *ngIf="previewTipo === 'pdf' && previewUrl && !previewCargando"
+                    [src]="previewUrl"
+                    class="preview-iframe">
+                </iframe>
+
+                <!-- Imagen -->
+                <div *ngIf="previewTipo === 'imagen' && previewUrl && !previewCargando" class="preview-imagen-container">
+                    <img [src]="previewUrl" [alt]="previewNombre" class="preview-imagen" />
+                </div>
+
+                <!-- Texto -->
+                <div *ngIf="previewTipo === 'texto' && !previewCargando" class="preview-texto-container">
+                    <pre class="preview-texto">{{ previewTextoContenido }}</pre>
+                </div>
+
+                <!-- Excel -->
+                <div *ngIf="previewTipo === 'excel' && !previewCargando" class="preview-excel-msg">
+                    <i class="bx bx-file"></i>
+                    <p>La vista previa de archivos Excel no está disponible en el navegador.</p>
+                    <p>Descargue el archivo para verlo en su aplicativo de hojas de cálculo.</p>
+                    <button class="primary-btn" (click)="descargar(0, previewNombre)">
+                        <i class="bx bx-download"></i>
+                        Descargar archivo
+                    </button>
+                </div>
+
+                <!-- Desconocido -->
+                <div *ngIf="previewTipo === 'desconocido' && !previewCargando" class="preview-excel-msg">
+                    <i class="bx bx-file"></i>
+                    <p>Vista previa no disponible para este tipo de archivo.</p>
+                    <p>Descargue el archivo para verlo en su dispositivo.</p>
+                    <button class="primary-btn" (click)="descargar(0, previewNombre)">
+                        <i class="bx bx-download"></i>
+                        Descargar archivo
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>

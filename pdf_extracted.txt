@@ -1,0 +1,240 @@
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+--- PAGE 1 ---
+    print(text)
+    ~~~~~^^^^^^
+  File "C:\Users\pauli\scoop\apps\python313\current\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\uf0b7' in position 6: character maps to <undefined>
+Proyecto a desarrollar.  
+Plataforma carreras UASD. 
+Introducci¾n. 
+La plataforma virtual, es una herramienta que permite la colaboraci¾n e interacci¾n de los involucrados 
+en el proceso de dise±o, evaluaci¾n y aprobaci¾n de un plan estudio UASD. De igual manera, permite la 
+recepci¾n y evaluaci¾n de las propuestas curriculares que son sometidas por las facultades. 
+Esta plataforma supera las barreras de espacio y tiempo, permitiendo el acceso de todos los 
+involucrados en el proceso de dise±o, evaluaci¾n y aprobaci¾n de un plan de estudio, en cualquier lugar 
+y momento por medio a dispositivos locales y portßtiles. 
+Con el objetivo de ofrecer un servicio de calidad a la Instituci¾n de Educaci¾n Superior en distintos 
+niveles, que presentan sus propuestas curriculares. De igual manera, esta plataforma contribuye a 
+estandarizar el proceso dise±o y evaluaci¾n de un plan de estudio y a la vez permite dinamizarlo 
+ahorrando costos y tiempo 
+Para acceder a la plataforma desde el rol de Universidad, se debe escribir la direcci¾n web 
+ 
+ 
+ 
+1. Entrar el nombre de usuario que debe ser igual a su correo electr¾nico.  
+
+--- PAGE 2 ---
+2. Ingresar la contrase±a o clave.  
+3. Verificar en el icono  
+si la contrase±a estß escrita  
+correctamente.  
+4. Seleccionar el Rol, en este caso Universidad.  
+5. Si no recuerda su contrase±a, debe hacer Clic en la opci¾n Olvide mi clave, y le aparecerß un cuadro 
+para que escriba su nombre de usuario o correo electr¾nico para activarle la restauraci¾n de la clave 
+de acceso. En esta pantalla debe ingresar nuevamente su la informaci¾n referente a su usuario y la 
+nueva contrase±a.  
+6. Presionar el bot¾n Ingresar para validad los datos ingresados. En el caso que no permita entrar, se 
+deben revisar los datos ingresados para verificar que estÚn correctamente escritos.  
+ 
+Pantalla de inicio 
+ 
+ 
+
+--- PAGE 3 ---
+1. Perfil del Usuario. En este se debe configurar el perfil del usuario de la universidad agregando 
+una foto y los datos generales de la persona que tendrß el acceso para ingresar planes de estudios.  
+2. Salir de la plataforma. El usuario al presionar este bot¾n podrß cerrar el usuario y al mismo 
+tiempo salir de la plataforma.  
+3. Administrador.  
+4. Planes de estudio. Permite el ingreso de los componentes de un plan de estudio a travÚs de un 
+formulario virtual. 
+5. Evaluaciones.  
+6. Usuarios.  
+7. Reportes. En esta opci¾n le permite visualizar los informes preliminares y ejecutivos de los 
+planes de estudios que han sido sometidos a evaluaci¾n. 
+8. Ayuda.  
+9. Listas de Autorizaci¾n.  
+10. Aprobaciones. 
+11. Configuraci¾n. En este espacio se debe agregar los componentes que no varÝan o cambian, 
+independientemente de cualquier plan de estudio que se suba a la plataforma, como son: acceso y 
+admisiones, requisitos de permanencia, convalidaciones, ßreas de conocimiento, disciplinas, etc.   
+12. Inicio. Esta opci¾n siempre dirige al usuario a la pantalla principal.   
+13. Educaci¾n Virtual. Permite a las IES editar el formulario que contiene los elementos del 
+modelo a distancia e infraestructura tecnol¾gica.  
+14. Planes de estudio. Permite el ingreso de los componentes de un plan de estudio a travÚs de un 
+formulario virtual.  Este punto es similar al no. 4. 
+15. Evaluaciones. Este punto es similar al no. 5 
+16. Usuarios. Este punto es similar al no. 6 
+17. Auditoria. 
+18. Reportes.  Este punto es similar al no. 7 
+ 
+ 
+ 
+
+--- PAGE 4 ---
+Pantalla Creaci¾n De Universidades (IES) 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- PAGE 5 ---
+Pantalla:  Planes para planes de estudio 
+ 
+ 
+ 
+ 
+ 
+
+--- PAGE 6 ---
+4. Planes de estudio.  
+Esta opci¾n del men· principal, permite al usuario el ingreso de los datos generales de un plan de 
+estudio con la finalidad de que sea validado. 
+ 
+1. Seleccione la Facultad/departamento  
+2. Escribir el nombre del plan de estudio.  
+3. Elegir el nivel al que corresponde el plan de estudio.  
+4. Agregar el recibo de transferencia o deposito si la instituci¾n no cuenta con el privilegio de no 
+objeci¾n.  
+5. Agregar los correos electr¾nicos de los responsables de subir el plan de estudio y el personal 
+involucrado.  
+6. Presionar el bot¾n Crear, para que se envÝe à para su validaci¾n.  
+ 
+ 
+
+--- PAGE 7 ---
+ 
+Iniciar proceso de Ingreso del plan de estudio.  
+Para ingresar el plan de estudio, se debe hacer clic en la opci¾n de men· Planes de Estudio y luego 
+seleccionar el nivel en el que fue previamente validada la propuesta y de inmediato le aparecerß la 
+pantalla que se muestra a continuaci¾n. 
+ 
+1. Status del plan de estudio. Al hacer clic en las opciones de men· intermedia, se visualizan los planes 
+que han sido solicitado, invalidados y aprobados por la institucion.  
+2. Barra de b·squeda Avanzada. Se utiliza para realizar una busqueda rßpida de los planes de estudios 
+de cualquier status.  
+3. Mßs detalles. Refleja los datos generales y componentes del plan de estudio.  
+4. Editar. Permite el acceso al formulario de ingreso del plan de estudio donde se encuentran los 
+componentes aprobados de acuerdo a los reglamentos vigentes.  
+5. Informaci¾n de recintos. Es un enlace directo a la opci¾n de men· Organizaci¾n/Recinto.  
+ 
+6. Someter a evaluaci¾n. Esta opci¾n permite someter al proceso de evaluaci¾n el plan de estudio 
+despuÚs de haber concluido su edici¾n. Al presionar esta opci¾n se envÝa el plan a la bandeja de 
+entrada del Encargado de Nivel que posteriormente asigna el plan a los evaluadores que considere 
+pertinentes.  
+7. Informes. En esta opci¾n le permite a las IES visualizar los informes preliminares y ejecutivos de los 
+planes de estudios que han sido sometido a evaluaci¾n.  
+ 
+ 
+
+--- PAGE 8 ---
+ 
+ 
+ 
+
+--- PAGE 9 ---
+ 
+ 
+ 
+
+--- PAGE 10 ---
+ 
+Este componente despliega los elementos que han sido agregado en la opci¾n de men· configuraci¾n 
+y que son considerado como campos fijos, porque tienen poca variaron durante el desarrollo de un 
+plan de estudio.  
+De igual modo, se despliegan campos que varÝan durante el desarrollo y aplicaci¾n de un plan de 
+estudio, y deben ingresarse cada vez que se cree un nuevo plan en la plataforma. En la figura de la 
+derecha se observan: perfil de ingreso y egreso, requisitos de permanencia, graduaci¾n y campo del 
+ejercicio profesional. 
+ 
+ 
+
+--- PAGE 11 ---
+ 
+Los periodos del plan de estudio, se pueden agregar de dos maneras:  
+1. Presionando el bot¾n agregar periodo, y escribir el n·mero de periodo en el cuadro de dialogo y 
+hacer clic en Aceptar.  
+ 
+2. Hacer clic en el bot¾n Agregar Periodos Iniciales. Esta opci¾n despliega la cantidad de periodos que 
+fueron agregados en el componente Descripci¾n.  
+ 
+3. Permite modificar y eliminar el periodo.  
+ 
+4. Agrega las asignaturas para cada periodo. Se debe cotejar cada asignatura en la lista que aparece y 
+presionar el bot¾n Aceptar.  
+5. Esta opci¾n permite editar y eliminar las asignaturas seleccionadas.  
+6. Presionar el bot¾n Guardar.  
+ 
+ 
+ 
+
+--- PAGE 12 ---
+ 
+ 
+ 
+
+--- PAGE 13 ---
+ 
+ 
+ 
+ 
+ 
+
+--- PAGE 14 ---
+ 
+El personal acadÚmico se puede agregar de dos maneras:  
+1. Haciendo clic en el bot¾n Subir un Archivo. Que permiten adjuntar a tabla del personal docente que 
+debe contener: c¾digo y nombre del profesor, titulaci¾n, clave de la asignatura, nombre de la 
+asignatura.  
+ 
+2. Presionando el bot¾n Importar desde materias. Esta opci¾n permite agregar los docentes desde la 
+tabla de asignaturas.  
+3. Presionar el bot¾n Guardar.  
+ 
+ 
+ 
+
+--- PAGE 15 ---
+ 
+ 
+ 
+
+--- PAGE 16 ---
+ 
+ 
+ 
+ 
+*Verificar el sgte. 
+11. Sistema de GarantÝa de la Calidad.  
+Este componente despliega el archivo que fue agregado en la opci¾n de men· configuraci¾n 
+correspondiente al sistema de garantÝa de la calidad. Este campo no varÝa durante el desarrollo del 
+plan de estudio, por lo tanto, es considerado un elemento fijo. 
+
+--- PAGE 17 ---
+ 
+ 
+ 
+ 
+ 
+
+--- PAGE 18 ---
+ 
+ 
+ 
+
+--- PAGE 19 ---
+ 
+ 
+ 
+
+--- PAGE 20 ---

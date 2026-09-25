@@ -14,12 +14,17 @@ import { ToastrService } from 'ngx-toastr';
 })
 export class Login {
   loginForm: FormGroup;
+  showPassword = false;
 
   constructor(private fb: FormBuilder, private authService: AuthService, private router: Router, private toast: ToastrService) {
     this.loginForm = this.fb.group({
       username: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(6)]],
     });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 
   onSubmit() {
@@ -29,6 +34,13 @@ export class Login {
       this.authService.login(this.loginForm.value).subscribe({
         next:(data)=> {
           this.toast.success('Login completado'); //Notificacion de exito
+          if (data?.access) {
+            this.authService.saveToken(data.access);
+          }
+
+          if (data?.user) {
+            this.authService.saveUser(data.user);
+          }
 
           setTimeout(()=> {
             this.router.navigate(['/dashboard']); //Redirecciona si el login es exitoso

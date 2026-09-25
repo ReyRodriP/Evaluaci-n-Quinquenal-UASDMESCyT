@@ -1,110 +1,85 @@
-<div class="page-container">
-  <div class="page-header">
-    <h1>Dashboard</h1>
-    <p class="text-muted">Bienvenido, {{ user?.first_name || 'Usuario' }}. Resumen del sistema de gestión de evidencias.</p>
-  </div>
+<div class="dashboard-page">
+  <h2 class="page-title">Dashboard</h2>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon blue">
-        <i class='bx bx-user'></i>
+  <div *ngIf="loading" class="state-msg">Cargando información del dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon blue"><i class="bx bx-building"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.departamentos || 0 }}</span>
+          <span class="kpi-label">Departamentos</span>
+        </div>
       </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.usuarios }}</span>
-        <span class="stat-label">Usuarios</span>
+      <div class="kpi-card">
+        <div class="kpi-icon indigo"><i class="bx bx-bar-chart"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.indicadores || 0 }}</span>
+          <span class="kpi-label">Indicadores</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-task"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.asignaciones || 0 }}</span>
+          <span class="kpi-label">Asignaciones</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bx bx-clock-dashed-half"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.pendientes || 0 }}</span>
+          <span class="kpi-label">Pendientes</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-check-circle"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.aprobadas || 0 }}</span>
+          <span class="kpi-label">Aprobadas</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon purple"><i class="bx bx-message-detail"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.observadas || 0 }}</span>
+          <span class="kpi-label">Observadas</span>
+        </div>
       </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon green">
-        <i class='bx bx-arch'></i>
+    <!-- Charts Row -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Estado de asignaciones</h3>
+        <div id="chart-pastel"></div>
       </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.facultades }}</span>
-        <span class="stat-label">Facultades</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon purple">
-        <i class='bx bx-building'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.departamentos }}</span>
-        <span class="stat-label">Departamentos</span>
+      <div class="chart-card">
+        <h3>Avance por facultad</h3>
+        <div id="chart-avance"></div>
       </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon orange">
-        <i class='bx bx-calendar'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.periodos }}</span>
-        <span class="stat-label">Períodos</span>
-      </div>
+    <!-- Quick links -->
+    <div class="quick-links">
+      <a routerLink="/asignaciones" class="quick-link-card">
+        <i class="bx bx-task"></i>
+        <span>Gestionar asignaciones</span>
+      </a>
+      <a routerLink="/evidencias" class="quick-link-card">
+        <i class="bx bx-file"></i>
+        <span>Subir evidencias</span>
+      </a>
+      <a routerLink="/notificaciones" class="quick-link-card">
+        <i class="bx bx-bell"></i>
+        <span>Ver notificaciones</span>
+      </a>
+      <a routerLink="/periodos" class="quick-link-card">
+        <i class="bx bx-calendar"></i>
+        <span>Gestionar períodos</span>
+      </a>
     </div>
-
-    <div class="stat-card">
-      <div class="stat-icon teal">
-        <i class='bx bx-list-check'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.criterios }}</span>
-        <span class="stat-label">Criterios</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon pink">
-        <i class='bx bx-bar-chart-alt-2'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.indicadores }}</span>
-        <span class="stat-label">Indicadores</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon blue">
-        <i class='bx bx-task'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.asignaciones }}</span>
-        <span class="stat-label">Asignaciones</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon green">
-        <i class='bx bx-file'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.evidencias }}</span>
-        <span class="stat-label">Evidencias</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats-grid two-cols">
-    <div class="stat-card">
-      <div class="stat-icon warning">
-        <i class='bx bx-time'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.pendientes }}</span>
-        <span class="stat-label">Asignaciones pendientes / en progreso</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon success">
-        <i class='bx bx-check-circle'></i>
-      </div>
-      <div class="stat-info">
-        <span class="stat-value">{{ stats.completadas }}</span>
-        <span class="stat-label">Asignaciones completadas / aprobadas</span>
-      </div>
-    </div>
-  </div>
+  </ng-container>
 </div>

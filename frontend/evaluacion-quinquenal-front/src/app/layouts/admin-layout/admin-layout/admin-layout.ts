@@ -1,14 +1,25 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Sidebar } from "../../../shared/components/sidebar/sidebar";
 import { Navbar } from "../../../shared/components/navbar/navbar";
 import { RouterOutlet } from '@angular/router';
+import { SessionTimeoutService } from "../../../core/services/session-timeout.service";
 
 @Component({
   selector: 'app-admin-layout',
-  imports: [Sidebar, Navbar, RouterOutlet],
+  imports: [Sidebar, Navbar,RouterOutlet],
   templateUrl: './admin-layout.html',
   styleUrl: './admin-layout.css',
 })
-export class AdminLayout {
+export class AdminLayout implements OnInit, OnDestroy {
   sidebarOpen: boolean = false
+
+  constructor(private sessionTimeout: SessionTimeoutService) {}
+
+  ngOnInit(): void {
+    this.sessionTimeout.iniciar();
+  }
+
+  ngOnDestroy(): void {
+    this.sessionTimeout.detener();
+  }
 }

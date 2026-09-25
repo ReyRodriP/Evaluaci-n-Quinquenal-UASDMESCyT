@@ -20,4 +20,12 @@ describe('Usuarios', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should define the main columns for the users table', () => {
+    expect(component.columnas).toContain('Nombre');
+    expect(component.columnas).toContain('Correo');
+    expect(component.columnas).toContain('Departamento');
+    expect(component.columnas).toContain('Rol');
+    expect(component.columnas).toContain('Estado');
+  });
 });

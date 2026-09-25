@@ -1,0 +1,110 @@
+# Despliegue automatico Docker + Kubernetes.
+# Se dispara solo al hacer push a main, o manualmente desde la web/telefono
+# (Actions > "Deploy a Kubernetes" > "Run workflow").
+#
+# SECRETOS REQUERIDOS en el repositorio:
+#   KUBECONFIG  -> kubeconfig del cluster en BASE64.
+#                  Generarlo:  base64 -w0 kubeconfig  (o: certutil -encode kubeconfig kubeconfig.b64)
+# VARIABLE OPCIONAL del repositorio:
+#   DOMAIN      -> dominio/IP del ingress (ej. "sistema.eval.example.com" o "123.45.67.89.nip.io").
+#                  Si no se define, el ingress queda con host 'localhost'.
+
+name: Deploy a Kubernetes
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NAMESPACE: evaluacion-quinquenal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build y push imagen backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+
+      - name: Build y push imagen frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend/evaluacion-quinquenal-front
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:latest
+            ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+
+      - name: Configurar kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Guardar kubeconfig del cluster
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl version --client
+          kubectl get nodes
+
+      - name: Desplegar manifiestos a Kubernetes
+        env:
+          IMAGE_BACKEND: ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+          IMAGE_FRONTEND: ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+          DOMAIN: ${{ vars.DOMAIN }}
+        run: |
+          set -e
+          kubectl apply -f k8s/00-namespace.yaml
+          kubectl apply -f k8s/01-secrets.yaml
+          kubectl apply -f k8s/02-postgres.yaml
+          kubectl apply -f k8s/06-redis.yaml
+          kubectl rollout status deployment/postgres -n "$NAMESPACE" --timeout=180s
+          kubectl rollout status deployment/redis -n "$NAMESPACE" --timeout=120s
+
+          # Apunta las imagenes al GHCR usando el SHA de este commit
+          sed -i "s|evaluacion-quinquenal/backend:latest|${IMAGE_BACKEND}|g" k8s/03-backend.yaml
+          sed -i "s|evaluacion-quinquenal/frontend:latest|${IMAGE_FRONTEND}|g" k8s/04-frontend.yaml
+
+          kubectl apply -f k8s/03-backend.yaml
+          kubectl apply -f k8s/04-frontend.yaml
+          kubectl apply -f k8s/07-backup.yaml
+
+          # Si hay variable DOMAIN, reemplaza el host del ingress (default: localhost)
+          if [ -n "$DOMAIN" ]; then
+            sed -i "s|host: localhost|host: ${DOMAIN}|g" k8s/05-ingress.yaml
+          fi
+          kubectl apply -f k8s/05-ingress.yaml
+
+          kubectl rollout status deployment/backend -n "$NAMESPACE" --timeout=240s
+          kubectl rollout status deployment/frontend -n "$NAMESPACE" --timeout=240s
+
+      - name: Migraciones y archivos estaticos
+        run: |
+          set -e
+          kubectl wait --for=condition=ready pod -l app=backend -n "$NAMESPACE" --timeout=180s
+          POD=$(kubectl get pods -n "$NAMESPACE" -l app=backend -o jsonpath='{.items[0].metadata.name}')
+          kubectl exec -n "$NAMESPACE" "$POD" -- python manage.py migrate --noinput
+          kubectl exec -n "$NAMESPACE" "$POD" -- python manage.py collectstatic --noinput
+
+      - name: Resumen del despliegue
+        run: |
+          echo "=== Despliegue completado ==="
+          kubectl get pods,svc,ingress -n "$NAMESPACE"

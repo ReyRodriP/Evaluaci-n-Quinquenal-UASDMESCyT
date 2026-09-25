@@ -1,8 +1,9 @@
 <div class="admin-container">
     <app-sidebar (openChange)="sidebarOpen = $event" />
-
-    <div class="contenido">
+    
         <app-navbar [sidebarOpen]="sidebarOpen" />
+
+    <div class="contenido" [class.close]="!sidebarOpen">
 
         <router-outlet />
     </div>
