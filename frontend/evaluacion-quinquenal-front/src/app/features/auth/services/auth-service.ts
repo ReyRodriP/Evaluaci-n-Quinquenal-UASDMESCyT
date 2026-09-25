@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
@@ -13,10 +12,6 @@ export class AuthService {
 
   constructor(private http:HttpClient) {
 
-  }
-
-  private toList(obs: Observable<any>): Observable<any[]> {
-    return obs.pipe(map((data: any) => (Array.isArray(data) ? data : data?.results ?? [])));
   }
 
   register(user:any):Observable<any> {
@@ -118,109 +113,5 @@ export class AuthService {
 
   changePassword(payload: any): Observable<any> {
     return this.http.post(`${this.baseUrl}change_password`, payload);
-  }
-
-  // Facultades CRUD operations
-  crearFacultades(facultad:any):Observable<any> {
-    return this.http.post(`${this.baseUrl}facultades/`, facultad);
-  }
-
-  listarFacultades(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}facultades/`));
-  }
-
-  actualizarFacultad(id:any, facultad:any): Observable<any> {
-    return this.http.patch(`${this.baseUrl}facultades/${id}/`, facultad);
-  }
-
-  eliminarFacultad(id:any): Observable<any> {
-    return this.http.delete(`${this.baseUrl}facultades/${id}/`);
-  }
-
-  // Departamentos CRUD operations
-  crearDepartamento(departamento:any): Observable<any> {
-    return this.http.post(`${this.baseUrl}departamentos/`, departamento);
-  }
-
-  listarDepartamentos(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}departamentos/`));
-  }
-
-  actualizarDepartamento(id:any, departamento:any): Observable<any> {
-    return this.http.patch(`${this.baseUrl}departamentos/${id}/`, departamento);
-  }
-
-  eliminarDepartamento(id:any): Observable<any> {
-    return this.http.delete(`${this.baseUrl}departamentos/${id}/`);
-  }
-
-  // Usuarios CRUD operations
-  listarUsuarios(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}usuarios/`));
-  }
-
-  crearUsuario(usuario:any): Observable<any> {
-    return this.http.post(`${this.baseUrl}usuarios/`, usuario);
-  }
-
-  actualizarUsuario(id:any, usuario:any): Observable<any> {
-    return this.http.patch(`${this.baseUrl}usuarios/${id}/`, usuario);
-  }
-
-  eliminarUsuario(id:any): Observable<any> {
-    return this.http.delete(`${this.baseUrl}usuarios/${id}/`);
-  }
-
-  // Roles CRUD operations
-  listarRoles(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}roles/`));
-  }
-
-  listarPermisos(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}permisos/`));
-  }
-
-  crearRol(rol:any): Observable<any> {
-    return this.http.post(`${this.baseUrl}roles/`, rol);
-  }
-
-  actualizarRol(id:any, rol:any): Observable<any> {
-    return this.http.patch(`${this.baseUrl}roles/${id}/`, rol);
-  }
-
-  // Perfiles CRUD operations
-  listarPerfiles(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}perfiles/`));
-  }
-
-  crearPerfil(perfil:any): Observable<any> {
-    return this.http.post(`${this.baseUrl}perfiles/`, perfil);
-  }
-
-  actualizarPerfil(id:any, perfil:any): Observable<any> {
-    return this.http.patch(`${this.baseUrl}perfiles/${id}/`, perfil);
-  }
-
-  // Buscador
-  buscar(query: string): Observable<any> {
-    return this.http.get(`${this.baseUrl}search/`, { params: { q: query } });
-  }
-
-  // Auditoria
-  listarAuditorias(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}auditoria/`));
-  }
-
-  // Notificaciones
-  listarNotificaciones(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.baseUrl}notificaciones/`));
-  }
-
-  marcarNotificacionLeida(id: number): Observable<any> {
-    return this.http.patch(`${this.baseUrl}notificaciones/${id}/leer/`, {});
-  }
-
-  marcarTodasLeidas(): Observable<any> {
-    return this.http.post(`${this.baseUrl}notificaciones/marcar_todas/`, {});
   }
 }

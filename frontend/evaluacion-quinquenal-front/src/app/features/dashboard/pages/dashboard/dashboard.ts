@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth.service';
+import { DashboardService } from '../../../../core/services/dashboard.service';
 import ApexCharts from 'apexcharts';
 
 @Component({
@@ -17,7 +17,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   private graficos: ApexCharts[] = []
   private observer?: MutationObserver
 
-  constructor(private authService: AuthService) {}
+  constructor(private dashboardService: DashboardService) {}
 
   ngOnInit(): void {
     this.cargarDatos()
@@ -30,7 +30,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cargarDatos(): void {
-    this.authService.obtenerResumen().subscribe({
+    this.dashboardService.obtenerResumen().subscribe({
       next: (data) => {
         this.resumen = data
         this.loading = false
@@ -38,7 +38,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       },
       error: () => this.loading = false,
     })
-    this.authService.obtenerAvance().subscribe({
+    this.dashboardService.obtenerAvance().subscribe({
       next: (data) => this.avance = data,
     })
   }

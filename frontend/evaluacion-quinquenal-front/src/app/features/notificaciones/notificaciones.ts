@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../auth/services/auth-service';
+import { NotificacionesService } from '../../core/services/notificaciones.service';
 
 @Component({
   selector: 'app-notificaciones',
@@ -15,7 +15,7 @@ export class Notificaciones implements OnInit {
   marcandoTodas = false
 
   constructor(
-    private authService: AuthService,
+    private notificacionesService: NotificacionesService,
     private toast: ToastrService
   ) {}
 
@@ -25,7 +25,7 @@ export class Notificaciones implements OnInit {
 
   cargar(): void {
     this.loading = true
-    this.authService.listarNotificaciones().subscribe({
+    this.notificacionesService.listarNotificaciones().subscribe({
       next: (data) => {
         this.notificaciones = data ?? []
         this.loading = false
@@ -43,7 +43,7 @@ export class Notificaciones implements OnInit {
 
   marcarLeida(n: any): void {
     if (n.leida) return
-    this.authService.marcarNotificacionLeida(n.id).subscribe({
+    this.notificacionesService.marcarNotificacionLeida(n.id).subscribe({
       next: () => n.leida = true,
       error: () => this.toast.error('No se pudo marcar como leída'),
     })
@@ -51,7 +51,7 @@ export class Notificaciones implements OnInit {
 
   marcarTodas(): void {
     this.marcandoTodas = true
-    this.authService.marcarTodasLeidas().subscribe({
+    this.notificacionesService.marcarTodasLeidas().subscribe({
       next: () => {
         this.notificaciones.forEach(n => n.leida = true)
         this.marcandoTodas = false

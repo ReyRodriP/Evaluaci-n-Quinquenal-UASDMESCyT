@@ -2,7 +2,8 @@ import { Component, Input, OnInit, OnDestroy, HostListener, ElementRef } from '@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from "@angular/router";
-import { AuthService } from '../../../features/auth/services/auth-service';
+import { NotificacionesService } from '../../../core/services/notificaciones.service';
+import { SistemaService } from '../../../core/services/sistema.service';
 import { PermisosService } from '../../../core/services/permisos.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -43,7 +44,8 @@ export class Navbar implements OnInit, OnDestroy {
   };
 
   constructor(
-    private authService: AuthService,
+    private notificacionesService: NotificacionesService,
+    private sistemaService: SistemaService,
     private permisos: PermisosService,
     private router: Router,
     private elementRef: ElementRef
@@ -91,7 +93,7 @@ export class Navbar implements OnInit, OnDestroy {
 
   private ejecutarBusqueda(q: string): void {
     this.searching = true
-    this.authService.buscar(q).subscribe({
+    this.sistemaService.buscar(q).subscribe({
       next: (data) => {
         this.searchResults = data
         this.searching = false
@@ -117,7 +119,7 @@ export class Navbar implements OnInit, OnDestroy {
   }
 
   cargarNotificaciones(): void {
-    this.authService.listarNotificaciones().subscribe({
+    this.notificacionesService.listarNotificaciones().subscribe({
       next: (data) => this.notificaciones = data ?? [],
     })
   }
@@ -144,7 +146,7 @@ export class Navbar implements OnInit, OnDestroy {
   }
 
   marcarYcerrar(id: number): void {
-    this.authService.marcarNotificacionLeida(id).subscribe({
+    this.notificacionesService.marcarNotificacionLeida(id).subscribe({
       next: () => {
         const n = this.notificaciones.find(x => x.id === id)
         if (n) n.leida = true

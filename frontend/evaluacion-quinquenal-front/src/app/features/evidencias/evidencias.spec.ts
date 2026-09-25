@@ -3,7 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ToastrModule } from 'ngx-toastr';
 import { of } from 'rxjs';
 
-import { AuthService } from '../../core/services/auth.service';
+import { EvidenciasService } from '../../core/services/evidencias.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { Evidencias } from './evidencias';
 
 describe('Evidencias', () => {
@@ -11,16 +12,20 @@ describe('Evidencias', () => {
   let fixture: ComponentFixture<Evidencias>;
 
   beforeEach(async () => {
-    const authService = jasmine.createSpyObj<AuthService>('AuthService', ['listarAsignaciones', 'listarEvidencias', 'crearEvidencia', 'subirVersionEvidencia', 'actualizarEvidencia']);
-    authService.listarAsignaciones.and.returnValue(of([]));
-    authService.listarEvidencias.and.returnValue(of([]));
-    authService.crearEvidencia.and.returnValue(of({ id: 1 }));
-    authService.subirVersionEvidencia.and.returnValue(of({ id: 1 }));
-    authService.actualizarEvidencia.and.returnValue(of({ id: 1 }));
+    const evidenciasService = jasmine.createSpyObj<EvidenciasService>('EvidenciasService', ['listarEvidencias', 'crearEvidencia', 'subirVersionEvidencia', 'actualizarEvidencia']);
+    const evaluacionService = jasmine.createSpyObj<EvaluacionService>('EvaluacionService', ['listarAsignaciones']);
+    evidenciasService.listarEvidencias.and.returnValue(of([]));
+    evidenciasService.crearEvidencia.and.returnValue(of({ id: 1 }));
+    evidenciasService.subirVersionEvidencia.and.returnValue(of({ id: 1 }));
+    evidenciasService.actualizarEvidencia.and.returnValue(of({ id: 1 }));
+    evaluacionService.listarAsignaciones.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [Evidencias, HttpClientTestingModule, ToastrModule.forRoot()],
-      providers: [{ provide: AuthService, useValue: authService }]
+      providers: [
+        { provide: EvidenciasService, useValue: evidenciasService },
+        { provide: EvaluacionService, useValue: evaluacionService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Evidencias);

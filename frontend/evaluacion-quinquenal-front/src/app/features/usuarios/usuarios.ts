@@ -6,7 +6,7 @@ import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../auth/services/auth-service';
+import { OrganizacionService } from '../../core/services/organizacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -57,7 +57,7 @@ export class Usuarios implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private organizacionService: OrganizacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -87,8 +87,8 @@ export class Usuarios implements OnInit {
 
   loadUsuarios(): void {
     forkJoin([
-      this.authService.listarUsuarios(),
-      this.authService.listarPerfiles()
+      this.organizacionService.listarUsuarios(),
+      this.organizacionService.listarPerfiles()
     ]).subscribe({
       next: ([usuarios, perfiles]) => {
         const profilesMap = new Map<number, any>();
@@ -123,7 +123,7 @@ export class Usuarios implements OnInit {
   }
 
   loadDepartamentos(): void {
-    this.authService.listarDepartamentos().subscribe({
+    this.organizacionService.listarDepartamentos().subscribe({
       next: (data) => {
         this.departamentos = data;
         this.usuarioFields = this.usuarioFields.map(field => {
@@ -144,7 +144,7 @@ export class Usuarios implements OnInit {
   }
 
   loadRoles(): void {
-    this.authService.listarRoles().subscribe({
+    this.organizacionService.listarRoles().subscribe({
       next: (data) => {
         this.roles = data.map((role: any) => ({
           value: role.name,
@@ -217,12 +217,12 @@ export class Usuarios implements OnInit {
   }
 
   private syncPerfilUsuario(userId: any, departamento: any, onSuccess: () => void, onError: (err: any) => void): void {
-    this.authService.listarPerfiles().subscribe({
+    this.organizacionService.listarPerfiles().subscribe({
       next: (perfiles) => {
         const profile = perfiles.find((perfil: any) => perfil.usuario === userId || perfil.usuario?.id === userId);
 
         if (profile && profile.id) {
-          this.authService.actualizarPerfil(profile.id, { departamento: departamento || null }).subscribe({
+          this.organizacionService.actualizarPerfil(profile.id, { departamento: departamento || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error actualizando perfil de usuario', err);
@@ -230,7 +230,7 @@ export class Usuarios implements OnInit {
             }
           });
         } else {
-          this.authService.crearPerfil({ usuario: userId, departamento: departamento || null }).subscribe({
+          this.organizacionService.crearPerfil({ usuario: userId, departamento: departamento || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error creando perfil de usuario', err);
@@ -264,7 +264,7 @@ export class Usuarios implements OnInit {
     }
 
     if (this.selectedItem && this.selectedItem.id) {
-      this.authService.actualizarUsuario(this.selectedItem.id, payload).subscribe({
+      this.organizacionService.actualizarUsuario(this.selectedItem.id, payload).subscribe({
         next: () => {
           this.syncPerfilUsuario(this.selectedItem.id, saved.departamento, () => {
             this.toast.success('Usuario actualizado correctamente');
@@ -280,7 +280,7 @@ export class Usuarios implements OnInit {
         }
       });
     } else {
-      this.authService.crearUsuario(payload).subscribe({
+      this.organizacionService.crearUsuario(payload).subscribe({
         next: (createdUser: any) => {
           const finishCreation = () => {
             this.toast.success('Usuario creado correctamente');
@@ -289,7 +289,7 @@ export class Usuarios implements OnInit {
           };
 
           if (createdUser?.id && saved.departamento) {
-            this.authService.crearPerfil({ usuario: createdUser.id, departamento: saved.departamento }).subscribe({
+            this.organizacionService.crearPerfil({ usuario: createdUser.id, departamento: saved.departamento }).subscribe({
               next: () => finishCreation(),
               error: (err) => {
                 console.error('Error creando perfil de usuario', err);
@@ -314,7 +314,7 @@ export class Usuarios implements OnInit {
       return;
     }
 
-    this.authService.eliminarUsuario(item.id).subscribe({
+    this.organizacionService.eliminarUsuario(item.id).subscribe({
       next: () => {
         this.toast.success('Usuario eliminado');
         this.loadUsuarios();
@@ -333,7 +333,7 @@ export class Usuarios implements OnInit {
 
     const nuevoEstado = !item.is_active;
 
-    this.authService.actualizarUsuario(item.id, { is_active: nuevoEstado }).subscribe({
+    this.organizacionService.actualizarUsuario(item.id, { is_active: nuevoEstado }).subscribe({
       next: () => {
         item.is_active = nuevoEstado;
         item.estado = nuevoEstado ? 'Activo' : 'Inactivo';

@@ -1,9 +1,9 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../../core/services/auth.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -50,7 +50,7 @@ export class Criterios implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -75,7 +75,7 @@ export class Criterios implements OnInit {
   }
 
   loadPeriodos() {
-    this.authService.listarPeriodos().subscribe({
+    this.evaluacionService.listarPeriodos().subscribe({
       next: (data) => {
         this.periodos = data;
         this.criterioFields = this.criterioFields.map(field => {
@@ -97,7 +97,7 @@ export class Criterios implements OnInit {
   }
 
   loadCriterios() {
-    this.authService.listarCriterios().subscribe({
+    this.evaluacionService.listarCriterios().subscribe({
       next: (data) => {
         this.datos = data.map((item: any) => ({
           ...item,
@@ -173,7 +173,7 @@ export class Criterios implements OnInit {
     };
 
     if (this.selectedItem && this.selectedItem.id) {
-      this.authService.actualizarCriterio(this.selectedItem.id, payload).subscribe({
+      this.evaluacionService.actualizarCriterio(this.selectedItem.id, payload).subscribe({
         next: () => {
           this.toast.success('Criterio actualizado correctamente');
           this.loadCriterios();
@@ -185,7 +185,7 @@ export class Criterios implements OnInit {
         }
       });
     } else {
-      this.authService.crearCriterio(payload).subscribe({
+      this.evaluacionService.crearCriterio(payload).subscribe({
         next: () => {
           this.toast.success('Criterio creado exitosamente');
           this.loadCriterios();
@@ -204,7 +204,7 @@ export class Criterios implements OnInit {
       return;
     }
 
-    this.authService.eliminarCriterio(item.id).subscribe({
+    this.evaluacionService.eliminarCriterio(item.id).subscribe({
       next: () => {
         this.toast.success('Criterio eliminado');
         this.loadCriterios();
@@ -223,7 +223,7 @@ export class Criterios implements OnInit {
 
     const nuevoEstado = !item.activo;
 
-    this.authService.patchCriterio(item.id, { activo: nuevoEstado }).subscribe({
+    this.evaluacionService.patchCriterio(item.id, { activo: nuevoEstado }).subscribe({
       next: () => {
         this.toast.success(`Criterio ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
         this.loadCriterios();

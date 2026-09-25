@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../auth/services/auth-service';
+import { OrganizacionService } from '../../core/services/organizacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PERMISSION_LABELS } from './permission-labels';
 
@@ -35,7 +35,7 @@ export class Roles implements OnInit {
   ];
 
   constructor(
-    private authService: AuthService,
+    private organizacionService: OrganizacionService,
     private toast: ToastrService
   ) {}
 
@@ -71,7 +71,7 @@ export class Roles implements OnInit {
   }
 
   loadPermisos(): void {
-    this.authService.listarPermisos().subscribe({
+    this.organizacionService.listarPermisos().subscribe({
       next: (data) => {
         const normalized = this.normalizeListResponse(data);
         this.permisos = normalized.map((perm: any) => ({ value: perm.id, label: this.permisoLabel(perm) }));
@@ -95,7 +95,7 @@ export class Roles implements OnInit {
   }
 
   loadRoles(): void {
-    this.authService.listarRoles().subscribe({
+    this.organizacionService.listarRoles().subscribe({
       next: (data) => {
         const normalized = this.normalizeListResponse(data);
         this.roles = normalized.map((role: any) => ({
@@ -169,7 +169,7 @@ export class Roles implements OnInit {
       permission_ids: Array.isArray(saved.permission_ids) ? saved.permission_ids : []
     };
 
-    this.authService.actualizarRol(this.selectedItem.id, payload).subscribe({
+    this.organizacionService.actualizarRol(this.selectedItem.id, payload).subscribe({
       next: () => {
         this.toast.success('Permisos del rol actualizados correctamente');
         this.loadRoles();

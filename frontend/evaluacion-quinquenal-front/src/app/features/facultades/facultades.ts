@@ -4,7 +4,7 @@ import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AuthService } from '../auth/services/auth-service';
+import { OrganizacionService } from '../../core/services/organizacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -49,7 +49,7 @@ export class Facultades implements OnInit {
   }
 
   loadFacultades() {
-    this.authService.listarFacultades().subscribe({
+    this.organizacionService.listarFacultades().subscribe({
       next: (data) => {
         this.datos = data.map((item: any) => ({
           ...item,
@@ -118,7 +118,7 @@ export class Facultades implements OnInit {
     };
 
     if (this.selectedItem && this.selectedItem.id) {
-      this.authService.actualizarFacultad(this.selectedItem.id, payload).subscribe({
+      this.organizacionService.actualizarFacultad(this.selectedItem.id, payload).subscribe({
         next: () => {
           this.toast.success('Facultad actualizada correctamente');
           this.loadFacultades();
@@ -130,7 +130,7 @@ export class Facultades implements OnInit {
         }
       });
     } else {
-      this.authService.crearFacultades(payload).subscribe({
+      this.organizacionService.crearFacultades(payload).subscribe({
         next: () => {
           this.toast.success('Facultad creada exitosamente');
           this.loadFacultades();
@@ -164,7 +164,7 @@ export class Facultades implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private authService: AuthService,
+    private organizacionService: OrganizacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {
@@ -177,7 +177,7 @@ export class Facultades implements OnInit {
 
   onSubmit() {
     if(this.facultadForm.valid) {
-      this.authService.crearFacultades(this.facultadForm.value).subscribe({
+      this.organizacionService.crearFacultades(this.facultadForm.value).subscribe({
         next:(data)=> {
           this.toast.success('Facultad creada exitosamente');
           this.loadFacultades();
@@ -195,7 +195,7 @@ export class Facultades implements OnInit {
       return;
     }
 
-    this.authService.eliminarFacultad(item.id).subscribe({
+    this.organizacionService.eliminarFacultad(item.id).subscribe({
       next: () => {
         this.toast.success('Facultad eliminada');
         this.loadFacultades();
@@ -214,7 +214,7 @@ export class Facultades implements OnInit {
 
     const nuevoEstado = !item.activo;
 
-    this.authService.actualizarFacultad(item.id, { activo: nuevoEstado }).subscribe({
+    this.organizacionService.actualizarFacultad(item.id, { activo: nuevoEstado }).subscribe({
       next: () => {
         this.toast.success(`Facultad ${nuevoEstado ? 'activada' : 'desactivada'} correctamente`);
         this.loadFacultades();

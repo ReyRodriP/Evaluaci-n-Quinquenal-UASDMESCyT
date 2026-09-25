@@ -2,7 +2,9 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../core/services/auth.service';
+import { ReportesService } from '../../core/services/reportes.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
+import { OrganizacionService } from '../../core/services/organizacion.service';
 import { PermisosService } from '../../core/services/permisos.service';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
@@ -79,7 +81,9 @@ export class Reportes implements OnInit, OnDestroy {
   usrColumnas = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Último Acceso', 'Estado'];
 
   constructor(
-    private authService: AuthService,
+    private reportesService: ReportesService,
+    private evaluacionService: EvaluacionService,
+    private organizacionService: OrganizacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -122,12 +126,12 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   private loadSelectores(): void {
-    this.authService.listarPeriodos().subscribe((data) => (this.periodos = data));
-    this.authService.listarFacultades().subscribe((data) => (this.facultades = data));
-    this.authService.listarDepartamentos().subscribe((data) => (this.departamentos = data));
-    this.authService.listarCriterios().subscribe((data) => (this.criterios = data));
-    this.authService.listarUsuarios().subscribe((data) => (this.usuarios = data));
-    this.authService.listarRoles().subscribe((data) => (this.roles = data));
+    this.evaluacionService.listarPeriodos().subscribe((data) => (this.periodos = data));
+    this.organizacionService.listarFacultades().subscribe((data) => (this.facultades = data));
+    this.organizacionService.listarDepartamentos().subscribe((data) => (this.departamentos = data));
+    this.evaluacionService.listarCriterios().subscribe((data) => (this.criterios = data));
+    this.organizacionService.listarUsuarios().subscribe((data) => (this.usuarios = data));
+    this.organizacionService.listarRoles().subscribe((data) => (this.roles = data));
   }
 
   private limpiarParametros(filtros: any): any {
@@ -144,7 +148,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarGeneral(): void {
     this.loading = true;
     const params = this.limpiarParametros(this.genFiltros);
-    this.authService.reporteGeneral(params).subscribe({
+    this.reportesService.reporteGeneral(params).subscribe({
       next: (data) => {
         this.genData = data;
         this.loading = false;
@@ -165,7 +169,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarFacultad(): void {
     if (!this.facId) return;
     this.loading = true;
-    this.authService.reporteFacultad(Number(this.facId)).subscribe({
+    this.reportesService.reporteFacultad(Number(this.facId)).subscribe({
       next: (data) => {
         this.facData = data;
         this.loading = false;
@@ -182,7 +186,7 @@ export class Reportes implements OnInit, OnDestroy {
     if (!this.depId) return;
     this.loading = true;
     const params = { page: this.depPage, page_size: this.pageSize };
-    this.authService.reporteDepartamento(Number(this.depId), params).subscribe({
+    this.reportesService.reporteDepartamento(Number(this.depId), params).subscribe({
       next: (data) => {
         this.depRows = data.rows;
         this.depTotal = data.total;
@@ -204,7 +208,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarEvidencias(): void {
     this.loading = true;
     const params = { ...this.limpiarParametros(this.evFiltros), page: this.evPage, page_size: this.pageSize };
-    this.authService.reporteEvidencias(params).subscribe({
+    this.reportesService.reporteEvidencias(params).subscribe({
       next: (data) => {
         this.evRows = data.rows;
         this.evTotal = data.total;
@@ -232,7 +236,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarObservaciones(): void {
     this.loading = true;
     const params = { ...this.limpiarParametros(this.obsFiltros), page: this.obsPage, page_size: this.pageSize };
-    this.authService.reporteObservaciones(params).subscribe({
+    this.reportesService.reporteObservaciones(params).subscribe({
       next: (data) => {
         this.obsRows = data.rows;
         this.obsResumen = { total: data.total_observaciones, evidencias: data.evidencias_observadas };
@@ -267,7 +271,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarAuditoria(): void {
     this.loading = true;
     const params = { ...this.limpiarParametros(this.audFiltros), page: this.audPage, page_size: this.pageSize };
-    this.authService.reporteAuditoria(params).subscribe({
+    this.reportesService.reporteAuditoria(params).subscribe({
       next: (data) => {
         this.audRows = data.rows;
         this.audTotal = data.total;
@@ -295,7 +299,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarUsuarios(): void {
     this.loading = true;
     const params = { ...this.limpiarParametros(this.usrFiltros), page: this.usrPage, page_size: this.pageSize };
-    this.authService.reporteUsuarios(params).subscribe({
+    this.reportesService.reporteUsuarios(params).subscribe({
       next: (data) => {
         this.usrRows = data.rows;
         this.usrResumen = { total: data.total, activos: data.activos, inactivos: data.inactivos };
@@ -363,7 +367,7 @@ export class Reportes implements OnInit, OnDestroy {
         break;
     }
 
-    this.authService.exportarReporte(reporte, formato, filtros).subscribe({
+    this.reportesService.exportarReporte(reporte, formato, filtros).subscribe({
       next: (blob) => {
         this.descargarBlob(blob, `${nombre}.${formato}`);
         this.toast.success(`Reporte exportado en ${formato.toUpperCase()}`);
