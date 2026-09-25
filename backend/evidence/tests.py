@@ -108,7 +108,7 @@ class ObservacionModelTests(TestCase):
 
     def test_str(self):
         obs = Observacion.objects.create(version=self.version, usuario=self.user, comentario="Test")
-        self.assertEqual(str(obs), "Observación #1 - Versión 1")
+        self.assertEqual(str(obs), f"Observación #{obs.id} - Versión 1")
 
 
 @override_settings(

@@ -43,18 +43,6 @@ from .serializers import (
 User = get_user_model()
 
 
-def _blacklist_tokens_de_usuario(user):
-    """
-    @brief Anade a la blacklist todos los tokens JWT emitidos para un usuario.
-    @param user Instancia del usuario cuyos tokens deben revocarse.
-    @return None
-    """
-    from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-
-    for token in OutstandingToken.objects.filter(user=user):
-        BlacklistedToken.objects.get_or_create(token=token)
-
-
 def _registrar_outstanding_token(user, refresh):
     """
     @brief Registra un refresh token como OutstandingToken para permitir su blacklist.
@@ -493,8 +481,7 @@ def change_password(request):
     @brief Cambia la contrasena del usuario autenticado
     @param request Request HTTP con old_password y new_password
     @return Response con mensaje de confirmacion o error
-    @details Revoca todos los tokens JWT activos despues de cambiar la contrasena
-    para forzar re-autenticacion en todos los dispositivos.
+    @details No invalida la sesion actual; el usuario conserva su acceso.
     """
     user = request.user
 
@@ -510,18 +497,16 @@ def change_password(request):
     user.set_password(new_password)
     user.save()
 
-    _blacklist_tokens_de_usuario(user)
-
     registrar_auditoria(
         usuario=user,
         accion="Cambiar contrasena",
         modelo="Usuario",
         registro_id=user.pk,
-        descripcion=f"El usuario {user.username} cambio su contrasena. Tokens revocados.",
+        descripcion=f"El usuario {user.username} cambio su contrasena.",
     )
 
     return Response(
-        {"message": "Contrasena actualizada correctamente. Debe iniciar sesion nuevamente."},
+        {"message": "Contrasena actualizada correctamente."},
         status=status.HTTP_200_OK,
     )
 
