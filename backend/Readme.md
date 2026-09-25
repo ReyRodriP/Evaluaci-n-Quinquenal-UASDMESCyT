@@ -11,11 +11,17 @@ python manage.py migrate
 python manage.py runserver
 `
 
-## Superusuario actual
+## Superusuario
 
-- Username: omori
-- Email: suicidaloco@gmail.com
-- Password: 12345678
+El superusuario no tiene credenciales fijas. Crear o restablecer desde la raíz del proyecto (con el stack levantado):
+
+```powershell
+.\crear_superusuario.ps1 -Username TU_USUARIO -Email tu@correo.com -Password TuClaveSegura
+```
+
+Si se omite `-Password`, se usa la variable `SUPERUSER_PASSWORD` del `.env` (y si no existe, pregunta de forma oculta).
+
+> ⚠️ Nunca publiques credenciales reales en documentación o en el repositorio.
 
 ---
 

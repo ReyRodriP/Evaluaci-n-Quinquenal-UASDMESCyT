@@ -9,6 +9,9 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    env:
+      DEBUG: "True"
+      SECRET_KEY: "ci-secret-key-solo-para-tests-no-usar-en-produccion"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
