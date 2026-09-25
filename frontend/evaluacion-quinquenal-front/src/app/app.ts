@@ -17,7 +17,11 @@ export class App implements OnInit {
     if (this.authService.isLoggedIn()) {
       this.authService.me().subscribe({
         next: (user) => this.authService.saveUser(user),
-        error: () => {},
+        error: (err: any) => {
+          if (err?.status === 401) {
+            this.authService.logout();
+          }
+        },
       });
     }
   }

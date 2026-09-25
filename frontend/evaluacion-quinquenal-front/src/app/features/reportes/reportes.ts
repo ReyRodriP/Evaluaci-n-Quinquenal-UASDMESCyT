@@ -126,12 +126,30 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   private loadSelectores(): void {
-    this.evaluacionService.listarPeriodos().subscribe((data) => (this.periodos = data));
-    this.organizacionService.listarFacultades().subscribe((data) => (this.facultades = data));
-    this.organizacionService.listarDepartamentos().subscribe((data) => (this.departamentos = data));
-    this.evaluacionService.listarCriterios().subscribe((data) => (this.criterios = data));
-    this.organizacionService.listarUsuarios().subscribe((data) => (this.usuarios = data));
-    this.organizacionService.listarRoles().subscribe((data) => (this.roles = data));
+    this.evaluacionService.listarPeriodos().subscribe({
+      next: (data) => (this.periodos = data),
+      error: () => this.toast.error('No se pudieron cargar los períodos'),
+    });
+    this.organizacionService.listarFacultades().subscribe({
+      next: (data) => (this.facultades = data),
+      error: () => this.toast.error('No se pudieron cargar las facultades'),
+    });
+    this.organizacionService.listarDepartamentos().subscribe({
+      next: (data) => (this.departamentos = data),
+      error: () => this.toast.error('No se pudieron cargar los departamentos'),
+    });
+    this.evaluacionService.listarCriterios().subscribe({
+      next: (data) => (this.criterios = data),
+      error: () => this.toast.error('No se pudieron cargar los criterios'),
+    });
+    this.organizacionService.listarUsuarios().subscribe({
+      next: (data) => (this.usuarios = data),
+      error: () => this.toast.error('No se pudieron cargar los usuarios'),
+    });
+    this.organizacionService.listarRoles().subscribe({
+      next: (data) => (this.roles = data),
+      error: () => this.toast.error('No se pudieron cargar los roles'),
+    });
   }
 
   private limpiarParametros(filtros: any): any {

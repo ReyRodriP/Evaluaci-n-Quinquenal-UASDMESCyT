@@ -183,7 +183,6 @@ export class Facultades implements OnInit {
           this.loadFacultades();
         },
         error:(err)=> {
-          console.log(err);
           this.toast.error('Error al crear la facultad');
         }
       });

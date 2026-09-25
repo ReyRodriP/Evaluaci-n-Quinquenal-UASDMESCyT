@@ -35,8 +35,6 @@ export class Register {
 
   onSubmit() {
     if(this.registerForm.valid) {
-      console.log(this.registerForm.value);
-
       this.authService.register(this.registerForm.value).subscribe({
         next:(data)=> {
           this.toast.success('Registro completado'); //Notificacion de exito
@@ -45,8 +43,7 @@ export class Register {
             this.router.navigate(['/auth/login']); //Redirecciona si el registro es exitoso
           }, 1500)
         },
-        error:(err)=> {
-          console.log(err);
+        error:()=> {
           this.toast.error('Error al registrar')
         }
       })

@@ -44,6 +44,7 @@ export class EvidenciaDetalle implements OnInit {
   previewUrl: SafeResourceUrl | null = null;
   previewTipo: 'pdf' | 'imagen' | 'texto' | 'excel' | 'desconocido' = 'desconocido';
   previewNombre = '';
+  previewVersionId: number = 0;
   previewCargando = false;
   previewError = '';
   previewTextoContenido = '';
@@ -265,6 +266,7 @@ export class EvidenciaDetalle implements OnInit {
     this.previewError = '';
     this.previewTextoContenido = '';
     this.previewNombre = version.nombre_archivo || 'archivo';
+    this.previewVersionId = version.id_version ?? 0;
 
     const ext = (version.nombre_archivo || '').split('.').pop()?.toLowerCase() || '';
 
@@ -330,6 +332,7 @@ export class EvidenciaDetalle implements OnInit {
     this.previewUrl = null;
     this.previewTipo = 'desconocido';
     this.previewNombre = '';
+    this.previewVersionId = 0;
     this.previewError = '';
     this.previewTextoContenido = '';
   }

@@ -121,6 +121,9 @@ export class Navbar implements OnInit, OnDestroy {
   cargarNotificaciones(): void {
     this.notificacionesService.listarNotificaciones().subscribe({
       next: (data) => this.notificaciones = data ?? [],
+      error: () => {
+        this.notificaciones = [];
+      },
     })
   }
 
@@ -150,6 +153,9 @@ export class Navbar implements OnInit, OnDestroy {
       next: () => {
         const n = this.notificaciones.find(x => x.id === id)
         if (n) n.leida = true
+      },
+      error: () => {
+        this.notificaciones = this.notificaciones.filter(x => x.id !== id)
       }
     })
   }

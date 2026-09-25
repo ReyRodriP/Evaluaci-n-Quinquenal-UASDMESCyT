@@ -579,7 +579,7 @@
                     <i class="bx bx-file"></i>
                     <p>La vista previa de archivos Excel no está disponible en el navegador.</p>
                     <p>Descargue el archivo para verlo en su aplicativo de hojas de cálculo.</p>
-                    <button class="primary-btn" (click)="descargar(0, previewNombre)">
+                    <button class="primary-btn" (click)="descargar(previewVersionId, previewNombre)">
                         <i class="bx bx-download"></i>
                         Descargar archivo
                     </button>
@@ -590,7 +590,7 @@
                     <i class="bx bx-file"></i>
                     <p>Vista previa no disponible para este tipo de archivo.</p>
                     <p>Descargue el archivo para verlo en su dispositivo.</p>
-                    <button class="primary-btn" (click)="descargar(0, previewNombre)">
+                    <button class="primary-btn" (click)="descargar(previewVersionId, previewNombre)">
                         <i class="bx bx-download"></i>
                         Descargar archivo
                     </button>

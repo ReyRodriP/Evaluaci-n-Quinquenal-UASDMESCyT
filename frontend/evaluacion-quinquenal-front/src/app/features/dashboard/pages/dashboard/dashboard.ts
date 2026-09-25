@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import ApexCharts from 'apexcharts';
 
@@ -17,7 +18,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   private graficos: ApexCharts[] = []
   private observer?: MutationObserver
 
-  constructor(private dashboardService: DashboardService) {}
+  constructor(private dashboardService: DashboardService, private toast: ToastrService) {}
 
   ngOnInit(): void {
     this.cargarDatos()
@@ -36,10 +37,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         this.loading = false
         setTimeout(() => this.inicializarGraficos(), 50)
       },
-      error: () => this.loading = false,
+      error: () => {
+        this.loading = false
+        this.toast.error('No se pudo cargar el tablero')
+      },
     })
     this.dashboardService.obtenerAvance().subscribe({
       next: (data) => this.avance = data,
+      error: () => this.toast.error('No se pudo cargar el avance'),
     })
   }
 
