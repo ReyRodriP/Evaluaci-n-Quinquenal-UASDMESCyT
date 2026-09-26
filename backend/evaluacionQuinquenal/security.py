@@ -155,7 +155,9 @@ class RateLimitMiddleware:
         request_count = cache.get(cache_key, 0)
         if request_count >= limit * self.BLOCK_FACTOR:
             cache.set(key=block_key, value=True, timeout=self.BLOCK_DURATION)
-            logger.warning("Rate limit superado en exceso para IP %s en %s: %s requests", ip, request.path, request_count)
+            logger.warning(
+                "Rate limit superado en exceso para IP %s en %s: %s requests", ip, request.path, request_count
+            )
             return JsonResponse(
                 {"error": "Demasiadas solicitudes. Su IP ha sido bloqueada temporalmente."},
                 status=429,
