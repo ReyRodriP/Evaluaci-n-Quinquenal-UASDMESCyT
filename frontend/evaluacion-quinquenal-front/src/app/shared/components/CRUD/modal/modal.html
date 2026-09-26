@@ -29,6 +29,8 @@
 
           <input *ngIf="field.type === 'select' && field.searchable" class="select-search"
             type="text" placeholder="Buscar {{ field.label | lowercase }}..."
+            [attr.aria-label]="'Buscar ' + (field.label | lowercase)"
+            autocomplete="off"
             [(ngModel)]="searchTexts[field.name]" (click)="$event.stopPropagation()"
             [name]="'search_' + field.name" [id]="'search_' + field.name" />
 

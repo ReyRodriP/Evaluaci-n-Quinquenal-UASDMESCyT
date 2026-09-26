@@ -20,19 +20,19 @@
         <h3>Información de la cuenta</h3>
 
         <div class="form-group">
-          <label>Nombre de usuario</label>
-          <input type="text" [(ngModel)]="user.username" name="username" placeholder="Nombre de usuario">
+          <label for="perfil_username">Nombre de usuario</label>
+          <input id="perfil_username" type="text" [(ngModel)]="user.username" name="username" placeholder="Nombre de usuario">
         </div>
 
         <div class="form-group">
-          <label>Correo electrónico</label>
-          <input type="email" [(ngModel)]="user.email" name="email" placeholder="correo@uasd.edu.do">
+          <label for="perfil_email">Correo electrónico</label>
+          <input id="perfil_email" type="email" [(ngModel)]="user.email" name="email" autocomplete="email" placeholder="correo@uasd.edu.do">
         </div>
 
         <div class="password-row">
           <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" name="password" value="************" disabled>
+            <label for="perfil_password">Contraseña</label>
+            <input id="perfil_password" type="password" name="password" value="************" disabled>
           </div>
 
           <button class="btn-change-password" type="button" (click)="togglePasswordFields()">
@@ -42,13 +42,13 @@
 
         <div *ngIf="showPasswordFields" class="password-fields">
           <div class="form-group">
-            <label>Contraseña actual</label>
-            <input type="password" [(ngModel)]="passwordPayload.old_password" name="old_password" placeholder="Contraseña actual">
+            <label for="old_password">Contraseña actual</label>
+            <input id="old_password" type="password" name="old_password" [(ngModel)]="passwordPayload.old_password" autocomplete="current-password" placeholder="Contraseña actual">
           </div>
 
           <div class="form-group">
-            <label>Nueva contraseña</label>
-            <input type="password" [(ngModel)]="passwordPayload.new_password" name="new_password" placeholder="Nueva contraseña">
+            <label for="new_password">Nueva contraseña</label>
+            <input id="new_password" type="password" name="new_password" [(ngModel)]="passwordPayload.new_password" autocomplete="new-password" placeholder="Nueva contraseña">
           </div>
 
           <button class="btn-save btn-password" type="button" (click)="changePassword()">
@@ -62,19 +62,19 @@
 
         <div class="grid-2">
           <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" [(ngModel)]="user.first_name" name="first_name" placeholder="Nombre">
+            <label for="perfil_first_name">Nombre</label>
+            <input id="perfil_first_name" type="text" [(ngModel)]="user.first_name" name="first_name" autocomplete="given-name" placeholder="Nombre">
           </div>
 
           <div class="form-group">
-            <label>Apellido</label>
-            <input type="text" [(ngModel)]="user.last_name" name="last_name" placeholder="Apellido">
+            <label for="perfil_last_name">Apellido</label>
+            <input id="perfil_last_name" type="text" [(ngModel)]="user.last_name" name="last_name" autocomplete="family-name" placeholder="Apellido">
           </div>
         </div>
 
         <div class="form-group">
-          <label>Número telefónico</label>
-          <input type="tel" [(ngModel)]="user.telefono" name="telefono" placeholder="(809) 000-0000">
+          <label for="perfil_telefono">Número telefónico</label>
+          <input id="perfil_telefono" type="tel" [(ngModel)]="user.telefono" name="telefono" autocomplete="tel" placeholder="(809) 000-0000">
         </div>
       </section>
 

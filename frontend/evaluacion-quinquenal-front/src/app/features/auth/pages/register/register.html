@@ -18,25 +18,32 @@
 
         <form action="POST" [formGroup]="registerForm" (ngSubmit)="onSubmit()">
 
-            <input type="text" placeholder="Nombre de usuario" id="username" formControlName="username" required />
+            <label for="username" class="sr-only">Nombre de usuario</label>
+            <input type="text" name="username" id="username" autocomplete="username" placeholder="Nombre de usuario" formControlName="username" required />
             <!-- <small *ngIf="registerForm.get('username')?.touched && registerForm.get('username')?.hasError('required')">Nombre de usuario requerido</small> -->
 
-            <input type="email" placeholder="Correo electrónico" id="email" formControlName="email" required />
+            <label for="email" class="sr-only">Correo electrónico</label>
+            <input type="email" name="email" id="email" autocomplete="email" placeholder="Correo electrónico" formControlName="email" required />
             <!-- <small>Correo requerido</small> -->
 
             <div class="form-row">
-                <input type="text" placeholder="Nombre" id="first_name" formControlName="first_name" required />
+                <label for="first_name" class="sr-only">Nombre</label>
+                <input type="text" name="first_name" id="first_name" autocomplete="given-name" placeholder="Nombre" formControlName="first_name" required />
                 <!-- <small>Nombre requerido</small> -->
 
-                <input type="text" placeholder="Apellido" id="last_name" formControlName="last_name" required />
+                <label for="last_name" class="sr-only">Apellido</label>
+                <input type="text" name="last_name" id="last_name" autocomplete="family-name" placeholder="Apellido" formControlName="last_name" required />
                 <!-- <small>Apellido requerido</small> -->
             </div>
 
-            <input type="tel" placeholder="Teléfono" id="telefono" formControlName="telefono" required />
+            <label for="telefono" class="sr-only">Teléfono</label>
+            <input type="tel" name="telefono" id="telefono" autocomplete="tel" placeholder="Teléfono" formControlName="telefono" required />
 
-            <input type="password" placeholder="Contraseña" id="password" formControlName="password" required />
+            <label for="password" class="sr-only">Contraseña</label>
+            <input type="password" name="password" id="password" autocomplete="new-password" placeholder="Contraseña" formControlName="password" required />
 
-            <input type="password" placeholder="Confirmar contraseña" id="passwordConfirmation" formControlName="passwordConfirmation" required />
+            <label for="passwordConfirmation" class="sr-only">Confirmar contraseña</label>
+            <input type="password" name="passwordConfirmation" id="passwordConfirmation" autocomplete="new-password" placeholder="Confirmar contraseña" formControlName="passwordConfirmation" required />
 
             <button type="submit" class="btn-register" [disabled]="registerForm.invalid">Registrarse</button>
 

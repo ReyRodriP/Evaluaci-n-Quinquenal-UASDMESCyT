@@ -13,12 +13,14 @@
 
         <div class="input-group">
             <i class='bx bx-user'></i>
-            <input name="username" type="text" placeholder="Nombre de usuario" formControlName="username">
+            <label for="login_username" class="sr-only">Nombre de usuario</label>
+            <input id="login_username" name="username" type="text" autocomplete="username" placeholder="Nombre de usuario" formControlName="username">
         </div>
 
         <div class="input-group">
             <i class="bx bx-lock"></i>
-            <input name="password" [type]="showPassword ? 'text' : 'password'" placeholder="Contraseña" formControlName="password" required minlength="6">
+            <label for="login_password" class="sr-only">Contraseña</label>
+            <input id="login_password" name="password" [type]="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="Contraseña" formControlName="password" required minlength="6">
             <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" aria-label="Mostrar u ocultar contraseña">
                 <i class="bx" [ngClass]="showPassword ? 'bx bx-eye' : 'bx bx-eye-closed'"></i>
             </button>

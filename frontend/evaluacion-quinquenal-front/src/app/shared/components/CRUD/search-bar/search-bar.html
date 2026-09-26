@@ -16,6 +16,8 @@
         <input
             name="busqueda"
             type="text"
+            [attr.aria-label]="'Buscar en ' + (titulo || 'el listado')"
+            autocomplete="off"
             [placeholder]="placeholder"
             class="search-box"
             [value]="value"
