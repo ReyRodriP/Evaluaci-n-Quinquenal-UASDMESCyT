@@ -77,9 +77,16 @@ class ObjectivesTest(TestCase):
         self.admin_group, _ = Group.objects.get_or_create(name="Administrador General")
         self.consulta_group, _ = Group.objects.get_or_create(name="Consulta")
 
-        all_permissions = Permission.objects.all()
-        self.admin_group.permissions.set(all_permissions)
-        self.consulta_group.permissions.clear()
+        from accounts.role_permissions import _re_syncing
+
+        _re_syncing.update({self.admin_group.pk, self.consulta_group.pk})
+        try:
+            all_permissions = Permission.objects.all()
+            self.admin_group.permissions.set(all_permissions)
+            self.consulta_group.permissions.clear()
+        finally:
+            _re_syncing.discard(self.admin_group.pk)
+            _re_syncing.discard(self.consulta_group.pk)
 
         self.admin_user = User.objects.create_user(username="admin", password="admin123", email="admin@test.com")
         self.admin_user.groups.add(self.admin_group)
@@ -133,31 +140,42 @@ class ObjectivesTest(TestCase):
         response = self.client.get(f"/api/usuarios/{self.consulta_user.id}/permisos/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["rol"], "Consulta")
-        self.assertEqual(len(response.data["permisos"]), 0)
+        self.assertGreater(len(response.data["permisos"]), 0)
+        self.assertTrue(
+            all(p.split(".")[-1].startswith("view_") for p in response.data["permisos"]),
+            "Consulta solo debe tener permisos de lectura",
+        )
 
     # --- Objective 3: Seed permissions ---
     def test_admin_has_all_permissions(self):
-        total = Permission.objects.count()
-        self.assertEqual(self.admin_group.permissions.count(), total)
+        from accounts.role_permissions import OUR_APP_LABELS
 
-    def test_consulta_has_no_permissions(self):
-        self.assertEqual(self.consulta_group.permissions.count(), 0)
+        expected = Permission.objects.filter(content_type__app_label__in=OUR_APP_LABELS).count()
+        self.assertGreater(self.admin_group.permissions.count(), 0)
+        self.assertEqual(self.admin_group.permissions.count(), expected)
+
+    def test_consulta_solo_lectura(self):
+        self.assertGreater(self.consulta_group.permissions.count(), 0)
+        self.assertTrue(
+            all(p.codename.startswith("view_") for p in self.consulta_group.permissions.all()),
+            "Consulta solo debe tener permisos de lectura",
+        )
 
     # --- Objective 4: CRUD protection ---
-    def test_consulta_user_cannot_access_facultades(self):
+    def test_consulta_user_can_view_facultades(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.get("/api/facultades/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
     def test_admin_user_can_access_facultades(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         response = self.client.get("/api/facultades/")
         self.assertEqual(response.status_code, 200)
 
-    def test_consulta_user_cannot_access_periodos(self):
+    def test_consulta_user_can_view_periodos(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
         response = self.client.get("/api/periodos/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
     def test_admin_user_can_access_periodos(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))

@@ -118,8 +118,11 @@ class GroupViewSet(viewsets.ModelViewSet):
                 "Coordinador Quinquenal",
                 "Evaluador Externo",
             ]
+            from .role_permissions import sync_group_permissions
+
             for role_name in default_roles:
-                Group.objects.get_or_create(name=role_name)
+                group, _ = Group.objects.get_or_create(name=role_name)
+                sync_group_permissions(group)
         return super().list(request, *args, **kwargs)
 
 

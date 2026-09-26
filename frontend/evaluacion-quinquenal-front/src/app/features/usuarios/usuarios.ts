@@ -43,16 +43,16 @@ export class Usuarios implements OnInit {
   ];
 
   get puedeCrear(): boolean {
-    return this.permisos.tieneAlgunPermiso(['auth.add_user']);
+    return this.permisos.tieneAlgunPermiso(['accounts.add_usuario']);
   }
 
   get ocultarAcciones(): string[] {
-    if (this.permisos.tieneAlgunPermiso(['auth.change_user', 'auth.delete_user'])) {
+    if (this.permisos.tieneAlgunPermiso(['accounts.change_usuario', 'accounts.delete_usuario'])) {
       return [];
     }
     const ocultas: string[] = [];
-    if (!this.permisos.tienePermiso('auth.change_user')) ocultas.push('edit', 'toggle');
-    if (!this.permisos.tienePermiso('auth.delete_user')) ocultas.push('remove');
+    if (!this.permisos.tienePermiso('accounts.change_usuario')) ocultas.push('edit', 'toggle');
+    if (!this.permisos.tienePermiso('accounts.delete_usuario')) ocultas.push('remove');
     return ocultas;
   }
 

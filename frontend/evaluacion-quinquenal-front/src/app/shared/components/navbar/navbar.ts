@@ -40,7 +40,7 @@ export class Navbar implements OnInit, OnDestroy {
     Departamento: 'organization.view_departamento',
     Facultad: 'organization.view_facultad',
     Criterio: 'evaluation.view_criterio',
-    Usuario: 'auth.view_user',
+    Usuario: 'accounts.view_usuario',
   };
 
   constructor(

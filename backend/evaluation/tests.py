@@ -280,7 +280,13 @@ class PeriodoViewSetTests(TestCase):
         self.admin_group, _ = Group.objects.get_or_create(
             name="Administrador General",
         )
-        self.admin_group.permissions.set(Permission.objects.all())
+        from accounts.role_permissions import _re_syncing
+
+        _re_syncing.add(self.admin_group.pk)
+        try:
+            self.admin_group.permissions.set(Permission.objects.all())
+        finally:
+            _re_syncing.discard(self.admin_group.pk)
         self.consulta_group, _ = Group.objects.get_or_create(
             name="Consulta",
         )
@@ -355,7 +361,13 @@ class AsignacionViewSetTests(TestCase):
         self.admin_group, _ = Group.objects.get_or_create(
             name="Administrador General",
         )
-        self.admin_group.permissions.set(Permission.objects.all())
+        from accounts.role_permissions import _re_syncing
+
+        _re_syncing.add(self.admin_group.pk)
+        try:
+            self.admin_group.permissions.set(Permission.objects.all())
+        finally:
+            _re_syncing.discard(self.admin_group.pk)
 
         self.admin_user = User.objects.create_user(
             username="admin_a",
