@@ -35,7 +35,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => {
         this.resumen = data
         this.loading = false
-        setTimeout(() => this.inicializarGraficos(), 50)
+        this.diferirGraficos()
       },
       error: () => {
         this.loading = false
@@ -46,6 +46,13 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => this.avance = data,
       error: () => this.toast.error('No se pudo cargar el avance'),
     })
+  }
+
+  private diferirGraficos(): void {
+    const idle = (window as any).requestIdleCallback
+      ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 2000 })
+      : (cb: () => void) => window.setTimeout(cb, 200);
+    idle(() => this.inicializarGraficos());
   }
 
   ngAfterViewInit(): void {
