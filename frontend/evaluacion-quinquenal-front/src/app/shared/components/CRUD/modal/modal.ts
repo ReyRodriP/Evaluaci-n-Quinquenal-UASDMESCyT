@@ -93,4 +93,18 @@ export class Modal implements OnChanges {
   onSave() {
     this.save.emit(this.model);
   }
+
+  autocompleteHint(field: any): string | null {
+    const name = (field?.name || '').toLowerCase();
+    if (field?.type === 'password') {
+      return 'new-password';
+    }
+    if (name === 'username' || name.includes('usuario')) {
+      return 'username';
+    }
+    if (name === 'email') {
+      return 'email';
+    }
+    return null;
+  }
 }
