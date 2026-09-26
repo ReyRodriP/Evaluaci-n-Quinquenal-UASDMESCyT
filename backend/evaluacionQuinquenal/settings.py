@@ -40,12 +40,10 @@ load_env_file(BASE_DIR / ".env")
 # =============================================================================
 
 # 1. Ocultar claves API - SECRET_KEY desde variable de entorno
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-cambiar-en-produccion-w@ii_-rppf_7)*7u10w!cfz!u*lu^$g$0souiqh6!oy42m(73z"
-)
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-cambiar-en-produccion")
 
 # 19. Forzar HTTPS en produccion
-DEBUG = os.getenv("DEBUG", "True").lower() in ("1", "true", "yes", "on")
+DEBUG = os.getenv("DEBUG", "False").lower() in ("1", "true", "yes", "on")
 
 if not DEBUG and SECRET_KEY.startswith("django-insecure-"):
     raise RuntimeError(
@@ -261,12 +259,12 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "30/minute",
+        "anon": "120/minute",
         "user": "100/minute",
-        "login": "5/minute",
-        "register": "3/minute",
-        "change_password": "3/hour",
-        "password_reset": "3/hour",
+        "login": "60/minute",
+        "register": "10/minute",
+        "change_password": "10/hour",
+        "password_reset": "10/hour",
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
@@ -279,6 +277,11 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API para la gestion de evidencias de evaluacion quinquenal",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
+    "SERVE_AUTHENTICATION": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
 }
 
 
@@ -369,9 +372,9 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 10
 
 SECURE_CSP = {
     "default-src": "'self'",
-    "script-src": "'self'",
+    "script-src": "'self' 'unsafe-inline'",
     "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src": "'self' https://fonts.gstatic.com",
+    "font-src": "'self' https://fonts.gstatic.com data:",
     "img-src": "'self' data:",
     "connect-src": "'self'",
 }

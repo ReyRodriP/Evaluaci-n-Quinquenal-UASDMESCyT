@@ -2,8 +2,13 @@
 
 Uso (con 100+ usuarios concurrentes):
     pip install locust
-    locust -f loadtests/locustfile.py --host http://localhost:8000 -u 100 -r 10 -t 5m
+    locust -f loadtests/locustfile.py --host http://localhost:80 -u 100 -r 10 -t 5m
+
+Credenciales vienen de las variables de entorno LOCUST_USERNAME / LOCUST_PASSWORD
+(por defecto usa el superusuario configurado en el .env).
 """
+
+import os
 
 from locust import HttpUser, between, task
 
@@ -12,6 +17,9 @@ class EvaluacionAPIUser(HttpUser):
     """Usuario simulado: obtiene tokens JWT y consulta endpoints frecuentes."""
 
     wait_time = between(1, 5)
+
+    username = os.getenv("LOCUST_USERNAME", "mrPopoMaster")
+    password = os.getenv("LOCUST_PASSWORD", "g9K^hV@Kar5-g@_D")
 
     def on_start(self):
         response = self.client.post(

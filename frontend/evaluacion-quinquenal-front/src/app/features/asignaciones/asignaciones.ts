@@ -4,7 +4,8 @@ import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../../core/services/auth.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
+import { OrganizacionService } from '../../core/services/organizacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -56,7 +57,8 @@ export class Asignaciones implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private evaluacionService: EvaluacionService,
+    private organizacionService: OrganizacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -90,7 +92,7 @@ export class Asignaciones implements OnInit {
   }
 
   loadIndicadores() {
-    this.authService.listarIndicadores().subscribe({
+    this.evaluacionService.listarIndicadores().subscribe({
       next: (data) => {
         this.indicadores = data;
         this.asignacionFields = this.asignacionFields.map(field => {
@@ -112,7 +114,7 @@ export class Asignaciones implements OnInit {
   }
 
   loadDepartamentos() {
-    this.authService.listarDepartamentos().subscribe({
+    this.organizacionService.listarDepartamentos().subscribe({
       next: (data) => {
         this.departamentos = data;
         this.asignacionFields = this.asignacionFields.map(field => {
@@ -134,7 +136,7 @@ export class Asignaciones implements OnInit {
   }
 
   loadPeriodos() {
-    this.authService.listarPeriodos().subscribe({
+    this.evaluacionService.listarPeriodos().subscribe({
       next: (data) => {
         this.periodos = data;
         this.asignacionFields = this.asignacionFields.map(field => {
@@ -156,7 +158,7 @@ export class Asignaciones implements OnInit {
   }
 
   loadAsignaciones() {
-    this.authService.listarAsignaciones().subscribe({
+    this.evaluacionService.listarAsignaciones().subscribe({
       next: (data) => {
         const grouped = data.reduce((acc: any, item: any) => {
           const key = `${item.departamento}_${item.periodo}_${item.estado}`;
@@ -256,7 +258,7 @@ export class Asignaciones implements OnInit {
     };
 
     const crearAsignaciones = (indicadores: any[]) => {
-      const requests = indicadores.map((indicador: any) => this.authService.crearAsignacion({
+      const requests = indicadores.map((indicador: any) => this.evaluacionService.crearAsignacion({
         ...payloadBase,
         indicador,
       }));
@@ -274,19 +276,19 @@ export class Asignaciones implements OnInit {
         indicador: primaryIndicador,
       };
 
-      this.authService.actualizarAsignacion(existingAsignaciones[0].id, updatePayload).subscribe({
+      this.evaluacionService.actualizarAsignacion(existingAsignaciones[0].id, updatePayload).subscribe({
         next: () => {
           const requests: any[] = [];
 
           if (addedIndicadores.length) {
             addedIndicadores.forEach((indicador: any) => {
-              requests.push(this.authService.crearAsignacion({ ...payloadBase, indicador }));
+              requests.push(this.evaluacionService.crearAsignacion({ ...payloadBase, indicador }));
             });
           }
 
           if (removedAsignaciones.length) {
             removedAsignaciones.forEach((asignacion: any) => {
-              requests.push(this.authService.eliminarAsignacion(asignacion.id));
+              requests.push(this.evaluacionService.eliminarAsignacion(asignacion.id));
             });
           }
 
@@ -333,7 +335,7 @@ export class Asignaciones implements OnInit {
       return;
     }
 
-    this.authService.eliminarAsignacion(item.id).subscribe({
+    this.evaluacionService.eliminarAsignacion(item.id).subscribe({
       next: () => {
         this.toast.success('Asignación eliminada');
         this.loadAsignaciones();
@@ -352,7 +354,7 @@ export class Asignaciones implements OnInit {
 
     const nuevoEstado = item.estadoRaw === 'aprobado' ? 'pendiente' : 'aprobado';
 
-    this.authService.patchAsignacion(item.id, { estado: nuevoEstado }).subscribe({
+    this.evaluacionService.patchAsignacion(item.id, { estado: nuevoEstado }).subscribe({
       next: () => {
         this.toast.success(`Asignación marcada como ${nuevoEstado}`);
         this.loadAsignaciones();

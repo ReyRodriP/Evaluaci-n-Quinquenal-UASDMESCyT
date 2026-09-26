@@ -10,6 +10,7 @@ import re
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.password_validation import validate_password as django_validate_password
 from django.core.validators import validate_email
 from rest_framework import serializers
 
@@ -125,6 +126,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La contrasena debe tener al menos 8 caracteres.")
         if value.isdigit():
             raise serializers.ValidationError("La contrasena no puede ser solo numeros.")
+        django_validate_password(value)
         return value
 
     def validate_telefono(self, value):

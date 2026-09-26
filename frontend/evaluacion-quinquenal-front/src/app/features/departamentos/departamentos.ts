@@ -3,7 +3,7 @@ import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../auth/services/auth-service';
+import { OrganizacionService } from '../../core/services/organizacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -50,7 +50,7 @@ export class Departamentos implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private organizacionService: OrganizacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -74,7 +74,7 @@ export class Departamentos implements OnInit {
   }
 
   loadFacultades() {
-    this.authService.listarFacultades().subscribe({
+    this.organizacionService.listarFacultades().subscribe({
       next: (data) => {
         this.facultades = data;
         this.departamentoFields = this.departamentoFields.map(field => {
@@ -96,7 +96,7 @@ export class Departamentos implements OnInit {
   }
 
   loadDepartamentos() {
-    this.authService.listarDepartamentos().subscribe({
+    this.organizacionService.listarDepartamentos().subscribe({
       next: (data) => {
         this.datos = data.map((item: any) => ({
           ...item,
@@ -175,7 +175,7 @@ export class Departamentos implements OnInit {
     };
 
     if (this.selectedItem && this.selectedItem.id) {
-      this.authService.actualizarDepartamento(this.selectedItem.id, payload).subscribe({
+      this.organizacionService.actualizarDepartamento(this.selectedItem.id, payload).subscribe({
         next: () => {
           this.toast.success('Departamento actualizado correctamente');
           this.loadDepartamentos();
@@ -187,7 +187,7 @@ export class Departamentos implements OnInit {
         }
       });
     } else {
-      this.authService.crearDepartamento(payload).subscribe({
+      this.organizacionService.crearDepartamento(payload).subscribe({
         next: () => {
           this.toast.success('Departamento creado exitosamente');
           this.loadDepartamentos();
@@ -206,7 +206,7 @@ export class Departamentos implements OnInit {
       return;
     }
 
-    this.authService.eliminarDepartamento(item.id).subscribe({
+    this.organizacionService.eliminarDepartamento(item.id).subscribe({
       next: () => {
         this.toast.success('Departamento eliminado');
         this.loadDepartamentos();
@@ -225,7 +225,7 @@ export class Departamentos implements OnInit {
 
     const nuevoEstado = !item.activo;
 
-    this.authService.actualizarDepartamento(item.id, { activo: nuevoEstado }).subscribe({
+    this.organizacionService.actualizarDepartamento(item.id, { activo: nuevoEstado }).subscribe({
       next: () => {
         this.toast.success(`Departamento ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
         this.loadDepartamentos();

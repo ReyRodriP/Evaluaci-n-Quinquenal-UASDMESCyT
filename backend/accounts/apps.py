@@ -5,4 +5,4 @@ class AccountsConfig(AppConfig):
     name = "accounts"
 
     def ready(self):
-        pass
+        from . import signals  # noqa: F401  (conecta proteccion y sincronizacion de permisos)

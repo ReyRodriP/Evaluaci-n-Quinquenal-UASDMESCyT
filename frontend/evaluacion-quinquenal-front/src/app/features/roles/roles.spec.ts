@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Roles } from './roles';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ToastrModule } from 'ngx-toastr';
 
 describe('Roles', () => {
   let component: Roles;
@@ -8,7 +12,8 @@ describe('Roles', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Roles]
+      imports: [Roles, ToastrModule.forRoot(), RouterTestingModule],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 

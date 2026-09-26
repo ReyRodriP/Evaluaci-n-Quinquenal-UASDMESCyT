@@ -1,7 +1,8 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth.service';
+import { ToastrService } from 'ngx-toastr';
+import { DashboardService } from '../../../../core/services/dashboard.service';
 import ApexCharts from 'apexcharts';
 
 @Component({
@@ -17,7 +18,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   private graficos: ApexCharts[] = []
   private observer?: MutationObserver
 
-  constructor(private authService: AuthService) {}
+  constructor(private dashboardService: DashboardService, private toast: ToastrService) {}
 
   ngOnInit(): void {
     this.cargarDatos()
@@ -30,17 +31,28 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cargarDatos(): void {
-    this.authService.obtenerResumen().subscribe({
+    this.dashboardService.obtenerResumen().subscribe({
       next: (data) => {
         this.resumen = data
         this.loading = false
-        setTimeout(() => this.inicializarGraficos(), 50)
+        this.diferirGraficos()
       },
-      error: () => this.loading = false,
+      error: () => {
+        this.loading = false
+        this.toast.error('No se pudo cargar el tablero')
+      },
     })
-    this.authService.obtenerAvance().subscribe({
+    this.dashboardService.obtenerAvance().subscribe({
       next: (data) => this.avance = data,
+      error: () => this.toast.error('No se pudo cargar el avance'),
     })
+  }
+
+  private diferirGraficos(): void {
+    const idle = (window as any).requestIdleCallback
+      ? (cb: () => void) => (window as any).requestIdleCallback(cb, { timeout: 2000 })
+      : (cb: () => void) => window.setTimeout(cb, 200);
+    idle(() => this.inicializarGraficos());
   }
 
   ngAfterViewInit(): void {
@@ -58,8 +70,13 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   private inicializarGraficos(): void {
     this.destruirGraficos()
-    this.graficoPastel()
-    this.graficoAvance()
+    const idle = (cb: () => void) =>
+      window.requestIdleCallback
+        ? window.requestIdleCallback(() => cb(), { timeout: 3000 })
+        : window.setTimeout(() => cb(), 300)
+    // Un grafico por callback para que ningun ciclo supere los 50ms de "long task".
+    idle(() => this.graficoPastel())
+    idle(() => this.graficoAvance())
   }
 
   private destruirGraficos(): void {

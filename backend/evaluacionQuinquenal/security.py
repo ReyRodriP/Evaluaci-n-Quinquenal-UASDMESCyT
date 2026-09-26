@@ -54,15 +54,27 @@ class SecurityHeadersMiddleware:
         if hasattr(settings, "SECURE_SSL_REDIRECT") and settings.SECURE_SSL_REDIRECT:
             response["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
 
+        csp = getattr(settings, "SECURE_CSP", None)
+        if csp:
+            parts = []
+            for directive, values in csp.items():
+                if isinstance(values, str):
+                    values = [values]
+                if values:
+                    parts.append(f"{directive} {' '.join(values)}")
+            if parts:
+                response["Content-Security-Policy"] = "; ".join(parts)
+
         return response
 
 
 class LoginRateLimitMiddleware:
     """
     @class LoginRateLimitMiddleware
-    @brief Middleware para limitar intentos de login por IP
-    @details Bloquea temporalmente IPs que excedan el limite de intentos
-    de login en un periodo de tiempo determinado.
+    @brief Middleware para limitar intentos de login
+    @details Bloquea temporalmente al usuario+IP que exceda el limite de
+    intentos fallidos. Al usar clave por usuario (y no solo IP), fallos de un
+    usuario no bloquean a los demas (importante tras NAT/flix tunel).
     """
 
     MAX_ATTEMPTS = 5
@@ -71,14 +83,32 @@ class LoginRateLimitMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
+    @staticmethod
+    def _usuario_login(request) -> str:
+        usuario = request.POST.get("username") or ""
+        if not usuario:
+            try:
+                import json
+
+                raw = request.body
+                if raw:
+                    body = json.loads(raw)
+                    usuario = body.get("username") or ""
+            except Exception:
+                usuario = ""
+        return usuario.strip().lower()
+
     def __call__(self, request):
-        if request.path.endswith("/login") and request.method == "POST":
+        es_login = request.path.endswith("/login") and request.method == "POST"
+        if es_login:
             ip = _get_client_ip(request)
-            cache_key = f"login_attempts_{ip}"
+            usuario = self._usuario_login(request)
+            cache_key = f"login_attempts_{ip}_{usuario}"
+            request._login_attempts_key = cache_key
             attempts = cache.get(cache_key, 0)
 
             if attempts >= self.MAX_ATTEMPTS:
-                logger.warning("Login bloqueado para IP %s: %s intentos fallidos", ip, attempts)
+                logger.warning("Login bloqueado para usuario+IP %s | %s", usuario, ip)
                 return JsonResponse(
                     {"error": "Demasiados intentos. Intente de nuevo en 15 minutos."},
                     status=403,
@@ -86,9 +116,11 @@ class LoginRateLimitMiddleware:
 
         response = self.get_response(request)
 
-        if request.path.endswith("/login") and request.method == "POST":
-            ip = _get_client_ip(request)
-            cache_key = f"login_attempts_{ip}"
+        if es_login:
+            cache_key = getattr(request, "_login_attempts_key", None)
+            if cache_key is None:
+                ip = _get_client_ip(request)
+                cache_key = f"login_attempts_{ip}_{self._usuario_login(request)}"
 
             if response.status_code == 400:
                 attempts = cache.get(cache_key, 0) + 1
@@ -108,18 +140,21 @@ class RateLimitMiddleware:
     Implementa rate limiting escalado: 60/min general, 20/min para endpoints sensibles.
     """
 
-    GENERAL_LIMIT = 120
-    SENSITIVE_LIMIT = 20
+    GENERAL_LIMIT = 600
+    SENSITIVE_LIMIT = 120
     BLOCK_DURATION = 600
+    # Factor sobre el limite para escalar a bloqueo completo de IP (abuso real).
+    BLOCK_FACTOR = 4
 
     SENSITIVE_PATHS = {
-        "/login",
-        "/register",
-        "/forgot_password",
-        "/reset_password",
-        "/password-reset",
-        "/password-reset/confirm",
-        "/change_password",
+        "/api/login",
+        "/api/register",
+        "/api/forgot_password",
+        "/api/reset_password",
+        "/api/password-reset",
+        "/api/password-reset/confirm",
+        "/api/change_password",
+        "/api/token/",
     }
 
     def __init__(self, get_response):
@@ -141,11 +176,19 @@ class RateLimitMiddleware:
         cache_key = f"rate_limit_{ip}_{request.path}"
 
         request_count = cache.get(cache_key, 0)
-        if request_count >= limit:
+        if request_count >= limit * self.BLOCK_FACTOR:
             cache.set(key=block_key, value=True, timeout=self.BLOCK_DURATION)
-            logger.warning("Rate limit excedido para IP %s en %s: %s requests", ip, request.path, request_count)
+            logger.warning(
+                "Rate limit superado en exceso para IP %s en %s: %s requests", ip, request.path, request_count
+            )
             return JsonResponse(
                 {"error": "Demasiadas solicitudes. Su IP ha sido bloqueada temporalmente."},
+                status=429,
+            )
+        if request_count >= limit:
+            logger.warning("Rate limit por ruta para IP %s en %s: %s requests", ip, request.path, request_count)
+            return JsonResponse(
+                {"error": "Demasiadas solicitudes en este recurso. Espere un momento."},
                 status=429,
             )
 
@@ -162,7 +205,7 @@ class RequestSizeLimitMiddleware:
     ataques de denegacion de servicio (DoS) por payload grande.
     """
 
-    MAX_BODY_SIZE = 10 * 1024 * 1024
+    MAX_BODY_SIZE = 50 * 1024 * 1024
 
     def __init__(self, get_response):
         self.get_response = get_response

@@ -29,8 +29,6 @@ export class Login {
 
   onSubmit() {
     if(this.loginForm.valid) {
-      console.log(this.loginForm.value);
-
       this.authService.login(this.loginForm.value).subscribe({
         next:(data)=> {
           this.toast.success('Login completado'); //Notificacion de exito
@@ -46,9 +44,9 @@ export class Login {
             this.router.navigate(['/dashboard']); //Redirecciona si el login es exitoso
           }, 1500)
         },
-        error:(err)=> {
-          console.log(err);
-          this.toast.error('Error al iniciar sesión')
+        error:(err: any)=> {
+          const mensaje = err?.error?.error || err?.error?.detail || 'Error al iniciar sesión';
+          this.toast.error(mensaje)
         }
       })
     }

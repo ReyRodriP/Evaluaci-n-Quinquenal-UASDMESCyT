@@ -12,13 +12,14 @@
     <form class="modal-form" (ngSubmit)="onSave()">
       <ng-container *ngFor="let field of fields">
         <div class="form-group" *ngIf="field.type !== 'hidden'">
-          <label [for]="field.name">{{ field.label }}</label>
+          <label [attr.for]="field.type === 'checkboxgroup' ? null : field.name">{{ field.label }}</label>
 
           <input *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'date' || field.type === 'password'"
             [type]="field.type"
             [(ngModel)]="model[field.name]"
             [name]="field.name"
             [id]="field.name"
+            [attr.autocomplete]="autocompleteHint(field)"
             [placeholder]="field.placeholder || ''" />
 
           <textarea *ngIf="field.type === 'textarea'" rows="4"
@@ -29,6 +30,8 @@
 
           <input *ngIf="field.type === 'select' && field.searchable" class="select-search"
             type="text" placeholder="Buscar {{ field.label | lowercase }}..."
+            [attr.aria-label]="'Buscar ' + (field.label | lowercase)"
+            autocomplete="off"
             [(ngModel)]="searchTexts[field.name]" (click)="$event.stopPropagation()"
             [name]="'search_' + field.name" [id]="'search_' + field.name" />
 
@@ -49,6 +52,7 @@
               <label>
                 <input
                   type="checkbox"
+                  [name]="field.name"
                   [checked]="model[field.name]?.includes(option?.value ?? option)"
                   (change)="toggleCheckbox(field.name, option?.value ?? option)"
                 />

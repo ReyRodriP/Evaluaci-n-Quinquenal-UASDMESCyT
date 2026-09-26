@@ -3,7 +3,7 @@ import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../../core/services/auth.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -49,7 +49,7 @@ export class Periodos implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -71,7 +71,7 @@ export class Periodos implements OnInit {
   }
 
   loadPeriodos() {
-    this.authService.listarPeriodos().subscribe({
+    this.evaluacionService.listarPeriodos().subscribe({
       next: (data) => {
         this.datos = data.map((item: any) => ({
           ...item,
@@ -147,7 +147,7 @@ export class Periodos implements OnInit {
     };
 
     if (this.selectedItem && this.selectedItem.id) {
-      this.authService.actualizarPeriodo(this.selectedItem.id, payload).subscribe({
+      this.evaluacionService.actualizarPeriodo(this.selectedItem.id, payload).subscribe({
         next: () => {
           this.toast.success('Período actualizado correctamente');
           this.loadPeriodos();
@@ -159,7 +159,7 @@ export class Periodos implements OnInit {
         }
       });
     } else {
-      this.authService.crearPeriodo(payload).subscribe({
+      this.evaluacionService.crearPeriodo(payload).subscribe({
         next: () => {
           this.toast.success('Período creado exitosamente');
           this.loadPeriodos();
@@ -178,7 +178,7 @@ export class Periodos implements OnInit {
       return;
     }
 
-    this.authService.eliminarPeriodo(item.id).subscribe({
+    this.evaluacionService.eliminarPeriodo(item.id).subscribe({
       next: () => {
         this.toast.success('Período eliminado');
         this.loadPeriodos();
@@ -197,7 +197,7 @@ export class Periodos implements OnInit {
 
     const nuevoEstado = !item.activo;
 
-    this.authService.patchPeriodo(item.id, { activo: nuevoEstado }).subscribe({
+    this.evaluacionService.patchPeriodo(item.id, { activo: nuevoEstado }).subscribe({
       next: () => {
         this.toast.success(`Período ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
         this.loadPeriodos();

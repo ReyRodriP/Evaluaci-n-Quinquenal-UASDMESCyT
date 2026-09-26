@@ -17,8 +17,26 @@ export class App implements OnInit {
     if (this.authService.isLoggedIn()) {
       this.authService.me().subscribe({
         next: (user) => this.authService.saveUser(user),
-        error: () => {},
+        error: (err: any) => {
+          if (err?.status === 401) {
+            this.authService.logout();
+          }
+        },
       });
     }
+    this.bloquearCopia();
+  }
+
+  private bloquearCopia(): void {
+    const esCampoDeEdicion = (e: Event): boolean => {
+      const t = e.target as HTMLElement | null;
+      return !!t?.closest?.('input, textarea, select, [contenteditable="true"]');
+    };
+
+    document.addEventListener('copy', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('cut', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('paste', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('contextmenu', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('dragstart', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
   }
 }

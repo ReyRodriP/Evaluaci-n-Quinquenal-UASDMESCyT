@@ -24,8 +24,11 @@
   <div class="buscador-wrapper" #buscadorWrapper>
     <i class="bx bx-search buscador-icon"></i>
     <input
+      name="busqueda"
       class="buscador-input"
       type="text"
+      aria-label="Buscar en el sistema"
+      autocomplete="off"
       placeholder="Buscar indicadores, departamentos..."
       [ngModel]="searchQuery"
       (ngModelChange)="onSearchInput($event)"
