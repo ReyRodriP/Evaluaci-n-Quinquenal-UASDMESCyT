@@ -27,12 +27,15 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    env:
+      CHROME_BIN: /usr/bin/google-chrome
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - run: cd frontend/evaluacion-quinquenal-front && npm ci
+      - run: cd frontend/evaluacion-quinquenal-front && npx ng test --watch=false --browsers=ChromeHeadless
       - run: cd frontend/evaluacion-quinquenal-front && npx ng build --configuration production
 
   docker:

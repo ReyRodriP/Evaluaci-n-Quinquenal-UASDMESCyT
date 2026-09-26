@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CrudTable } from './crud-table';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ToastrModule } from 'ngx-toastr';
 
 describe('CrudTable', () => {
   let component: CrudTable;
@@ -8,7 +12,8 @@ describe('CrudTable', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CrudTable]
+      imports: [CrudTable, ToastrModule.forRoot(), RouterTestingModule],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 
@@ -24,7 +29,7 @@ describe('CrudTable', () => {
   it('should map user table columns to the expected data properties', () => {
     expect(component.getColumnKey('Nombre')).toBe('nombre');
     expect(component.getColumnKey('Correo')).toBe('correo');
-    expect(component.getColumnKey('Departamento')).toBe('departamento');
+    expect(component.getColumnKey('Departamento')).toBe('departamento_nombre');
   });
 
   it('should resolve common user values from aliases', () => {

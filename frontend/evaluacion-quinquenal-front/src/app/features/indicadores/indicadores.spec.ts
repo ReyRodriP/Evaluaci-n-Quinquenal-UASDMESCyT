@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Indicadores } from './indicadores';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ToastrModule } from 'ngx-toastr';
 
 describe('Indicadores', () => {
   let component: Indicadores;
@@ -8,7 +12,8 @@ describe('Indicadores', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Indicadores]
+      imports: [Indicadores, ToastrModule.forRoot(), RouterTestingModule],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 

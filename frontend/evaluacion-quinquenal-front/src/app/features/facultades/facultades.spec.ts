@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Facultades } from './facultades';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ToastrModule } from 'ngx-toastr';
 
 describe('Facultades', () => {
   let component: Facultades;
@@ -8,7 +12,8 @@ describe('Facultades', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Facultades]
+      imports: [Facultades, ToastrModule.forRoot(), RouterTestingModule],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 
