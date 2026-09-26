@@ -119,9 +119,11 @@ class RateLimitMiddleware:
     Implementa rate limiting escalado: 60/min general, 20/min para endpoints sensibles.
     """
 
-    GENERAL_LIMIT = 120
-    SENSITIVE_LIMIT = 20
+    GENERAL_LIMIT = 600
+    SENSITIVE_LIMIT = 120
     BLOCK_DURATION = 600
+    # Factor sobre el limite para escalar a bloqueo completo de IP (abuso real).
+    BLOCK_FACTOR = 4
 
     SENSITIVE_PATHS = {
         "/api/login",
@@ -151,11 +153,17 @@ class RateLimitMiddleware:
         cache_key = f"rate_limit_{ip}_{request.path}"
 
         request_count = cache.get(cache_key, 0)
-        if request_count >= limit:
+        if request_count >= limit * self.BLOCK_FACTOR:
             cache.set(key=block_key, value=True, timeout=self.BLOCK_DURATION)
-            logger.warning("Rate limit excedido para IP %s en %s: %s requests", ip, request.path, request_count)
+            logger.warning("Rate limit superado en exceso para IP %s en %s: %s requests", ip, request.path, request_count)
             return JsonResponse(
                 {"error": "Demasiadas solicitudes. Su IP ha sido bloqueada temporalmente."},
+                status=429,
+            )
+        if request_count >= limit:
+            logger.warning("Rate limit por ruta para IP %s en %s: %s requests", ip, request.path, request_count)
+            return JsonResponse(
+                {"error": "Demasiadas solicitudes en este recurso. Espere un momento."},
                 status=429,
             )
 
