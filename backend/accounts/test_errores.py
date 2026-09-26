@@ -4,18 +4,16 @@ Si un endpoint devuelve 500 cuando deberia devolver 4xx, este suite lo detecta.
 """
 
 import io
-import json
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase, override_settings
-from django.urls import reverse
 from PIL import Image
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from evidence.models import Evidencia
 from evaluation.models import Asignacion, Criterio, Indicador, Periodo
+from evidence.models import Evidencia
 from organization.models import Departamento, Facultad
 
 User = get_user_model()
@@ -23,7 +21,9 @@ User = get_user_model()
 
 def _make_user(username="usuario", groups=None, is_superuser=False):
     if is_superuser:
-        user = User.objects.create_superuser(username=username, email=f"{username}@test.com", password="claveSeguraTest1")
+        user = User.objects.create_superuser(
+            username=username, email=f"{username}@test.com", password="claveSeguraTest1"
+        )
     else:
         user = User.objects.create_user(username=username, email=f"{username}@test.com", password="claveSeguraTest1")
     if groups:
@@ -128,7 +128,9 @@ class AutenticacionErroresTests(TestCase):
     def test_change_password_actual_incorrecta(self):
         user = _make_user("cambia")
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + _token(user))
-        r = self.client.post("/api/change_password", {"old_password": "incorrecta", "new_password": "nuevaClaveSegura1"})
+        r = self.client.post(
+            "/api/change_password", {"old_password": "incorrecta", "new_password": "nuevaClaveSegura1"}
+        )
         self.assertEqual(r.status_code, 400)
 
     def test_change_password_debil(self):
@@ -138,7 +140,9 @@ class AutenticacionErroresTests(TestCase):
         self.assertEqual(r.status_code, 400)
 
     def test_reset_password_enlace_invalido(self):
-        r = self.client.post("/api/reset_password", {"uid": "NADA", "token": "NADA", "new_password": "claveSeguraTest1"})
+        r = self.client.post(
+            "/api/reset_password", {"uid": "NADA", "token": "NADA", "new_password": "claveSeguraTest1"}
+        )
         self.assertEqual(r.status_code, 400)
 
     def test_reset_password_sin_campos(self):
