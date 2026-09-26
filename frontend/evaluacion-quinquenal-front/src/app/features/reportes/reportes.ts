@@ -365,6 +365,10 @@ export class Reportes implements OnInit, OnDestroy {
 
   exportar(formato: 'pdf' | 'xlsx'): void {
     const { reporte, filtros, nombre } = this.configReporte();
+    if (!reporte || reporte.endsWith('/')) {
+      this.toast.error('Seleccione una facultad o departamento para este reporte');
+      return;
+    }
     this.reportesService.exportarReporte(reporte, formato, filtros).subscribe({
       next: (blob) => {
         this.descargarBlob(blob, `${nombre}.${formato}`);
@@ -376,6 +380,10 @@ export class Reportes implements OnInit, OnDestroy {
 
   previsualizar(): void {
     const { reporte, filtros } = this.configReporte();
+    if (!reporte || reporte.endsWith('/')) {
+      this.toast.error('Seleccione una facultad o departamento para este reporte');
+      return;
+    }
     this.reportesService.exportarReporte(reporte, 'pdf', filtros).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);

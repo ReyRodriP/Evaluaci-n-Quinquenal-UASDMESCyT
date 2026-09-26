@@ -70,8 +70,13 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   private inicializarGraficos(): void {
     this.destruirGraficos()
-    this.graficoPastel()
-    this.graficoAvance()
+    const idle = (cb: () => void) =>
+      window.requestIdleCallback
+        ? window.requestIdleCallback(() => cb(), { timeout: 3000 })
+        : window.setTimeout(() => cb(), 300)
+    // Un grafico por callback para que ningun ciclo supere los 50ms de "long task".
+    idle(() => this.graficoPastel())
+    idle(() => this.graficoAvance())
   }
 
   private destruirGraficos(): void {
