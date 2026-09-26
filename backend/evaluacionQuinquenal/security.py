@@ -71,9 +71,10 @@ class SecurityHeadersMiddleware:
 class LoginRateLimitMiddleware:
     """
     @class LoginRateLimitMiddleware
-    @brief Middleware para limitar intentos de login por IP
-    @details Bloquea temporalmente IPs que excedan el limite de intentos
-    de login en un periodo de tiempo determinado.
+    @brief Middleware para limitar intentos de login
+    @details Bloquea temporalmente al usuario+IP que exceda el limite de
+    intentos fallidos. Al usar clave por usuario (y no solo IP), fallos de un
+    usuario no bloquean a los demas (importante tras NAT/flix tunel).
     """
 
     MAX_ATTEMPTS = 5
@@ -82,14 +83,32 @@ class LoginRateLimitMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
+    @staticmethod
+    def _usuario_login(request) -> str:
+        usuario = request.POST.get("username") or ""
+        if not usuario:
+            try:
+                import json
+
+                raw = request.body
+                if raw:
+                    body = json.loads(raw)
+                    usuario = body.get("username") or ""
+            except Exception:
+                usuario = ""
+        return usuario.strip().lower()
+
     def __call__(self, request):
-        if request.path.endswith("/login") and request.method == "POST":
+        es_login = request.path.endswith("/login") and request.method == "POST"
+        if es_login:
             ip = _get_client_ip(request)
-            cache_key = f"login_attempts_{ip}"
+            usuario = self._usuario_login(request)
+            cache_key = f"login_attempts_{ip}_{usuario}"
+            request._login_attempts_key = cache_key
             attempts = cache.get(cache_key, 0)
 
             if attempts >= self.MAX_ATTEMPTS:
-                logger.warning("Login bloqueado para IP %s: %s intentos fallidos", ip, attempts)
+                logger.warning("Login bloqueado para usuario+IP %s | %s", usuario, ip)
                 return JsonResponse(
                     {"error": "Demasiados intentos. Intente de nuevo en 15 minutos."},
                     status=403,
@@ -97,9 +116,11 @@ class LoginRateLimitMiddleware:
 
         response = self.get_response(request)
 
-        if request.path.endswith("/login") and request.method == "POST":
-            ip = _get_client_ip(request)
-            cache_key = f"login_attempts_{ip}"
+        if es_login:
+            cache_key = getattr(request, "_login_attempts_key", None)
+            if cache_key is None:
+                ip = _get_client_ip(request)
+                cache_key = f"login_attempts_{ip}_{self._usuario_login(request)}"
 
             if response.status_code == 400:
                 attempts = cache.get(cache_key, 0) + 1

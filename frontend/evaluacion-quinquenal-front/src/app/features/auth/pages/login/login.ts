@@ -44,9 +44,9 @@ export class Login {
             this.router.navigate(['/dashboard']); //Redirecciona si el login es exitoso
           }, 1500)
         },
-        error:(err)=> {
-          console.log(err);
-          this.toast.error('Error al iniciar sesión')
+        error:(err: any)=> {
+          const mensaje = err?.error?.error || err?.error?.detail || 'Error al iniciar sesión';
+          this.toast.error(mensaje)
         }
       })
     }
