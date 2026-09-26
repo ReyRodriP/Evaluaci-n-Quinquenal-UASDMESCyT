@@ -15,13 +15,13 @@
       <input id="photoInput" type="file" accept="image/*" hidden (change)="onPhotoSelected($event)" />
     </div>
 
-    <div class="profile-form">
+    <form class="profile-form" (ngSubmit)="onSubmit()" autocomplete="on">
       <section>
         <h3>Información de la cuenta</h3>
 
         <div class="form-group">
           <label for="perfil_username">Nombre de usuario</label>
-          <input id="perfil_username" type="text" [(ngModel)]="user.username" name="username" placeholder="Nombre de usuario">
+          <input id="perfil_username" type="text" [(ngModel)]="user.username" name="username" autocomplete="username" placeholder="Nombre de usuario">
         </div>
 
         <div class="form-group">
@@ -32,7 +32,7 @@
         <div class="password-row">
           <div class="form-group">
             <label for="perfil_password">Contraseña</label>
-            <input id="perfil_password" type="password" name="password" value="************" disabled>
+            <input id="perfil_password" type="password" name="password" autocomplete="current-password" value="************" disabled>
           </div>
 
           <button class="btn-change-password" type="button" (click)="togglePasswordFields()">
@@ -80,10 +80,10 @@
 
       <div class="profile-actions">
         <button class="btn-cancel" type="button" (click)="goBack()">Volver</button>
-        <button class="btn-save" type="button" (click)="onSubmit()" [disabled]="loading">
+        <button class="btn-save" type="submit" [disabled]="loading">
           {{ loading ? 'Guardando...' : 'Guardar cambios' }}
         </button>
       </div>
-    </div>
+    </form>
   </div>
 </div>

@@ -142,14 +142,16 @@ export class Reportes implements OnInit, OnDestroy {
       next: (data) => (this.criterios = data),
       error: () => this.toast.error('No se pudieron cargar los criterios'),
     });
-    this.organizacionService.listarUsuarios().subscribe({
-      next: (data) => (this.usuarios = data),
-      error: () => this.toast.error('No se pudieron cargar los usuarios'),
-    });
-    this.organizacionService.listarRoles().subscribe({
-      next: (data) => (this.roles = data),
-      error: () => this.toast.error('No se pudieron cargar los roles'),
-    });
+    if (this.permisos.tieneAlgunPermiso(['accounts.view_usuario', 'accounts.view_rol'])) {
+      this.organizacionService.listarUsuarios().subscribe({
+        next: (data) => (this.usuarios = data),
+        error: () => (this.usuarios = []),
+      });
+      this.organizacionService.listarRoles().subscribe({
+        next: (data) => (this.roles = data),
+        error: () => (this.roles = []),
+      });
+    }
   }
 
   private limpiarParametros(filtros: any): any {
@@ -341,56 +343,46 @@ export class Reportes implements OnInit, OnDestroy {
     this.cargarUsuarios();
   }
 
-  // ===================== EXPORTAR =====================
-  exportar(formato: 'pdf' | 'xlsx'): void {
-    let reporte: string;
-    let filtros: any;
-    let nombre: string;
-
+  // ===================== EXPORTAR / VISTA PREVIA =====================
+  private configReporte(): { reporte: string; filtros: any; nombre: string } {
     switch (this.pestanaActiva) {
       case 'general':
-        reporte = 'general';
-        filtros = this.limpiarParametros(this.genFiltros);
-        nombre = 'reporte_general';
-        break;
+        return { reporte: 'general', filtros: this.limpiarParametros(this.genFiltros), nombre: 'reporte_general' };
       case 'facultad':
-        reporte = `facultad/${this.facId}`;
-        filtros = {};
-        nombre = `reporte_facultad_${this.facId}`;
-        break;
+        return { reporte: `facultad/${this.facId}`, filtros: {}, nombre: `reporte_facultad_${this.facId}` };
       case 'departamento':
-        reporte = `departamento/${this.depId}`;
-        filtros = {};
-        nombre = `reporte_departamento_${this.depId}`;
-        break;
+        return { reporte: `departamento/${this.depId}`, filtros: {}, nombre: `reporte_departamento_${this.depId}` };
       case 'evidencias':
-        reporte = 'evidencias';
-        filtros = this.limpiarParametros(this.evFiltros);
-        nombre = 'reporte_evidencias';
-        break;
+        return { reporte: 'evidencias', filtros: this.limpiarParametros(this.evFiltros), nombre: 'reporte_evidencias' };
       case 'observaciones':
-        reporte = 'observaciones';
-        filtros = this.limpiarParametros(this.obsFiltros);
-        nombre = 'reporte_observaciones';
-        break;
+        return { reporte: 'observaciones', filtros: this.limpiarParametros(this.obsFiltros), nombre: 'reporte_observaciones' };
       case 'auditoria':
-        reporte = 'auditoria';
-        filtros = this.limpiarParametros(this.audFiltros);
-        nombre = 'reporte_auditoria';
-        break;
+        return { reporte: 'auditoria', filtros: this.limpiarParametros(this.audFiltros), nombre: 'reporte_auditoria' };
       default:
-        reporte = 'usuarios';
-        filtros = this.limpiarParametros(this.usrFiltros);
-        nombre = 'reporte_usuarios';
-        break;
+        return { reporte: 'usuarios', filtros: this.limpiarParametros(this.usrFiltros), nombre: 'reporte_usuarios' };
     }
+  }
 
+  exportar(formato: 'pdf' | 'xlsx'): void {
+    const { reporte, filtros, nombre } = this.configReporte();
     this.reportesService.exportarReporte(reporte, formato, filtros).subscribe({
       next: (blob) => {
         this.descargarBlob(blob, `${nombre}.${formato}`);
         this.toast.success(`Reporte exportado en ${formato.toUpperCase()}`);
       },
       error: () => this.toast.error('No se pudo exportar el reporte'),
+    });
+  }
+
+  previsualizar(): void {
+    const { reporte, filtros } = this.configReporte();
+    this.reportesService.exportarReporte(reporte, 'pdf', filtros).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+      },
+      error: () => this.toast.error('No se pudo generar la vista previa'),
     });
   }
 
