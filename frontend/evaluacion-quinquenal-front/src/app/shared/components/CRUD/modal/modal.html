@@ -19,6 +19,7 @@
             [(ngModel)]="model[field.name]"
             [name]="field.name"
             [id]="field.name"
+            [attr.autocomplete]="field.type === 'password' ? 'new-password' : null"
             [placeholder]="field.placeholder || ''" />
 
           <textarea *ngIf="field.type === 'textarea'" rows="4"

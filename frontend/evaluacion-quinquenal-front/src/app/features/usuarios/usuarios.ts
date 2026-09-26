@@ -248,6 +248,21 @@ export class Usuarios implements OnInit {
 
   onModalSave(saved: any): void {
     const selectedRole = this.roles.find(role => role.value === saved.rol);
+    const creando = !(this.selectedItem && this.selectedItem.id);
+
+    if (creando && (!saved.password || String(saved.password).length < 8)) {
+      this.toast.error('Al crear un usuario la contraseña es obligatoria (mínimo 8 caracteres)');
+      return;
+    }
+    if (!saved.username || String(saved.username).trim().length < 3) {
+      this.toast.error('El nombre de usuario debe tener al menos 3 caracteres');
+      return;
+    }
+    if (!saved.email) {
+      this.toast.error('El correo electrónico es obligatorio');
+      return;
+    }
+
     const payload: any = {
       username: saved.username,
       first_name: saved.first_name,
@@ -263,6 +278,18 @@ export class Usuarios implements OnInit {
       payload.group_ids = [selectedRole.id];
     }
 
+    const mensajeError = (err: any): string => {
+      const detalle = err?.error || {};
+      return (
+        detalle?.password?.[0] ||
+        detalle?.username?.[0] ||
+        detalle?.email?.[0] ||
+        detalle?.non_field_errors?.[0] ||
+        detalle?.error ||
+        'No se pudo completar la operación'
+      );
+    };
+
     if (this.selectedItem && this.selectedItem.id) {
       this.organizacionService.actualizarUsuario(this.selectedItem.id, payload).subscribe({
         next: () => {
@@ -276,7 +303,7 @@ export class Usuarios implements OnInit {
         },
         error: (err) => {
           console.error('Error actualizando usuario', err);
-          this.toast.error('No se pudo actualizar el usuario');
+          this.toast.error(mensajeError(err));
         }
       });
     } else {
@@ -303,7 +330,7 @@ export class Usuarios implements OnInit {
         },
         error: (err) => {
           console.error('Error creando usuario', err);
-          this.toast.error('No se pudo crear el usuario');
+          this.toast.error(mensajeError(err));
         }
       });
     }
