@@ -200,6 +200,11 @@
   background: linear-gradient(135deg, #b91c1c, #ef4444);
 }
 
+.btn-exportar.preview {
+  background: linear-gradient(135deg, #d97706, #facc15);
+  color: #1f2937;
+}
+
 .state-message {
   text-align: center;
   padding: 38px 24px;
