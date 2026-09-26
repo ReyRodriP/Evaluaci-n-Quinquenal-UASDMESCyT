@@ -24,5 +24,19 @@ export class App implements OnInit {
         },
       });
     }
+    this.bloquearCopia();
+  }
+
+  private bloquearCopia(): void {
+    const esCampoDeEdicion = (e: Event): boolean => {
+      const t = e.target as HTMLElement | null;
+      return !!t?.closest?.('input, textarea, select, [contenteditable="true"]');
+    };
+
+    document.addEventListener('copy', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('cut', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('paste', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('contextmenu', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
+    document.addEventListener('dragstart', (e) => { if (!esCampoDeEdicion(e)) e.preventDefault(); }, true);
   }
 }

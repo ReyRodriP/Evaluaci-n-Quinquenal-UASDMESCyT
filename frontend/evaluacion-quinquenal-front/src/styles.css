@@ -173,3 +173,23 @@ textarea:focus-visible,
     left: 0;
 }
 
+/* =========== Proteccion contra copia de texto =========== */
+html,
+body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Los campos de formularios siguen funcionando normal (escribir/seleccionar) */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
