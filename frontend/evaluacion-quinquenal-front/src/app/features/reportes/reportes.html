@@ -30,7 +30,7 @@
     <div class="reporte-filtros">
       <label>
         Período
-        <select [(ngModel)]="genFiltros.periodo" (change)="cargarGeneral()">
+        <select name="gen_periodo" [(ngModel)]="genFiltros.periodo" (change)="cargarGeneral()">
           <option value="">Último período</option>
           <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
         </select>
@@ -90,7 +90,7 @@
     <div class="reporte-filtros">
       <label>
         Facultad
-        <select [(ngModel)]="facId" (change)="cargarFacultad()">
+        <select name="fac_id" [(ngModel)]="facId" (change)="cargarFacultad()">
           <option value="">Seleccione una facultad</option>
           <option *ngFor="let f of facultades" [value]="f.id">{{ f.nombre }}</option>
         </select>
@@ -130,7 +130,7 @@
     <div class="reporte-filtros">
       <label>
         Departamento
-        <select [(ngModel)]="depId" (change)="depPage = 1; cargarDepartamento()">
+        <select name="dep_id" [(ngModel)]="depId" (change)="depPage = 1; cargarDepartamento()">
           <option value="">Seleccione un departamento</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
@@ -167,7 +167,7 @@
     <div class="reporte-filtros">
       <label>
         Estado
-        <select [(ngModel)]="evFiltros.estado" (change)="evPage = 1; cargarEvidencias()">
+        <select name="ev_estado" [(ngModel)]="evFiltros.estado" (change)="evPage = 1; cargarEvidencias()">
           <option value="">Todos</option>
           <option value="pendiente">Pendiente</option>
           <option value="en_progreso">En revisión</option>
@@ -178,21 +178,21 @@
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="evFiltros.departamento" (change)="evPage = 1; cargarEvidencias()">
+        <select name="ev_departamento" [(ngModel)]="evFiltros.departamento" (change)="evPage = 1; cargarEvidencias()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Período
-        <select [(ngModel)]="evFiltros.periodo" (change)="evPage = 1; cargarEvidencias()">
+        <select name="ev_periodo" [(ngModel)]="evFiltros.periodo" (change)="evPage = 1; cargarEvidencias()">
           <option value="">Todos</option>
           <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
         </select>
       </label>
       <label>
         Criterio
-        <select [(ngModel)]="evFiltros.criterio" (change)="evPage = 1; cargarEvidencias()">
+        <select name="ev_criterio" [(ngModel)]="evFiltros.criterio" (change)="evPage = 1; cargarEvidencias()">
           <option value="">Todos</option>
           <option *ngFor="let c of criterios" [value]="c.id">{{ c.nombre }}</option>
         </select>
@@ -236,21 +236,21 @@
     <div class="reporte-filtros">
       <label>
         Período
-        <select [(ngModel)]="obsFiltros.periodo" (change)="obsPage = 1; cargarObservaciones()">
+        <select name="obs_periodo" [(ngModel)]="obsFiltros.periodo" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
         </select>
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="obsFiltros.departamento" (change)="obsPage = 1; cargarObservaciones()">
+        <select name="obs_departamento" [(ngModel)]="obsFiltros.departamento" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Observador
-        <select [(ngModel)]="obsFiltros.usuario" (change)="obsPage = 1; cargarObservaciones()">
+        <select name="obs_usuario" [(ngModel)]="obsFiltros.usuario" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
@@ -298,26 +298,26 @@
     <div class="reporte-filtros">
       <label>
         Usuario
-        <select [(ngModel)]="audFiltros.usuario" (change)="audPage = 1; cargarAuditoria()">
+        <select name="aud_usuario" [(ngModel)]="audFiltros.usuario" (change)="audPage = 1; cargarAuditoria()">
           <option value="">Todos</option>
           <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
         </select>
       </label>
       <label>
         Desde
-        <input type="date" [(ngModel)]="audFiltros.fecha_desde" (change)="audPage = 1; cargarAuditoria()" />
+        <input name="aud_fecha_desde" type="date" [(ngModel)]="audFiltros.fecha_desde" (change)="audPage = 1; cargarAuditoria()" />
       </label>
       <label>
         Hasta
-        <input type="date" [(ngModel)]="audFiltros.fecha_hasta" (change)="audPage = 1; cargarAuditoria()" />
+        <input name="aud_fecha_hasta" type="date" [(ngModel)]="audFiltros.fecha_hasta" (change)="audPage = 1; cargarAuditoria()" />
       </label>
       <label>
         Modelo
-        <input type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" (ngModelChange)="onTextoAuditoria()" />
+        <input name="aud_modelo" type="text" [(ngModel)]="audFiltros.modelo" placeholder="Ej. Evidencia, Usuario" (ngModelChange)="onTextoAuditoria()" />
       </label>
       <label>
         Acción
-        <input type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" (ngModelChange)="onTextoAuditoria()" />
+        <input name="aud_accion" type="text" [(ngModel)]="audFiltros.accion" placeholder="Ej. Aprobar, Crear" (ngModelChange)="onTextoAuditoria()" />
       </label>
       <button class="btn-limpiar" (click)="limpiarFiltrosAuditoria()">
         <i class="bx bx-reset"></i> Limpiar filtros
@@ -358,21 +358,21 @@
     <div class="reporte-filtros">
       <label>
         Rol
-        <select [(ngModel)]="usrFiltros.rol" (change)="usrPage = 1; cargarUsuarios()">
+        <select name="usr_rol" [(ngModel)]="usrFiltros.rol" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
           <option *ngFor="let r of roles" [value]="r.name">{{ r.name }}</option>
         </select>
       </label>
       <label>
         Departamento
-        <select [(ngModel)]="usrFiltros.departamento" (change)="usrPage = 1; cargarUsuarios()">
+        <select name="usr_departamento" [(ngModel)]="usrFiltros.departamento" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
           <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
         </select>
       </label>
       <label>
         Estado
-        <select [(ngModel)]="usrFiltros.estado" (change)="usrPage = 1; cargarUsuarios()">
+        <select name="usr_estado" [(ngModel)]="usrFiltros.estado" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>

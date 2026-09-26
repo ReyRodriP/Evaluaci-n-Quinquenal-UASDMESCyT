@@ -65,12 +65,12 @@
 
                     <div class="field-group">
                         <label>Título</label>
-                        <input type="text" [(ngModel)]="infoEditada.titulo" placeholder="Título de la evidencia" />
+                        <input type="text" name="titulo" [(ngModel)]="infoEditada.titulo" placeholder="Título de la evidencia" />
                     </div>
 
                     <div class="field-group">
                         <label>Descripción</label>
-                        <textarea rows="3" [(ngModel)]="infoEditada.descripcion" placeholder="Descripción de la evidencia"></textarea>
+                        <textarea name="descripcion" rows="3" [(ngModel)]="infoEditada.descripcion" placeholder="Descripción de la evidencia"></textarea>
                     </div>
 
                     <div class="edit-info-actions">
@@ -225,7 +225,7 @@
 
                         <div class="field-group">
                             <label>Archivo (dejar vacío para mantener el actual)</label>
-                            <input type="file" (change)="onVersionEditFileChange($event)" />
+                            <input type="file" name="archivo_version" (change)="onVersionEditFileChange($event)" />
                             <small class="file-limit">Tamaño máximo permitido: {{ MAX_ARCHIVO_MB }} MB</small>
                             <div *ngIf="versionEditFileError" class="file-error">
                                 <i class="bx bx-error-circle"></i>
@@ -236,7 +236,7 @@
 
                         <div class="field-group">
                             <label>Comentario</label>
-                            <textarea rows="3" [(ngModel)]="versionEditComentario" placeholder="Comentario de la versión"></textarea>
+                            <textarea name="comentario_version" rows="3" [(ngModel)]="versionEditComentario" placeholder="Comentario de la versión"></textarea>
                         </div>
 
                         <div class="edit-info-actions">
@@ -349,6 +349,7 @@
                         <label>Archivo</label>
 
                         <input
+                            name="archivo"
                             type="file"
                             (change)="onFileChange($event)">
 
@@ -366,6 +367,7 @@
                         <label>Comentario</label>
 
                         <textarea
+                            name="comentarioVersion"
                             rows="4"
                             [(ngModel)]="comentarioVersion"
                             placeholder="Describe brevemente qué cambió en esta nueva versión...">
@@ -433,6 +435,8 @@
                         <label>Observación</label>
 
                         <textarea
+
+                            name="comentarioRevision"
 
                             rows="5"
 

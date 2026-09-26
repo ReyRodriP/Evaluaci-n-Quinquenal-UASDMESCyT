@@ -49,6 +49,7 @@
               <label>
                 <input
                   type="checkbox"
+                  [name]="field.name"
                   [checked]="model[field.name]?.includes(option?.value ?? option)"
                   (change)="toggleCheckbox(field.name, option?.value ?? option)"
                 />

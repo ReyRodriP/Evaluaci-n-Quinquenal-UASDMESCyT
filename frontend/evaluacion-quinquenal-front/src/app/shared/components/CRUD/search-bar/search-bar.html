@@ -14,6 +14,7 @@
     <div class="toolbar">
 
         <input
+            name="busqueda"
             type="text"
             [placeholder]="placeholder"
             class="search-box"
@@ -21,11 +22,11 @@
             (input)="onSearch($event)"
         >
 
-        <select *ngIf="showState && stateOptions?.length" [attr.aria-label]="stateLabel" (change)="onStateChange($event)">
+        <select name="estado" *ngIf="showState && stateOptions?.length" [attr.aria-label]="stateLabel" (change)="onStateChange($event)">
             <option *ngFor="let option of stateOptions" [value]="option">{{ option }}</option>
         </select>
 
-        <select [value]="pageSize" (change)="onPageSizeChange($event)">
+        <select name="pagina" [value]="pageSize" (change)="onPageSizeChange($event)">
             <option value="10">10 registros</option>
             <option value="25">25 registros</option>
             <option value="50">50 registros</option>

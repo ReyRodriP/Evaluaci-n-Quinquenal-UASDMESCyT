@@ -13,12 +13,12 @@
 
         <div class="input-group">
             <i class='bx bx-user'></i>
-            <input type="text" placeholder="Nombre de usuario" formControlName="username">
+            <input name="username" type="text" placeholder="Nombre de usuario" formControlName="username">
         </div>
 
         <div class="input-group">
             <i class="bx bx-lock"></i>
-            <input [type]="showPassword ? 'text' : 'password'" placeholder="Contraseña" formControlName="password" required minlength="6">
+            <input name="password" [type]="showPassword ? 'text' : 'password'" placeholder="Contraseña" formControlName="password" required minlength="6">
             <button type="button" class="password-toggle" (click)="togglePasswordVisibility()" aria-label="Mostrar u ocultar contraseña">
                 <i class="bx" [ngClass]="showPassword ? 'bx bx-eye' : 'bx bx-eye-closed'"></i>
             </button>
