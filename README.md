@@ -4,9 +4,8 @@ Plataforma web para centralizar, administrar y dar seguimiento a las evidencias 
 
 ## Quickstart con Docker (recomendado)
 
-Requiere solo Docker Desktop. Un comando crea el `.env`, baja las imagenes
-publicadas en GitHub Container Registry, aplica migraciones, carga los datos
-iniciales y crea el superusuario.
+Requiere solo Docker Desktop. Un comando crea el `.env`, construye las imágenes,
+aplica migraciones, carga los datos iniciales y crea el superusuario.
 
 ```powershell
 git clone https://github.com/ReyRodriP/Evaluaci-n-Quinquenal-UASDMESCyT.git
@@ -30,10 +29,9 @@ quieres (luego: `.\crear_superusuario.ps1 -Username admin -Password TuClave`).
 - Crea `.env` desde `.env.dev` (versionado, con valores de desarrollo) y le
   genera `SECRET_KEY`, `DB_PASSWORD` y `REDIS_PASSWORD` aleatorios.
   `.env` esta en `.gitignore`, nunca se sube.
-- `docker compose pull` descarga `backend` y `frontend` de GHCR (las publica el
-  workflow `CI` en cada push a `main`). Si el paquete todavia no existe o es
-  privado, cae automaticamente a **build local** desde `backend/` y
-  `frontend/` — 2 a 4 minutos la primera vez por el build de Angular.
+- Construye las imagenes de `backend` y `frontend` localmente — 2 a 4 minutos la
+  primera vez por el build de Angular, segundos en los siguientes arranques.
+  Docker solo descarga de red las imagenes base de postgres y redis.
 - Aplica migraciones, `collectstatic`, sincroniza roles y permisos (`sync_roles`)
   y carga los datos iniciales: 9 facultades, 7 departamentos, 2 periodos,
   8 criterios y los 6 roles con sus permisos (`seed`).
@@ -42,13 +40,14 @@ quieres (luego: `.\crear_superusuario.ps1 -Username admin -Password TuClave`).
 
 ```powershell
 .\up.ps1                 # levantar o actualizar el stack
-.\up.ps1 -Build          # reconstruir imagenes locales tras cambiar codigo
+.\up.ps1 -Build          # reconstruir imagenes tras cambiar codigo
 docker compose logs -f backend
 docker compose down -v   # borrar el stack y los datos (empezar de cero)
 ```
 
-> Si trabajas en una rama que aun no esta en `main`, la imagen de GHCR es la de
-> `main`: usa `.\up.ps1 -Build` para que el contenedor ejecute tu codigo.
+> `docker-compose.yml` no declara `image:` a proposito, para que nadie dependa
+> de un registry. Si en el futuro se publican imagenes en GitHub Container
+> Registry, se anade la linea `image:` al servicio y el `pull` las baja solas.
 
 ## Tech Stack
 

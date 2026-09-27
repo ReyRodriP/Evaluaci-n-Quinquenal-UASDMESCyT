@@ -79,12 +79,11 @@ Write-Host "=== Sistema de Evaluacion Quinquenal UASD-MESCyT (modo: $mode) ==="
 if ($mode -eq 'docker') {
     Test-Tool docker 'Instala Docker Desktop y vuelve a correr el script.'
 
-    Write-Host '1. Descargando imagenes publicadas en GitHub Container Registry...'
+    Write-Host '1. Descargando imagenes base (postgres, redis)...'
     docker compose pull
     if ($LASTEXITCODE -ne 0) {
-        Write-Host '  AVISO: no se pudieron descargar todas las imagenes de GHCR.'
-        Write-Host '  (todavia no estan publicadas, o el paquete sigue siendo privado).'
-        Write-Host '  Se continuara con build local desde backend/ y frontend/.'
+        Write-Host '  AVISO: alguna imagen base no se pudo descargar.'
+        Write-Host '  Docker construira las que falten, pero conviene revisar la conexion.'
     }
 
     Write-Host '2. Levantando Postgres, Redis, Backend y Frontend...'

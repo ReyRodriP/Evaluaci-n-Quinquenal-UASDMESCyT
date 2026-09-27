@@ -602,35 +602,32 @@ superusuario, SMTP) se edita `.env` y se vuelve a ejecutar `.\up.ps1`.
 | `REDIS_PASSWORD` | Contraseña de Redis (cache y límites de peticiones) |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos; en local, `http://localhost` y `:4200` |
 | `SUPERUSER_*` | Usuario, correo y contraseña del superusuario de desarrollo |
-| `IMAGE_BACKEND` / `IMAGE_FRONTEND` | Permite apuntar a otro registro o etiqueta de imagen |
 
-#### 6.6.4 Imágenes preconstruidas
+#### 6.6.4 Origen de las imágenes
 
-Las imágenes `backend` y `frontend` se publican en GitHub Container Registry
-por el workflow `CI` en cada `push` a `main`, con las etiquetas `latest` y el
-SHA del commit. `docker compose pull` las descarga sin necesidad de `docker
-login` siempre que el paquete sea público.
+`docker-compose.yml` **no declara `image:`** para `backend` ni para `frontend`.
+Eso es deliberado: el stack se construye siempre en local y nadie depende de un
+registro externo ni de un token. `docker compose pull` solo descarga las
+imágenes base de PostgreSQL y Redis; el primer arranque paga el build de
+Angular (2 a 4 minutos) y los siguientes son segundos.
 
-Mientras no haya imágenes publicadas, el stack funciona igual: `docker compose
-pull` falla con `denied`, `up.ps1` lo avisa y construye las imágenes localmente
-desde `backend/` y `frontend/`. Es el flujo que usa el equipo en su día a día, a
-costa de 2 a 4 minutos la primera vez (el build de Angular).
-
-**Si algún día se quieren publicar**, hace falta, una sola vez y desde la
-máquina del mantenedor:
+**Publicar imágenes en GitHub Container Registry (opcional, no necesario para
+el equipo).** El workflow `CI` ya está preparado para subir `backend` y
+`frontend` a GHCR en cada `push` a `main`, con las etiquetas `latest` y el SHA del
+commit. Para activarlo:
 
 1. Crear un PAT de la cuenta propietaria del repositorio con el scope
-   `write:packages` (https://github.com/settings/tokens).
-2. `docker login ghcr.io -u ReyRodriP` con ese token.
-3. `docker compose build backend frontend` y `docker push` de cada imagen con
-   las etiquetas `latest` y el SHA.
-4. En GitHub, *Settings → Packages → `backend` y `frontend` → Change visibility
-   → Public*.
+   `write:packages` (https://github.com/settings/tokens) y guardarlo como secret
+   `GHCR_TOKEN` del repositorio, para que el workflow pueda autenticarse.
+2. En GitHub, *Settings → Packages → `backend` y `frontend` → Change visibility
+   → Public*. Sin este paso el pull devuelve `denied` a quien no tenga sesión
+   iniciada.
+3. Añadir en `docker-compose.yml` la línea `image:` de cada servicio, para que
+   `docker compose` use la imagen publicada en lugar de construirla.
 
-Sin el paso 4, el pull devuelve `denied` para cualquiera que no tenga sesión
-iniciada. Se comprueba con
-`docker pull ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/backend:latest`
-sin haber hecho `docker login`.
+El paso 3 es el que activa el ahorro de tiempo: mientras no esté, cada persona
+que clone el repositorio compila el frontend por su cuenta.
+
 
 Cuando se cambia código y se quiere que el contenedor ejecute esos cambios:
 

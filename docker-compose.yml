@@ -27,11 +27,11 @@ services:
       retries: 5
 
   backend:
-    # Imagen prebuilt en GitHub Container Registry (publicada por CI al hacer
-    # push a main). Si no esta disponible, `docker compose up` la construye
-    # localmente desde ./backend porque tambien esta declarado `build:`.
-    # Para forzar el build local despues de un pull: docker compose build backend
-    image: ${IMAGE_BACKEND:-ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/backend:latest}
+    # Sin `image:`: docker compose construye el backend localmente y lo nombra
+    # proyectomonografico-backend. Si en el futuro se publican imagenes en
+    # GitHub Container Registry, basta con anadir aqui la linea
+    # `image: ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/backend:latest`
+    # para que `docker compose pull` las descargue en vez de reconstruirlas.
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -79,8 +79,7 @@ services:
       - logs_data:/app/logs
 
   frontend:
-    # Mismo criterio que backend: pull desde GHCR, build local como fallback.
-    image: ${IMAGE_FRONTEND:-ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/frontend:latest}
+    # Mismo criterio que backend: sin `image:`, se construye localmente.
     build:
       context: ./frontend/evaluacion-quinquenal-front
       dockerfile: Dockerfile
