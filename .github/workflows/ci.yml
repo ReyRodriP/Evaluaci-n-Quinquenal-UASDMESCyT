@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: cd frontend/evaluacion-quinquenal-front && npm ci
+      - run: cd frontend/evaluacion-quinquenal-front && npm ci --legacy-peer-deps
       - run: cd frontend/evaluacion-quinquenal-front && npx ng test --watch=false --browsers=ChromeHeadless
       - run: cd frontend/evaluacion-quinquenal-front && npx ng build --configuration production
 

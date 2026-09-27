@@ -1,0 +1,21 @@
+# Normaliza finales de linea en el repositorio (LF) para que CI y Windows
+# no generen diferencias por CRLF/LF.
+* text=auto eol=lf
+
+# PowerShell y batch: CRLF en el working tree de Windows.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binarios
+*.docx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.rar binary
+*.xlsx binary
+*.doc binary
