@@ -17,7 +17,7 @@ cd Evaluaci-n-Quinquenal-UASDMESCyT
 | Servicio              | URL                            |
 |-----------------------|--------------------------------|
 | Frontend (Angular)    | http://localhost               |
-| API + docs OpenAPI    | http://localhost:8000/api/docs/ |
+| API + docs OpenAPI    | http://localhost:8000/api/docs/ (pide token: es la misma vista que `/admin/`) |
 | Salud del backend     | http://localhost:8000/health/  |
 | Django admin          | http://localhost:8000/admin/   |
 
