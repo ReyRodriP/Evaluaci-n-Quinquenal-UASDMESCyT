@@ -609,28 +609,26 @@ superusuario, SMTP) se edita `.env` y se vuelve a ejecutar `.\up.ps1`.
 Las imágenes `backend` y `frontend` se publican en GitHub Container Registry
 por el workflow `CI` en cada `push` a `main`, con las etiquetas `latest` y el
 SHA del commit. `docker compose pull` las descarga sin necesidad de `docker
-login` siempre que el paquete sea público. Si la descarga falla, `setup-todo.ps1`
-avisa y construye las imágenes localmente desde `backend/` y `frontend/`.
+login` siempre que el paquete sea público.
 
-Si la imagen todavía no está publicada, se puede publicar y abrir desde el
-equipo del mantenedor con un único script:
+Mientras no haya imágenes publicadas, el stack funciona igual: `docker compose
+pull` falla con `denied`, `up.ps1` lo avisa y construye las imágenes localmente
+desde `backend/` y `frontend/`. Es el flujo que usa el equipo en su día a día, a
+costa de 2 a 4 minutos la primera vez (el build de Angular).
 
-```powershell
-# PAT de la cuenta propietaria del repositorio, con el scope write:packages
-$env:GHCR_TOKEN = 'ghp_...'
-$env:GHCR_USER = 'ReyRodriP'
-.\publicar-imagenes.ps1
-```
+**Si algún día se quieren publicar**, hace falta, una sola vez y desde la
+máquina del mantenedor:
 
-El script construye las imágenes, las etiqueta con `latest` y el SHA del commit,
-sube ambas, cambia la visibilidad de los dos paquetes a **Public** y verifica
-finalmente que se descargan sin `docker login`. Con `-SkipBuild` reutiliza las
-imágenes ya construidas y con `-SkipVisibility` solo sube.
+1. Crear un PAT de la cuenta propietaria del repositorio con el scope
+   `write:packages` (https://github.com/settings/tokens).
+2. `docker login ghcr.io -u ReyRodriP` con ese token.
+3. `docker compose build backend frontend` y `docker push` de cada imagen con
+   las etiquetas `latest` y el SHA.
+4. En GitHub, *Settings → Packages → `backend` y `frontend` → Change visibility
+   → Public*.
 
-**Tarea de mantenimiento (una sola vez, la hace quien administra el
-repositorio):** en GitHub, *Settings → Packages → `backend` y `frontend` →
-Change visibility → Public*. Mientras el paquete sea privado, el pull devuelve
-`denied` y el equipo cae al build local. Se puede comprobar con
+Sin el paso 4, el pull devuelve `denied` para cualquiera que no tenga sesión
+iniciada. Se comprueba con
 `docker pull ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/backend:latest`
 sin haber hecho `docker login`.
 
