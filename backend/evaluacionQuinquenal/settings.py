@@ -241,7 +241,6 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
-
 # =============================================================================
 # REST FRAMEWORK - 11. Limitar login, 12. Proteccion bots, 17. Limitar API
 # =============================================================================

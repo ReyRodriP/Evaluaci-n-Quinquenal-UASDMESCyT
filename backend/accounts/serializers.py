@@ -343,7 +343,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, data):
         try:
-            user = User.objects.get(pk=data['uid'])
+            user = User.objects.get(pk=data["uid"])
         except User.DoesNotExist:
             raise serializers.ValidationError("Usuario inválido.") from None
         if not user.is_active:

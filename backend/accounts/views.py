@@ -553,7 +553,7 @@ def password_reset_request(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    email = serializer.validated_data['email']
+    email = serializer.validated_data["email"]
     user = User.objects.get(email=email)
 
     from django.contrib.auth.tokens import default_token_generator
@@ -565,11 +565,14 @@ def password_reset_request(request):
 
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?uidb64={uidb64}&token={token}"
 
-    subject = 'Recuperación de Contraseña - Evaluación Quinquenal UASD-MESCyT'
-    html_message = render_to_string('registration/password_reset_email.html', {
-        'user': user,
-        'reset_url': reset_url,
-    })
+    subject = "Recuperación de Contraseña - Evaluación Quinquenal UASD-MESCyT"
+    html_message = render_to_string(
+        "registration/password_reset_email.html",
+        {
+            "user": user,
+            "reset_url": reset_url,
+        },
+    )
     plain_message = strip_tags(html_message)
 
     send_mail(
@@ -586,12 +589,12 @@ def password_reset_request(request):
         accion="Solicitud de recuperación de contraseña",
         modelo="Usuario",
         registro_id=user.pk,
-        descripcion=f"El usuario {user.username} solicitó recuperación de contraseña"
+        descripcion=f"El usuario {user.username} solicitó recuperación de contraseña",
     )
 
     return Response(
         {"message": "Se ha enviado un correo con las instrucciones para recuperar tu contraseña."},
-        status=status.HTTP_200_OK
+        status=status.HTTP_200_OK,
     )
 
 
@@ -603,35 +606,29 @@ def password_reset_confirm(request):
     from django.utils.encoding import force_str
     from django.utils.http import urlsafe_base64_decode
 
-    uidb64 = request.data.get('uidb64')
-    token = request.data.get('token')
-    new_password = request.data.get('new_password')
+    uidb64 = request.data.get("uidb64")
+    token = request.data.get("token")
+    new_password = request.data.get("new_password")
 
     if not uidb64 or not token or not new_password:
         return Response(
-            {"error": "Faltan campos requeridos (uidb64, token, new_password)."},
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "Faltan campos requeridos (uidb64, token, new_password)."}, status=status.HTTP_400_BAD_REQUEST
         )
 
     if len(new_password) < 6:
         return Response(
-            {"error": "La contraseña debe tener al menos 6 caracteres."},
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "La contraseña debe tener al menos 6 caracteres."}, status=status.HTTP_400_BAD_REQUEST
         )
 
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return Response(
-            {"error": "El enlace de recuperación no es válido."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response({"error": "El enlace de recuperación no es válido."}, status=status.HTTP_400_BAD_REQUEST)
 
     if not default_token_generator.check_token(user, token):
         return Response(
-            {"error": "El enlace de recuperación ha expirado o no es válido."},
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "El enlace de recuperación ha expirado o no es válido."}, status=status.HTTP_400_BAD_REQUEST
         )
 
     user.set_password(new_password)
@@ -770,19 +767,14 @@ def reset_password(request):
         accion="Restablecer contraseña",
         modelo="Usuario",
         registro_id=user.pk,
-        descripcion=f"El usuario {user.username} restableció su contraseña"
+        descripcion=f"El usuario {user.username} restableció su contraseña",
     )
 
     crear_notificacion(
-        usuario=user,
-        titulo="Contraseña restablecida",
-        mensaje="Tu contraseña ha sido restablecida exitosamente."
+        usuario=user, titulo="Contraseña restablecida", mensaje="Tu contraseña ha sido restablecida exitosamente."
     )
 
-    return Response(
-        {"message": "Contraseña restablecida correctamente."},
-        status=status.HTTP_200_OK
-    )
+    return Response({"message": "Contraseña restablecida correctamente."}, status=status.HTTP_200_OK)
 
 
 class _ApiDocSerializer(serializers.Serializer):
