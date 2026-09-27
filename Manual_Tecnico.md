@@ -471,6 +471,9 @@ monografico/
 | npm | 9.x |
 | Git | Cualquier versión moderna |
 
+> Para levantar el sistema completo (base de datos, Redis, backend y frontend)
+> sin instalar Python ni Node, ver la sección 6.6.
+
 ### 6.2 Instalación del Backend
 
 ```bash
@@ -545,6 +548,116 @@ djangorestframework>=3.15
 django-cors-headers>=4.0
 Pillow>=10.0
 ```
+
+---
+
+### 6.6 Instalación del Stack Completo con Docker (recomendada)
+
+Las secciones 6.2 y 6.3 describen el desarrollo de backend y frontend por
+separado, con Python y Node instalados en el sistema. Para trabajar con el
+sistema completo (PostgreSQL, Redis, backend Django y frontend Angular) lo
+recomendable es Docker: no hace falta instalar nada mas que Docker Desktop.
+
+#### 6.6.1 Requisitos
+
+Solo Docker Desktop con el motor de Linux habilitado. Los scripts son
+PowerShell, pensados para Windows (todo el equipo usa Windows).
+
+#### 6.6.2 Puesta en marcha
+
+```powershell
+# 1. Clonar el repositorio
+git clone https://github.com/ReyRodriP/Evaluaci-n-Quinquenal-UASDMESCyT.git
+cd Evaluaci-n-Quinquenal-UASDMESCyT
+
+# 2. Levantar todo con un solo comando
+.\setup-todo.ps1
+```
+
+El script ejecuta, en orden:
+
+| Paso | Qué hace |
+|------|----------|
+| 1 | Crea `.env` desde la plantilla `.env.dev` con `SECRET_KEY`, `DB_PASSWORD` y `REDIS_PASSWORD` aleatorios |
+| 2 | `docker compose pull` (imágenes de GHCR) y `docker compose up -d` |
+| 3 | Espera a que `/health/` responda, corrige permisos de `media/` y `logs/` |
+| 4 | `python manage.py migrate` y `python manage.py collectstatic` |
+| 5 | `python manage.py sync_roles` (roles y permisos) |
+| 6 | `python manage.py seed` (facultades, departamentos, periodos, criterios) |
+| 7 | `python manage.py crear_superusuario` con las credenciales del `.env` |
+
+#### 6.6.3 Variables de entorno
+
+`.env` se genera solo a partir de `.env.dev`, que está versionado en el
+repositorio con valores de desarrollo. Las claves sensibles se sustituyen por
+valores aleatorios al crear el `.env`, y `.env` está en `.gitignore`, así que
+cada compañero tiene las suyas. Para cambiar algo (puertos, credenciales del
+superusuario, SMTP) se edita `.env` y se vuelve a ejecutar `.\up.ps1`.
+
+| Variable | Para qué sirve |
+|----------|----------------|
+| `DEBUG` | `True` muestra trazas de error útiles en desarrollo |
+| `SECRET_KEY` | Clave de firma de Django; se genera aleatoria en el primer arranque |
+| `DB_*` | Credenciales de PostgreSQL (contenedor `db`) |
+| `REDIS_PASSWORD` | Contraseña de Redis (cache y límites de peticiones) |
+| `CORS_ALLOWED_ORIGINS` | Orígenes permitidos; en local, `http://localhost` y `:4200` |
+| `SUPERUSER_*` | Usuario, correo y contraseña del superusuario de desarrollo |
+| `IMAGE_BACKEND` / `IMAGE_FRONTEND` | Permite apuntar a otro registro o etiqueta de imagen |
+
+#### 6.6.4 Imágenes preconstruidas
+
+Las imágenes `backend` y `frontend` se publican en GitHub Container Registry
+por el workflow `CI` en cada `push` a `main`, con las etiquetas `latest` y el
+SHA del commit. `docker compose pull` las descarga sin necesidad de `docker
+login` siempre que el paquete sea público. Si la descarga falla, `setup-todo.ps1`
+avisa y construye las imágenes localmente desde `backend/` y `frontend/`.
+
+Si la imagen todavía no está publicada, se puede publicar y abrir desde el
+equipo del mantenedor con un único script:
+
+```powershell
+# PAT de la cuenta propietaria del repositorio, con el scope write:packages
+$env:GHCR_TOKEN = 'ghp_...'
+$env:GHCR_USER = 'ReyRodriP'
+.\publicar-imagenes.ps1
+```
+
+El script construye las imágenes, las etiqueta con `latest` y el SHA del commit,
+sube ambas, cambia la visibilidad de los dos paquetes a **Public** y verifica
+finalmente que se descargan sin `docker login`. Con `-SkipBuild` reutiliza las
+imágenes ya construidas y con `-SkipVisibility` solo sube.
+
+**Tarea de mantenimiento (una sola vez, la hace quien administra el
+repositorio):** en GitHub, *Settings → Packages → `backend` y `frontend` →
+Change visibility → Public*. Mientras el paquete sea privado, el pull devuelve
+`denied` y el equipo cae al build local. Se puede comprobar con
+`docker pull ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/backend:latest`
+sin haber hecho `docker login`.
+
+Cuando se cambia código y se quiere que el contenedor ejecute esos cambios:
+
+```powershell
+.\up.ps1 -Build
+```
+
+#### 6.6.5 Comandos habituales
+
+```powershell
+.\up.ps1                 # levantar o actualizar el stack
+.\up.ps1 -Build          # reconstruir las imágenes locales
+docker compose ps        # estado de los contenedores
+docker compose logs -f backend
+docker compose exec backend python manage.py <comando>
+docker compose down      # parar el stack (conserva los datos)
+docker compose down -v   # parar y borrar volúmenes (empezar de cero)
+```
+
+#### 6.6.6 Despliegue en Kubernetes
+
+Los scripts aceptan `-Mode k8s` para desplegar sobre el cluster de Docker
+Desktop: `.\up.ps1 -mode k8s` y `.\setup-todo.ps1 -Mode k8s`. Los manifiestos
+están en `k8s/` y el despliegue automatizado al cluster remoto se dispara con
+el workflow `Deploy a Kubernetes`.
 
 ---
 

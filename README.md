@@ -2,6 +2,54 @@
 
 Plataforma web para centralizar, administrar y dar seguimiento a las evidencias requeridas durante los procesos de evaluaciÃ³n institucional de la Universidad AutÃ³noma de Santo Domingo (UASD) ante el Ministerio de EducaciÃ³n Superior, Ciencia y TecnologÃ­a (MESCyT).
 
+## Quickstart con Docker (recomendado)
+
+Requiere solo Docker Desktop. Un comando crea el `.env`, baja las imagenes
+publicadas en GitHub Container Registry, aplica migraciones, carga los datos
+iniciales y crea el superusuario.
+
+```powershell
+git clone https://github.com/ReyRodriP/Evaluaci-n-Quinquenal-UASDMESCyT.git
+cd Evaluaci-n-Quinquenal-UASDMESCyT
+.\setup-todo.ps1
+```
+
+| Servicio              | URL                            |
+|-----------------------|--------------------------------|
+| Frontend (Angular)    | http://localhost               |
+| API + docs OpenAPI    | http://localhost:8000/api/docs/ |
+| Salud del backend     | http://localhost:8000/health/  |
+| Django admin          | http://localhost:8000/admin/   |
+
+**Credenciales de desarrollo:** usuario `admin`, contrasena `AdminDev2026`.
+El script la guarda en tu `.env` local como `SUPERUSER_PASSWORD`; cambiala si
+quieres (luego: `.\crear_superusuario.ps1 -Username admin -Password TuClave`).
+
+### Que hace el script
+
+- Crea `.env` desde `.env.dev` (versionado, con valores de desarrollo) y le
+  genera `SECRET_KEY`, `DB_PASSWORD` y `REDIS_PASSWORD` aleatorios.
+  `.env` esta en `.gitignore`, nunca se sube.
+- `docker compose pull` descarga `backend` y `frontend` de GHCR (las publica el
+  workflow `CI` en cada push a `main`). Si el paquete todavia no existe o es
+  privado, cae automaticamente a **build local** desde `backend/` y
+  `frontend/` — 2 a 4 minutos la primera vez por el build de Angular.
+- Aplica migraciones, `collectstatic`, sincroniza roles y permisos (`sync_roles`)
+  y carga los datos iniciales: 9 facultades, 7 departamentos, 2 periodos,
+  8 criterios y los 6 roles con sus permisos (`seed`).
+
+### Comandos del dia a dia
+
+```powershell
+.\up.ps1                 # levantar o actualizar el stack
+.\up.ps1 -Build          # reconstruir imagenes locales tras cambiar codigo
+docker compose logs -f backend
+docker compose down -v   # borrar el stack y los datos (empezar de cero)
+```
+
+> Si trabajas en una rama que aun no esta en `main`, la imagen de GHCR es la de
+> `main`: usa `.\up.ps1 -Build` para que el contenedor ejecute tu codigo.
+
 ## Tech Stack
 
 | Capa       | TecnologÃ­a          | VersiÃ³n  |
@@ -92,6 +140,9 @@ monografico/
 ## InstalaciÃ³n y EjecuciÃ³n
 
 ### Backend
+
+> Desarrollo del backend aislado, sin Docker. Para el stack completo (DB, Redis,
+> backend y frontend) usa el [Quickstart con Docker](#quickstart-con-docker-recomendado).
 
 ```bash
 cd backend
