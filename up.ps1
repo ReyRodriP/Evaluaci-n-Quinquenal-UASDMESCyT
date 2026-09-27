@@ -1,7 +1,10 @@
 param(
     [ValidateSet('docker', 'k8s')]
     [string]$mode = 'docker',
-    [string]$kubeContext = 'docker-desktop'
+    [string]$kubeContext = 'docker-desktop',
+    # Fuerza la build local de las imagenes en vez de usar las de GHCR.
+    # Necesario despues de cambiar codigo: .\up.ps1 -Build
+    [switch]$Build
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,19 +37,34 @@ Write-Host "=== Sistema de Evaluacion Quinquenal UASD-MESCyT (modo: $mode) ==="
 if ($mode -eq 'docker') {
     Test-Tool docker 'Instala Docker Desktop y vuelve a correr el script.'
 
-    Write-Host '1. Construyendo y levantando Postgres, Redis, Backend y Frontend...'
-    docker compose up -d --build
+    Write-Host '1. Descargando imagenes publicadas en GitHub Container Registry...'
+    docker compose pull
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host '  AVISO: no se pudieron descargar todas las imagenes de GHCR.'
+        Write-Host '  (todavia no estan publicadas, o el paquete sigue siendo privado).'
+        Write-Host '  Se continuara con build local desde backend/ y frontend/.'
+    }
 
-    Write-Host '2. Esperando a que el backend este sano...'
+    Write-Host '2. Levantando Postgres, Redis, Backend y Frontend...'
+    if ($Build) {
+        Write-Host '  -Build activo: reconstruyendo las imagenes en local.'
+        docker compose up -d --build
+    }
+    else {
+        docker compose up -d
+    }
+    if ($LASTEXITCODE -ne 0) { Write-Error 'docker compose up fallo.' }
+
+    Write-Host '3. Esperando a que el backend este sano...'
     Wait-BackendHealth
 
-    Write-Host '3. Asegurando permisos del volumen media/logs...'
+    Write-Host '4. Asegurando permisos del volumen media/logs...'
     docker compose exec -u root -T backend chown -R appuser:appuser /app/media /app/logs | Out-Null
 
-    Write-Host '4. Aplicando migraciones...'
+    Write-Host '5. Aplicando migraciones...'
     docker compose exec -T backend python manage.py migrate --noinput
 
-    Write-Host '5. Recopilando archivos estaticos...'
+    Write-Host '6. Recopilando archivos estaticos...'
     docker compose exec -T backend python manage.py collectstatic --noinput
 
     Write-Host '=== Despliegue local (docker) completado ==='

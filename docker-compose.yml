@@ -27,6 +27,11 @@ services:
       retries: 5
 
   backend:
+    # Imagen prebuilt en GitHub Container Registry (publicada por CI al hacer
+    # push a main). Si no esta disponible, `docker compose up` la construye
+    # localmente desde ./backend porque tambien esta declarado `build:`.
+    # Para forzar el build local despues de un pull: docker compose build backend
+    image: ${IMAGE_BACKEND:-ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/backend:latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -59,17 +64,23 @@ services:
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@localhost}
+      - NOTIFICACIONES_EMAIL_ENABLED=${NOTIFICACIONES_EMAIL_ENABLED:-False}
       - SENTRY_DSN=${SENTRY_DSN:-}
       - MEDIA_ROOT=/app/media
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-False}
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-False}
       - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-False}
       - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-0}
+      # Credenciales del superusuario de desarrollo (las usa setup-todo.ps1).
+      - SUPERUSER_USERNAME=${SUPERUSER_USERNAME:-admin}
+      - SUPERUSER_EMAIL=${SUPERUSER_EMAIL:-admin@uased.local}
     volumes:
       - media_data:/app/media
       - logs_data:/app/logs
 
   frontend:
+    # Mismo criterio que backend: pull desde GHCR, build local como fallback.
+    image: ${IMAGE_FRONTEND:-ghcr.io/reyrodrip/evaluacion-n-quinquenal-uasdmescyt/frontend:latest}
     build:
       context: ./frontend/evaluacion-quinquenal-front
       dockerfile: Dockerfile
