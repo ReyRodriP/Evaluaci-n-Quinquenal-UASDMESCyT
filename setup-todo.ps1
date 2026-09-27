@@ -81,6 +81,8 @@ function Set-EnvValue {
 function Initialize-EnvFile {
     if (Test-Path -LiteralPath $envFile) {
         Write-Host '  .env ya existe: se respeta tu configuracion actual.'
+        Write-Host '  Si lo copiaste desde otro equipo o esta Sharing, borralo y vuelve a correr'
+        Write-Host '  el script para generar uno propio (claves nuevas y superusuario propio).'
     }
     else {
         if (-not (Test-Path -LiteralPath $envDev)) {
