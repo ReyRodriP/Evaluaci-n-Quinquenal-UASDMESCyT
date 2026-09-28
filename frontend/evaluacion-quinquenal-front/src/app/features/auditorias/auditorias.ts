@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../auth/services/auth-service';
+import { SistemaService } from '../../core/services/sistema.service';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
@@ -29,7 +29,7 @@ export class Auditorias implements OnInit {
   };
 
   constructor(
-    private authService: AuthService,
+    private sistemaService: SistemaService,
     private toast: ToastrService
   ) {}
 
@@ -39,7 +39,7 @@ export class Auditorias implements OnInit {
 
   loadData(): void {
     this.loading = true;
-    this.authService.listarAuditorias().subscribe({
+    this.sistemaService.listarAuditorias().subscribe({
       next: (data) => {
         this.allRows = data;
         this.computeStats();

@@ -1,22 +1,64 @@
-from django.contrib import admin
-from django.urls import path, include
+"""
+@file urls.py
+@brief URLs principales del proyecto Evaluación Quinquenal.
+@details Define las rutas URL raíz del proyecto, incluyendo
+las URLs de todas las aplicaciones del sistema y el admin.
+"""
+
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path, re_path
+from django.views.static import serve as _serve_file
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+
+
+class LoginThrottledTokenObtainPairView(TokenObtainPairView):
+    """@class LoginThrottledTokenObtainPairView
+    @brief Aplica el mismo limite de intentos que /api/login al endpoint /api/token/.
+    """
+
+    throttle_classes = [ScopedRateThrottle]
+
+
+LoginThrottledTokenObtainPairView.throttle_scope = "login"
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('dashboard.urls')),
-    path('api/', include('search.urls')),
-    path('api/', include('organization.urls')),
-    path('api/', include('evaluation.urls')),
-    path('api/', include('accounts.urls')),
-    path('api/', include('auditoria.urls')),
-    path('api/', include('notificaciones.urls')),
-    path('api/', include('evidence.urls')),
-    path('api/', include('evidencias.urls')),
-    path('api/', include('reportes.urls')),
-    path('api-auth/', include('rest_framework.urls')),
+    path("admin/", admin.site.urls),  # Proteger en produccion con staff_member_required (ver settings.py)
+    path("", include("health.urls")),
+    path("api/token/", LoginThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+    path("api/", include("dashboard.urls")),
+    path("api/", include("search.urls")),
+    path("api/", include("organization.urls")),
+    path("api/", include("evaluation.urls")),
+    path("api/", include("accounts.urls")),
+    path("api/", include("auditoria.urls")),
+    path("api/", include("notificaciones.urls")),
+    path("api/", include("evidence.urls")),
+    path("api/", include("evidencias.urls")),
+    path("api/", include("reportes.urls")),
+    path("api-auth/", include("rest_framework.urls")),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    urlpatterns += [
+        re_path(
+            r"^media/profile_pictures/(?P<path>.*)$",
+            _serve_file,
+            kwargs={"document_root": settings.MEDIA_ROOT / "profile_pictures"},
+            name="media_profile_pictures",
+        ),
+    ]

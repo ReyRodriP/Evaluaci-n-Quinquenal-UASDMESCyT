@@ -3,7 +3,7 @@ import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
-import { AuthService } from '../../core/services/auth.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -51,7 +51,7 @@ export class Indicadores implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -77,7 +77,7 @@ export class Indicadores implements OnInit {
   }
 
   loadCriterios() {
-    this.authService.listarCriterios().subscribe({
+    this.evaluacionService.listarCriterios().subscribe({
       next: (data) => {
         this.criterios = data;
         this.indicadorFields = this.indicadorFields.map(field => {
@@ -99,7 +99,7 @@ export class Indicadores implements OnInit {
   }
 
   loadIndicadores() {
-    this.authService.listarIndicadores().subscribe({
+    this.evaluacionService.listarIndicadores().subscribe({
       next: (data) => {
         this.datos = data.map((item: any) => ({
           ...item,
@@ -177,7 +177,7 @@ export class Indicadores implements OnInit {
     };
 
     if (this.selectedItem && this.selectedItem.id) {
-      this.authService.actualizarIndicador(this.selectedItem.id, payload).subscribe({
+      this.evaluacionService.actualizarIndicador(this.selectedItem.id, payload).subscribe({
         next: () => {
           this.toast.success('Indicador actualizado correctamente');
           this.loadIndicadores();
@@ -189,7 +189,7 @@ export class Indicadores implements OnInit {
         }
       });
     } else {
-      this.authService.crearIndicador(payload).subscribe({
+      this.evaluacionService.crearIndicador(payload).subscribe({
         next: () => {
           this.toast.success('Indicador creado exitosamente');
           this.loadIndicadores();
@@ -208,7 +208,7 @@ export class Indicadores implements OnInit {
       return;
     }
 
-    this.authService.eliminarIndicador(item.id).subscribe({
+    this.evaluacionService.eliminarIndicador(item.id).subscribe({
       next: () => {
         this.toast.success('Indicador eliminado');
         this.loadIndicadores();
@@ -227,7 +227,7 @@ export class Indicadores implements OnInit {
 
     const nuevoEstado = !item.activo;
 
-    this.authService.patchIndicador(item.id, { activo: nuevoEstado }).subscribe({
+    this.evaluacionService.patchIndicador(item.id, { activo: nuevoEstado }).subscribe({
       next: () => {
         this.toast.success(`Indicador ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
         this.loadIndicadores();

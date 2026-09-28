@@ -47,7 +47,9 @@ monografico/
 â”‚           â”œâ”€â”€ layouts/               # AdminLayout y AuthLayout
 â”‚           â””â”€â”€ shared/                # Sidebar y Navbar
 â”‚
-â”œâ”€â”€ plan.md                            # Documento de planificaciÃ³n del proyecto
+â”œâ”€â”€ docs/                                 # Manuales, planificacion y auditorias
+â”œâ”€â”€    manuales/                         # Manual de usuario, admin y tecnico
+â”œâ”€â”€    gestion/                          # plan.md, TODO.md y pendientes
 â””â”€â”€ README.md
 ```
 
@@ -112,13 +114,15 @@ npm start
 
 El backend corre en `http://127.0.0.1:8000` y el frontend en `http://localhost:4200`.
 
-### Superusuario por defecto
+### Superusuario
 
+La contraseña del superusuario no está fija. Para crear o actualizar el superusuario, ejecutar desde la raíz del proyecto (con el stack levantado):
+
+```powershell
+.\crear_superusuario.ps1 -Username tuUsuario -Email tu@correo.com -Password TuClaveSegura
 ```
-Username: mrPopoMaster
-Email: popomrMaster001@gmail.com
-Password: 12345678
-```
+
+Si no se usa `-Password`, preguntará interactivamente (no se muestra mientras se escribe).
 
 ## API Endpoints
 
@@ -134,7 +138,8 @@ Servicio central que determina qué puede ver/hacer el usuario en la UI.
 - esSuperuser — true si el backend marcó is_superuser.
 - grupos — lista de nombres de grupo del usuario.
 - permisos — lista de codenames (ej. "evaluation.view_asignacion").
-- ol — nombre del primer grupo (cómodo para lectura).
+- 
+ol — nombre del primer grupo (cómodo para lectura).
 
 **Métodos:**
 - 	ieneGrupo(nombre) — true si el grupo está en la lista o si es superuser.

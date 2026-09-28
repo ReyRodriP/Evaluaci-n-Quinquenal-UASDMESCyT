@@ -1,12 +1,21 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""
+@file manage.py
+@brief Script de administración de Django.
+@details Utilidad de línea de comandos para tareas administrativas
+del proyecto Evaluación Quinquenal, incluyendo migraciones,
+creación de superusuarios y otros comandos de gestión.
+"""
+
 import os
 import sys
 
 
 def main():
-    """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'evaluacionQuinquenal.settings')
+    """@brief Ejecuta las tareas administrativas de Django.
+    @return None
+    """
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "evaluacionQuinquenal.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -18,5 +27,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

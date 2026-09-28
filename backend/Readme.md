@@ -11,11 +11,17 @@ python manage.py migrate
 python manage.py runserver
 `
 
-## Superusuario actual
+## Superusuario
 
-- Username: omori
-- Email: suicidaloco@gmail.com
-- Password: 12345678
+El superusuario no tiene credenciales fijas. Crear o restablecer desde la raíz del proyecto (con el stack levantado):
+
+```powershell
+.\crear_superusuario.ps1 -Username TU_USUARIO -Email tu@correo.com -Password TuClaveSegura
+```
+
+Si se omite `-Password`, se usa la variable `SUPERUSER_PASSWORD` del `.env` (y si no existe, pregunta de forma oculta).
+
+> ⚠️ Nunca publiques credenciales reales en documentación o en el repositorio.
 
 ---
 
@@ -131,3 +137,31 @@ evidence: view_evidencia, view_versionevidencia, add_observacion, view_observaci
 evidencias: view_evidencia
 organization: view_facultad, view_departamento, view_perfilusuario
 notificaciones: view_notificacion
+
+### Pasos para conectar con base de datos externa (PostgreSQL)
+1. Tener PostgreSQL instalado
+2. Dentro de pgAdmin ejecutar los siguientes comandos:
+# Para crear el ROLE a usar base de datos
+CREATE ROLE evaluacion_user WITH LOGIN CREATEDB PASSWORD 'evaluacion_pass' >
+# Para crear la base de datos y asignar role
+CREATE DATABASE evaluacion_quinquenal OWNER evaluacion_user;
+3. Configurar credenciales en el backend/.env. A continuacion un ejemplo:
+DEBUG=True
+SECRET_KEY=clave-local-de-desarrollo-no-importa-que-sea-insegura-pero-que-no-empiece-por-django-insecure
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=evaluacion_quinquenal
+DB_USER=evaluacion_user
+DB_PASSWORD=evaluacion_pass
+DB_HOST=localhost
+DB_PORT=5432
+
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+FRONTEND_URL=http://localhost:4200
+4. Crear esquema y probarlo:
+.\venv\Scripts\Activate.ps1
+python manage.py migrate
+python manage.py seed
+python manage.py sync_roles
+python manage.py crear_superusuario --password "TuClave123!"

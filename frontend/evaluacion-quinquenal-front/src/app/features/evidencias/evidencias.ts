@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../core/services/auth.service';
+import { EvidenciasService } from '../../core/services/evidencias.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
@@ -43,7 +44,8 @@ export class Evidencias implements OnInit {
   }
 
   constructor(
-    private authService: AuthService,
+    private evidenciasService: EvidenciasService,
+    private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
     private toast: ToastrService,
     private router: Router
@@ -56,8 +58,8 @@ export class Evidencias implements OnInit {
   loadData(): void {
     this.loading = true;
     forkJoin({
-      asignaciones: this.authService.listarAsignaciones(),
-      evidencias: this.authService.listarEvidencias(),
+      asignaciones: this.evaluacionService.listarAsignaciones(),
+      evidencias: this.evidenciasService.listarEvidencias(),
     }).subscribe({
       next: ({ asignaciones, evidencias }) => {
         this.rows = asignaciones.map((asignacion: any) => {
@@ -142,7 +144,7 @@ export class Evidencias implements OnInit {
       payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
       payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
       payload.append('asignacion', String(row.id));
-      this.authService.crearEvidencia(payload).subscribe({
+      this.evidenciasService.crearEvidencia(payload).subscribe({
         next: (res) => {
           const id = res?.id_evidencia ?? res?.id;
           if (id) this.router.navigate(['/evidencias', id, 'detalle']);
@@ -161,7 +163,7 @@ export class Evidencias implements OnInit {
       payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
       payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
       payload.append('asignacion', String(row.id));
-      this.authService.crearEvidencia(payload).subscribe({
+      this.evidenciasService.crearEvidencia(payload).subscribe({
         next: (res) => {
           const id = res?.id_evidencia ?? res?.id;
           if (id) this.router.navigate(['/evidencias', id, 'detalle']);
@@ -176,7 +178,7 @@ export class Evidencias implements OnInit {
 
   cancelar(row: any): void {
     if (!row.evidenciaId) return;
-    this.authService.actualizarEvidencia(row.evidenciaId, { estado: 'cancelada' }).subscribe({
+    this.evidenciasService.actualizarEvidencia(row.evidenciaId, { estado: 'cancelada' }).subscribe({
       next: () => {
         this.toast.success('Evidencia cancelada');
         this.loadData();
@@ -187,7 +189,7 @@ export class Evidencias implements OnInit {
 
   reactivar(row: any): void {
     if (!row.evidenciaId) return;
-    this.authService.actualizarEvidencia(row.evidenciaId, { estado: 'activa' }).subscribe({
+    this.evidenciasService.actualizarEvidencia(row.evidenciaId, { estado: 'activa' }).subscribe({
       next: () => {
         this.toast.success('Evidencia reactivada');
         this.loadData();
@@ -202,7 +204,7 @@ export class Evidencias implements OnInit {
       this.toast.error('No hay archivo disponible para descargar');
       return;
     }
-    this.authService.descargarVersion(v.id_version).subscribe({
+    this.evidenciasService.descargarVersion(v.id_version).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -217,7 +219,7 @@ export class Evidencias implements OnInit {
 
   verHistorial(row: any): void {
     if (!row.evidenciaId) return;
-    this.authService.obtenerHistorial(row.evidenciaId).subscribe({
+    this.evidenciasService.obtenerHistorial(row.evidenciaId).subscribe({
       next: (versiones: any[]) => {
         const items = versiones.map((v: any) =>
           `  v${v.version}  ${v.fecha_subida?.slice(0, 10) || ''}  —  ${v.comentario || 'Sin comentario'}`

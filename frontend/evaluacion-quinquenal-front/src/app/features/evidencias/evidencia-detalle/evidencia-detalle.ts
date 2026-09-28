@@ -4,7 +4,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../core/services/auth.service';
+import { EvidenciasService } from '../../../core/services/evidencias.service';
+import { EvaluacionService } from '../../../core/services/evaluacion.service';
 
 @Component({
   selector: 'app-evidencia-detalle',
@@ -43,13 +44,15 @@ export class EvidenciaDetalle implements OnInit {
   previewUrl: SafeResourceUrl | null = null;
   previewTipo: 'pdf' | 'imagen' | 'texto' | 'excel' | 'desconocido' = 'desconocido';
   previewNombre = '';
+  previewVersionId: number = 0;
   previewCargando = false;
   previewError = '';
   previewTextoContenido = '';
 
   constructor(
     private route: ActivatedRoute,
-    private authService: AuthService,
+    private evidenciasService: EvidenciasService,
+    private evaluacionService: EvaluacionService,
     private toast: ToastrService,
     private sanitizer: DomSanitizer
   ) {}
@@ -63,7 +66,7 @@ export class EvidenciaDetalle implements OnInit {
 
   cargarDetalle(id: number): void {
     this.loading = true;
-    this.authService.detalleEvidencia(id).subscribe({
+    this.evidenciasService.detalleEvidencia(id).subscribe({
       next: (data) => {
         this.evidencia = data;
         this.loading = false;
@@ -120,7 +123,7 @@ export class EvidenciaDetalle implements OnInit {
     payload.append('archivo', archivo, archivo.name);
     payload.append('comentario', this.comentarioVersion || 'Nueva versión');
 
-    this.authService.subirVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
+    this.evidenciasService.subirVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
       next: () => {
         this.toast.success('Versión subida correctamente');
         this.nuevoArchivo = null;
@@ -137,7 +140,7 @@ export class EvidenciaDetalle implements OnInit {
   }
 
   descargar(versionId: number, nombreArchivo: string): void {
-    this.authService.descargarVersion(versionId).subscribe({
+    this.evidenciasService.descargarVersion(versionId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -168,11 +171,11 @@ export class EvidenciaDetalle implements OnInit {
     this.guardandoRevision = true;
 
     const request$ = this.estadoSeleccionado === 'aprobado'
-      ? this.authService.aprobarAsignacion(asignacionId, this.comentarioRevision || undefined)
+      ? this.evaluacionService.aprobarAsignacion(asignacionId, this.comentarioRevision || undefined)
       : this.estadoSeleccionado === 'rechazado'
-        ? this.authService.rechazarAsignacion(asignacionId, this.comentarioRevision || undefined)
+        ? this.evaluacionService.rechazarAsignacion(asignacionId, this.comentarioRevision || undefined)
         : this.estadoSeleccionado === 'observada'
-          ? this.authService.solicitarCambios(asignacionId, this.comentarioRevision || undefined)
+          ? this.evaluacionService.solicitarCambios(asignacionId, this.comentarioRevision || undefined)
           : null;
 
     if (!request$) {
@@ -215,7 +218,7 @@ export class EvidenciaDetalle implements OnInit {
       return;
     }
     this.guardandoInfo = true;
-    this.authService.actualizarEvidencia(this.evidencia.id_evidencia, {
+    this.evidenciasService.actualizarEvidencia(this.evidencia.id_evidencia, {
       titulo: this.infoEditada.titulo.trim(),
       descripcion: this.infoEditada.descripcion.trim(),
     }).subscribe({
@@ -263,12 +266,13 @@ export class EvidenciaDetalle implements OnInit {
     this.previewError = '';
     this.previewTextoContenido = '';
     this.previewNombre = version.nombre_archivo || 'archivo';
+    this.previewVersionId = version.id_version ?? 0;
 
     const ext = (version.nombre_archivo || '').split('.').pop()?.toLowerCase() || '';
 
     if (['pdf'].includes(ext)) {
       this.previewTipo = 'pdf';
-      this.authService.previewVersion(version.id_version).subscribe({
+      this.evidenciasService.previewVersion(version.id_version).subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);
           this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
@@ -281,7 +285,7 @@ export class EvidenciaDetalle implements OnInit {
       });
     } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
       this.previewTipo = 'imagen';
-      this.authService.previewVersion(version.id_version).subscribe({
+      this.evidenciasService.previewVersion(version.id_version).subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);
           this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
@@ -294,7 +298,7 @@ export class EvidenciaDetalle implements OnInit {
       });
     } else if (['txt', 'csv', 'json', 'xml', 'html', 'htm', 'md', 'log', 'py', 'js', 'ts', 'java', 'c', 'cpp', 'css'].includes(ext)) {
       this.previewTipo = 'texto';
-      this.authService.previewVersion(version.id_version).subscribe({
+      this.evidenciasService.previewVersion(version.id_version).subscribe({
         next: (blob) => {
           const reader = new FileReader();
           reader.onload = () => {
@@ -328,6 +332,7 @@ export class EvidenciaDetalle implements OnInit {
     this.previewUrl = null;
     this.previewTipo = 'desconocido';
     this.previewNombre = '';
+    this.previewVersionId = 0;
     this.previewError = '';
     this.previewTextoContenido = '';
   }
@@ -348,7 +353,7 @@ export class EvidenciaDetalle implements OnInit {
     }
     payload.append('comentario', this.versionEditComentario);
 
-    this.authService.editarVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
+    this.evidenciasService.editarVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
       next: () => {
         this.toast.success('Versión actualizada correctamente');
         this.cancelarEdicionVersion();

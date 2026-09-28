@@ -1,24 +1,58 @@
+# Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
 
-db.sqlite3
-
-.env
+# Virtual environments
 venv/
 .venv/
-
-*.log
+env/
+.env
 
 # Base de datos
 db.sqlite3
+db.sqlite3-journal
 
 # Media uploads
 media/
 
-# Python cache
-__pycache__/
-*.pyc
+# Django
+*.log
+local_settings.py
+staticfiles/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Kubernetes secrets (nunca commitear)
+k8s/*-secrets.yaml
+k8s/secrets/
+*.secret
+*.key
+*.pem
+
+# Environment variables
+.env.local
+.env.production
+.env.staging
 
 # Frontend basura
 ../frontend/node_modules/
 ../frontend/package-lock.json
+../frontend/dist/
+../frontend/.angular/

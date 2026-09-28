@@ -5,61 +5,107 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-    ('accounts', '0001_initial'),
-    ('organization', '0001_initial'),
-]
+        ("accounts", "0001_initial"),
+        ("organization", "0001_initial"),
+    ]
 
     operations = [
         migrations.CreateModel(
-            name='Criterio',
+            name="Criterio",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=100)),
-                ('descripcion', models.TextField(blank=True, null=True)),
-                ('activo', models.BooleanField(default=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=100)),
+                ("descripcion", models.TextField(blank=True, null=True)),
+                ("activo", models.BooleanField(default=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Periodo',
+            name="Periodo",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=100)),
-                ('fecha_inicio', models.DateField()),
-                ('fecha_fin', models.DateField()),
-                ('activo', models.BooleanField(default=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=100)),
+                ("fecha_inicio", models.DateField()),
+                ("fecha_fin", models.DateField()),
+                ("activo", models.BooleanField(default=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Indicador',
+            name="Indicador",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=100)),
-                ('descripcion', models.TextField(blank=True, null=True)),
-                ('obligatorio', models.BooleanField(default=False)),
-                ('activo', models.BooleanField(default=True)),
-                ('criterio', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='indicadores', to='evaluation.criterio')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=100)),
+                ("descripcion", models.TextField(blank=True, null=True)),
+                ("obligatorio", models.BooleanField(default=False)),
+                ("activo", models.BooleanField(default=True)),
+                (
+                    "criterio",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="indicadores",
+                        to="evaluation.criterio",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='criterio',
-            name='periodo',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='criterios', to='evaluation.periodo'),
+            model_name="criterio",
+            name="periodo",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="criterios",
+                to="evaluation.periodo",
+            ),
         ),
         migrations.CreateModel(
-            name='Asignacion',
+            name="Asignacion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('estado', models.CharField(choices=[('pendiente', 'Pendiente'), ('en_progreso', 'En progreso'), ('completado', 'Completado'), ('aprobado', 'Aprobado'), ('rechazado', 'Rechazado')], default='pendiente', max_length=20)),
-                ('departamento', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='asignaciones', to='organization.departamento')),
-                ('indicador', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='asignaciones', to='evaluation.indicador')),
-                ('periodo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='asignaciones', to='evaluation.periodo')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "estado",
+                    models.CharField(
+                        choices=[
+                            ("pendiente", "Pendiente"),
+                            ("en_progreso", "En progreso"),
+                            ("completado", "Completado"),
+                            ("aprobado", "Aprobado"),
+                            ("rechazado", "Rechazado"),
+                        ],
+                        default="pendiente",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "departamento",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="asignaciones",
+                        to="organization.departamento",
+                    ),
+                ),
+                (
+                    "indicador",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="asignaciones",
+                        to="evaluation.indicador",
+                    ),
+                ),
+                (
+                    "periodo",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="asignaciones",
+                        to="evaluation.periodo",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('indicador', 'departamento', 'periodo')},
+                "unique_together": {("indicador", "departamento", "periodo")},
             },
         ),
     ]
