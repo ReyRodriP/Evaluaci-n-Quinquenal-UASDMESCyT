@@ -45,6 +45,37 @@ class Departamento(models.Model):
         return self.nombre
 
 
+class TipoUnidadOrganizacional(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class UnidadOrganizacional(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    tipo = models.ForeignKey(TipoUnidadOrganizacional, on_delete=models.PROTECT, related_name="unidades")
+    unidad_padre = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="subunidades"
+    )
+    activa = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    departamento_legacy = models.OneToOneField(
+        Departamento,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="unidades_organizacionales",
+    )
+
+    def __str__(self):
+        return self.nombre
+
+
 class PerfilUsuario(models.Model):
     """@class PerfilUsuario
     @brief Modelo que representa el perfil organizativo de un usuario.
@@ -55,6 +86,13 @@ class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
+    unidad_organizacional = models.ForeignKey(
+        UnidadOrganizacional,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="perfiles",
+    )
 
     def __str__(self):
         return self.usuario.username

@@ -17,7 +17,7 @@ def evidencia_upload_path(instance, filename):
     @param filename Nombre del archivo a subir.
     @return String con la ruta de almacenamiento.
     """
-    return f"evidencias/{instance.asignacion.periodo.pk}/{instance.asignacion.departamento.pk}/{instance.asignacion.indicador.pk}/{filename}"
+    return f"evidencias/{instance.asignacion.periodo.pk}/{instance.asignacion.unidad_responsable.pk}/{instance.asignacion.indicador.pk}/{filename}"
 
 
 class Evidencia(models.Model):

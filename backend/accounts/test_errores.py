@@ -14,7 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from evaluation.models import Asignacion, Criterio, Indicador, Periodo
 from evidence.models import Evidencia
-from organization.models import Departamento, Facultad
+from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
 
 User = get_user_model()
 
@@ -38,10 +38,12 @@ def _token(user):
 def _make_asignacion():
     facultad = Facultad.objects.create(nombre="F")
     dep = Departamento.objects.create(nombre="D", facultad=facultad)
+    tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+    unidad = UnidadOrganizacional.objects.create(nombre=dep.nombre, tipo=tipo, departamento_legacy=dep)
     periodo = Periodo.objects.create(nombre="P", fecha_inicio="2025-01-01", fecha_fin="2025-12-31")
     criterio = Criterio.objects.create(nombre="C", periodo=periodo)
     indicador = Indicador.objects.create(nombre="I", criterio=criterio)
-    return Asignacion.objects.create(indicador=indicador, departamento=dep, periodo=periodo)
+    return Asignacion.objects.create(indicador=indicador, unidad_responsable=unidad, periodo=periodo)
 
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"])

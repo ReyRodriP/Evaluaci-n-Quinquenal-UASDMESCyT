@@ -46,6 +46,12 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
     if ROLES_SIN_RESTRICCION & grupos:
         return queryset
 
+    if "unidad_responsable" in dept_field:
+        permitidas = unidades_organizacionales_permitidas(request)
+        if permitidas is None:
+            return queryset
+        return queryset.filter(**{f"{dept_field}_id__in": permitidas})
+
     try:
         perfil = user.perfilusuario
     except PerfilUsuario.DoesNotExist:
@@ -54,22 +60,18 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
     if not perfil.departamento:
         return queryset.none()
 
+    unidad_field = dept_field
+    if "unidad_responsable" in dept_field:
+        unidad_field = f"{dept_field}__departamento_legacy"
+
     if "Revisor Institucional" in grupos or "Consulta" in grupos:
         facultad_id = perfil.departamento.facultad_id
-        return queryset.filter(**{f"{dept_field}__facultad_id": facultad_id})
+        return queryset.filter(**{f"{unidad_field}__facultad_id": facultad_id})
 
-    return queryset.filter(**{f"{dept_field}_id": perfil.departamento_id})
+    return queryset.filter(**{f"{unidad_field}_id": perfil.departamento_id})
 
 
-def departamentos_permitidos(request):
-    """
-    @brief Devuelve una lista de IDs de departamento que el usuario puede ver
-    @param request Request HTTP con el usuario autenticado
-    @return Lista de IDs de departamento o None si tiene acceso total
-    @details Retorna None para superuser y roles sin restriccion,
-    lista de IDs filtrada por facultad para revisores y consulta,
-    o lista vacia si no tiene perfil o departamento asignado.
-    """
+def unidades_organizacionales_permitidas(request):
     user = request.user
     if user.is_superuser:
         return None
@@ -83,17 +85,57 @@ def departamentos_permitidos(request):
     except PerfilUsuario.DoesNotExist:
         return []
 
-    if not perfil.departamento:
+    from organization.models import UnidadOrganizacional
+
+    unidad = perfil.unidad_organizacional
+    if unidad is None and perfil.departamento_id:
+        unidad = UnidadOrganizacional.objects.filter(departamento_legacy_id=perfil.departamento_id).first()
+    if unidad is None:
         return []
 
     if "Revisor Institucional" in grupos or "Consulta" in grupos:
-        from organization.models import Departamento
+        raiz = unidad
+        if perfil.unidad_organizacional_id is None and perfil.departamento_id:
+            facultad = perfil.departamento.facultad
+            raiz_facultad = UnidadOrganizacional.objects.filter(
+                nombre=facultad.nombre,
+                tipo__nombre="Facultad",
+                unidad_padre__tipo__nombre="Universidad",
+            ).first()
+            if raiz_facultad:
+                raiz = raiz_facultad
 
-        return list(
-            Departamento.objects.filter(facultad_id=perfil.departamento.facultad_id).values_list("pk", flat=True)
-        )
+        permitidas = [raiz.pk]
+        padres = [raiz.pk]
+        while padres:
+            padres = list(
+                UnidadOrganizacional.objects.filter(unidad_padre_id__in=padres).values_list("pk", flat=True)
+            )
+            permitidas.extend(padres)
+        return permitidas
 
-    return [perfil.departamento_id]
+    return [unidad.pk]
+
+
+def departamentos_permitidos(request):
+    """
+    @brief Devuelve una lista de IDs de departamento que el usuario puede ver
+    @param request Request HTTP con el usuario autenticado
+    @return Lista de IDs de departamento o None si tiene acceso total
+    @details Retorna None para superuser y roles sin restriccion,
+    lista de IDs filtrada por facultad para revisores y consulta,
+    o lista vacia si no tiene perfil o departamento asignado.
+    """
+    from organization.models import UnidadOrganizacional
+
+    unidades = unidades_organizacionales_permitidas(request)
+    if unidades is None:
+        return None
+    return list(
+        UnidadOrganizacional.objects.filter(pk__in=unidades)
+        .exclude(departamento_legacy_id__isnull=True)
+        .values_list("departamento_legacy_id", flat=True)
+    )
 
 
 def facultades_permitidas(request):

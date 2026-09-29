@@ -7,7 +7,47 @@ y PerfilUsuario, incluyendo campos de solo lectura para nombres relacionados.
 
 from rest_framework import serializers
 
-from .models import Departamento, Facultad, PerfilUsuario
+from .models import Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
+
+
+class TipoUnidadOrganizacionalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoUnidadOrganizacional
+        fields = "__all__"
+
+
+class UnidadOrganizacionalSerializer(serializers.ModelSerializer):
+    tipo_nombre = serializers.CharField(source="tipo.nombre", read_only=True)
+    unidad_padre_nombre = serializers.CharField(source="unidad_padre.nombre", read_only=True, default=None)
+
+    class Meta:
+        model = UnidadOrganizacional
+        fields = [
+            "id",
+            "nombre",
+            "descripcion",
+            "tipo",
+            "tipo_nombre",
+            "unidad_padre",
+            "unidad_padre_nombre",
+            "activa",
+            "fecha_creacion",
+        ]
+
+    def validate(self, attrs):
+        if "unidad_padre" in attrs:
+            parent = attrs["unidad_padre"]
+        elif self.instance:
+            parent = self.instance.unidad_padre
+        else:
+            parent = None
+
+        while parent is not None:
+            if self.instance and parent.pk == self.instance.pk:
+                raise serializers.ValidationError({"unidad_padre": "La jerarquía no puede contener ciclos."})
+            parent = parent.unidad_padre
+
+        return attrs
 
 
 class FacultadSerializer(serializers.ModelSerializer):
@@ -46,7 +86,16 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(source="usuario.username", read_only=True)
 
     departamento_nombre = serializers.CharField(source="departamento.nombre", read_only=True)
+    unidad_organizacional_nombre = serializers.CharField(source="unidad_organizacional.nombre", read_only=True)
 
     class Meta:
         model = PerfilUsuario
-        fields = ["id", "usuario", "usuario_nombre", "departamento", "departamento_nombre"]
+        fields = [
+            "id",
+            "usuario",
+            "usuario_nombre",
+            "departamento",
+            "departamento_nombre",
+            "unidad_organizacional",
+            "unidad_organizacional_nombre",
+        ]

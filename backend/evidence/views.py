@@ -39,7 +39,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         @return QuerySet filtrado por departamento de la asignación"""
 
         qs = Evidencia.objects.all()
-        return filtrar_por_rol(qs, self.request, dept_field="asignacion__departamento")
+        return filtrar_por_rol(qs, self.request, dept_field="asignacion__unidad_responsable")
 
     def create(self, request, *args, **kwargs):
         """@brief Crea una nueva evidencia o reactiva una existente
@@ -215,7 +215,7 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         @return QuerySet filtrado por departamento de la evidencia"""
 
         qs = VersionEvidencia.objects.all()
-        return filtrar_por_rol(qs, self.request, dept_field="evidencia__asignacion__departamento")
+        return filtrar_por_rol(qs, self.request, dept_field="evidencia__asignacion__unidad_responsable")
 
     @action(detail=True, methods=["get"])
     def descargar(self, request, pk=None):
@@ -309,7 +309,7 @@ class ObservacionViewSet(viewsets.ModelViewSet):
         @return QuerySet filtrado por departamento de la evidencia asociada"""
 
         qs = Observacion.objects.filter(activo=True)
-        return filtrar_por_rol(qs, self.request, dept_field="version__evidencia__asignacion__departamento")
+        return filtrar_por_rol(qs, self.request, dept_field="version__evidencia__asignacion__unidad_responsable")
 
     def perform_create(self, serializer):
         """@brief Crea una observación y ejecuta acciones secundarias

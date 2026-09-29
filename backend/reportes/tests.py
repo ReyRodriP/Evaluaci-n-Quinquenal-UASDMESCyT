@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
-from organization.models import Departamento, Facultad
+from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
 
 User = get_user_model()
 
@@ -32,6 +32,12 @@ class ReportesTests(TestCase):
             nombre="Depto Matematicas",
             facultad=self.facultad,
         )
+        tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+        self.unidad = UnidadOrganizacional.objects.create(
+            nombre=self.departamento.nombre,
+            tipo=tipo,
+            departamento_legacy=self.departamento,
+        )
         self.periodo = Periodo.objects.create(
             nombre="Periodo 2025",
             fecha_inicio="2025-01-01",
@@ -48,7 +54,7 @@ class ReportesTests(TestCase):
         )
         self.asignacion = Asignacion.objects.create(
             indicador=self.indicador,
-            departamento=self.departamento,
+            unidad_responsable=self.unidad,
             periodo=self.periodo,
             estado=EstadoAsignacion.PENDIENTE,
         )

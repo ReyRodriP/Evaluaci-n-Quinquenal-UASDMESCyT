@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from evaluation.models import Asignacion, Criterio, Indicador, Periodo
-from organization.models import Departamento, Facultad
+from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
 
 from .models import Evidencia
 
@@ -14,10 +14,16 @@ User = get_user_model()
 def _make_asignacion():
     facultad = Facultad.objects.create(nombre="Facultad Test")
     departamento = Departamento.objects.create(nombre="Depto Test", facultad=facultad)
+    tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+    unidad = UnidadOrganizacional.objects.create(
+        nombre=departamento.nombre,
+        tipo=tipo,
+        departamento_legacy=departamento,
+    )
     periodo = Periodo.objects.create(nombre="Periodo 2025", fecha_inicio="2025-01-01", fecha_fin="2025-12-31")
     criterio = Criterio.objects.create(nombre="Criterio Test", periodo=periodo)
     indicador = Indicador.objects.create(nombre="Indicador Test", criterio=criterio)
-    return Asignacion.objects.create(indicador=indicador, departamento=departamento, periodo=periodo)
+    return Asignacion.objects.create(indicador=indicador, unidad_responsable=unidad, periodo=periodo)
 
 
 @override_settings(

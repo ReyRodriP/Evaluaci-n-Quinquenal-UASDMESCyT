@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import departamentos_permitidos
+from accounts.permissions import departamentos_permitidos, unidades_organizacionales_permitidas
 from evaluation.models import Asignacion, EstadoAsignacion, Indicador, Periodo
 from evidencias.models import Evidencia
 from organization.models import Departamento, Facultad
@@ -39,9 +39,11 @@ def resumen(request):
         return Response(cached)
 
     deptos_ids = departamentos_permitidos(request)
+    deptos_ids = departamentos_permitidos(request)
+    unidades_ids = unidades_organizacionales_permitidas(request)
     asig_qs = Asignacion.objects.all()
-    if deptos_ids is not None:
-        asig_qs = asig_qs.filter(departamento_id__in=deptos_ids)
+    if unidades_ids is not None:
+        asig_qs = asig_qs.filter(unidad_responsable_id__in=unidades_ids)
 
     deptos = Departamento.objects.filter(activo=True)
     if deptos_ids is not None:
@@ -92,7 +94,7 @@ def departamento_dashboard(request, pk):
     except Departamento.DoesNotExist:
         return Response({"error": "Departamento no encontrado"}, status=404)
 
-    asignaciones = Asignacion.objects.filter(departamento=depto)
+    asignaciones = Asignacion.objects.filter(unidad_responsable__departamento_legacy=depto)
     total_asignados = asignaciones.count()
     indicadores = asignaciones.values("indicador").distinct().count()
 
@@ -146,11 +148,11 @@ def avance(request):
         if deptos_ids is not None:
             deptos = deptos.filter(pk__in=deptos_ids)
         total_asignaciones = Asignacion.objects.filter(
-            departamento__in=deptos,
+            unidad_responsable__departamento_legacy__in=deptos,
             indicador__obligatorio=True,
         ).count()
         completadas = Asignacion.objects.filter(
-            departamento__in=deptos,
+            unidad_responsable__departamento_legacy__in=deptos,
             indicador__obligatorio=True,
             estado__in=[EstadoAsignacion.APROBADO, EstadoAsignacion.COMPLETADO],
         ).count()
@@ -183,11 +185,12 @@ def periodo_dashboard(request, pk):
     except Periodo.DoesNotExist:
         return Response({"error": "Período no encontrado"}, status=404)
 
-    deptos_ids = departamentos_permitidos(request)
+    unidades_ids = unidades_organizacionales_permitidas(request)
     asignaciones = Asignacion.objects.filter(periodo=periodo)
-    if deptos_ids is not None:
-        asignaciones = asignaciones.filter(departamento_id__in=deptos_ids)
+    if unidades_ids is not None:
+        asignaciones = asignaciones.filter(unidad_responsable_id__in=unidades_ids)
 
+    deptos_ids = departamentos_permitidos(request)
     deptos = Departamento.objects.filter(activo=True)
     if deptos_ids is not None:
         deptos = deptos.filter(pk__in=deptos_ids)

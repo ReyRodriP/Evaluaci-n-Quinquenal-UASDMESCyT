@@ -80,15 +80,19 @@ class Asignacion(models.Model):
     """
 
     indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE, related_name="asignaciones")
-    departamento = models.ForeignKey("organization.Departamento", on_delete=models.CASCADE, related_name="asignaciones")
+    unidad_responsable = models.ForeignKey(
+        "organization.UnidadOrganizacional",
+        on_delete=models.CASCADE,
+        related_name="asignaciones",
+    )
     periodo = models.ForeignKey(Periodo, on_delete=models.CASCADE, related_name="asignaciones")
     estado = models.CharField(max_length=20, choices=EstadoAsignacion.choices, default=EstadoAsignacion.PENDIENTE)
 
     class Meta:
-        unique_together = ("indicador", "departamento", "periodo")
+        unique_together = ("indicador", "unidad_responsable", "periodo")
 
     def __str__(self):
-        return f"{self.indicador} - {self.departamento} ({self.periodo})"
+        return f"{self.indicador} - {self.unidad_responsable} ({self.periodo})"
 
 
 class HistorialEstado(models.Model):

@@ -8,12 +8,20 @@ en el router de DRF, exponiendo los endpoints /facultades/,
 
 from rest_framework.routers import DefaultRouter
 
-from .views import DepartamentoViewSet, FacultadViewSet, PerfilUsuarioViewSet
+from .views import (
+	DepartamentoViewSet,
+	FacultadViewSet,
+	PerfilUsuarioViewSet,
+	TipoUnidadOrganizacionalViewSet,
+	UnidadOrganizacionalViewSet,
+)
 
 router = DefaultRouter()
 
 router.register(r"facultades", FacultadViewSet)
 router.register(r"departamentos", DepartamentoViewSet)
 router.register(r"perfiles", PerfilUsuarioViewSet)
+router.register(r"tipos-unidad-organizacional", TipoUnidadOrganizacionalViewSet)
+router.register(r"unidades-organizacionales", UnidadOrganizacionalViewSet)
 
 urlpatterns = router.urls

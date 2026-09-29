@@ -35,7 +35,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         asignacion_id = self.request.query_params.get("asignacion")
         if asignacion_id:
             queryset = queryset.filter(asignacion_id=asignacion_id)
-        return filtrar_por_rol(queryset, self.request, dept_field="asignacion__departamento")
+        return filtrar_por_rol(queryset, self.request, dept_field="asignacion__unidad_responsable")
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -44,7 +44,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
             f"{'Se subió una nueva versión' if instance.version > 1 else 'Se creó la evidencia'}"
             f" '{instance.nombre}' v{instance.version} "
             f"para el indicador '{instance.asignacion.indicador.nombre}' "
-            f"del departamento '{instance.asignacion.departamento.nombre}'"
+            f"de la unidad '{instance.asignacion.unidad_responsable.nombre}'"
         )
         registrar_auditoria(
             usuario=self.request.user, accion=accion, modelo="Evidencia", registro_id=instance.pk, descripcion=desc

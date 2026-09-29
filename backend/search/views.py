@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import departamentos_permitidos
+from accounts.permissions import departamentos_permitidos, unidades_organizacionales_permitidas
 from evaluation.models import Criterio, Indicador
 from organization.models import Departamento, Facultad
 
@@ -46,15 +46,16 @@ def search(request):
         )
 
     deptos_ids = departamentos_permitidos(request)
+    unidades_ids = unidades_organizacionales_permitidas(request)
 
     def restringir_indicador(qs):
-        if deptos_ids is not None:
-            return qs.filter(asignaciones__departamento_id__in=deptos_ids)
+        if unidades_ids is not None:
+            return qs.filter(asignaciones__unidad_responsable_id__in=unidades_ids)
         return qs
 
     def restringir_criterio(qs):
-        if deptos_ids is not None:
-            return qs.filter(indicadores__asignaciones__departamento_id__in=deptos_ids)
+        if unidades_ids is not None:
+            return qs.filter(indicadores__asignaciones__unidad_responsable_id__in=unidades_ids)
         return qs
 
     indicadores = restringir_indicador(Indicador.objects.filter(activo=True)).filter(

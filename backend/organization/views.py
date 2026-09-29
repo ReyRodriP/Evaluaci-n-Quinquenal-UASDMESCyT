@@ -10,10 +10,85 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from accounts.permissions import CustomModelPermissions, departamentos_permitidos, facultades_permitidas
+from accounts.permissions import unidades_organizacionales_permitidas
 from auditoria.utils import registrar_auditoria
 
-from .models import Departamento, Facultad, PerfilUsuario
-from .serializers import DepartamentoSerializer, FacultadSerializer, PerfilUsuarioSerializer
+from .models import Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
+from .serializers import (
+    DepartamentoSerializer,
+    FacultadSerializer,
+    PerfilUsuarioSerializer,
+    TipoUnidadOrganizacionalSerializer,
+    UnidadOrganizacionalSerializer,
+)
+
+
+def _asegurar_unidad_departamento(departamento):
+    tipo_universidad, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Universidad")
+    tipo_facultad, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Facultad")
+    tipo_departamento, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+    universidad, _ = UnidadOrganizacional.objects.get_or_create(
+        nombre="UASD",
+        tipo=tipo_universidad,
+        unidad_padre=None,
+    )
+    facultad, _ = UnidadOrganizacional.objects.get_or_create(
+        nombre=departamento.facultad.nombre,
+        tipo=tipo_facultad,
+        unidad_padre=universidad,
+        defaults={"activa": departamento.facultad.activo},
+    )
+    UnidadOrganizacional.objects.update_or_create(
+        departamento_legacy=departamento,
+        defaults={
+            "nombre": departamento.nombre,
+            "descripcion": departamento.descripcion,
+            "tipo": tipo_departamento,
+            "unidad_padre": facultad,
+            "activa": departamento.activo,
+        },
+    )
+
+
+class TipoUnidadOrganizacionalViewSet(viewsets.ModelViewSet):
+    queryset = TipoUnidadOrganizacional.objects.all().order_by("nombre")
+    serializer_class = TipoUnidadOrganizacionalSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        activo = self.request.query_params.get("activo")
+        if activo in {"true", "false"}:
+            queryset = queryset.filter(activo=activo == "true")
+        return queryset
+
+
+class UnidadOrganizacionalViewSet(viewsets.ModelViewSet):
+    queryset = UnidadOrganizacional.objects.select_related("tipo", "unidad_padre").order_by("nombre")
+    serializer_class = UnidadOrganizacionalSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        permitidas = unidades_organizacionales_permitidas(self.request)
+        if permitidas is not None:
+            queryset = queryset.filter(pk__in=permitidas)
+        tipo = self.request.query_params.get("tipo")
+        unidad_padre = self.request.query_params.get("unidad_padre")
+        activa = self.request.query_params.get("activa")
+        buscar = self.request.query_params.get("buscar", "").strip()
+
+        if tipo:
+            queryset = queryset.filter(tipo_id=tipo)
+        if unidad_padre in {"null", "root"}:
+            queryset = queryset.filter(unidad_padre__isnull=True)
+        elif unidad_padre:
+            queryset = queryset.filter(unidad_padre_id=unidad_padre)
+        if activa in {"true", "false"}:
+            queryset = queryset.filter(activa=activa == "true")
+        if buscar:
+            queryset = queryset.filter(nombre__icontains=buscar)
+        return queryset
 
 
 class FacultadViewSet(viewsets.ModelViewSet):
@@ -73,6 +148,14 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
         if permitidos is not None:
             queryset = queryset.filter(pk__in=permitidos)
         return queryset
+
+    def perform_create(self, serializer):
+        departamento = serializer.save()
+        _asegurar_unidad_departamento(departamento)
+
+    def perform_update(self, serializer):
+        departamento = serializer.save()
+        _asegurar_unidad_departamento(departamento)
 
     def perform_destroy(self, instance):
         """@brief Elimina un departamento registrando la acción en auditoría.

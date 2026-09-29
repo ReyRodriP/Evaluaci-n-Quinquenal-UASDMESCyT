@@ -6,7 +6,13 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Departamento, Facultad, PerfilUsuario
+from .models import (
+    Departamento,
+    Facultad,
+    PerfilUsuario,
+    TipoUnidadOrganizacional,
+    UnidadOrganizacional,
+)
 
 User = get_user_model()
 
@@ -201,3 +207,81 @@ class DepartamentoViewSetTests(TestCase):
         self.assertEqual(Departamento.objects.count(), 1)
         self.assertEqual(response.data["nombre"], "Historia")
         self.assertEqual(response.data["facultad"], self.facultad.pk)
+        self.assertTrue(
+            UnidadOrganizacional.objects.filter(departamento_legacy_id=response.data["id"]).exists()
+        )
+
+
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"])
+class UnidadOrganizacionalViewSetTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_superuser(
+            username="admin_unidades",
+            email="admin_unidades@test.com",
+            password="testpass123",
+        )
+        self.client.force_authenticate(user=self.user)
+        self.tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Recinto")
+        self.root = UnidadOrganizacional.objects.create(nombre="Sede", tipo=self.tipo)
+
+    def test_crear_unidad_con_padre(self):
+        response = self.client.post(
+            "/api/unidades-organizacionales/",
+            {
+                "nombre": "Recinto Santiago",
+                "descripcion": "Campus regional",
+                "tipo": self.tipo.pk,
+                "unidad_padre": self.root.pk,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["unidad_padre"], self.root.pk)
+        self.assertEqual(response.data["tipo_nombre"], "Recinto")
+
+    def test_filtrar_unidades_por_padre_tipo_y_estado(self):
+        child = UnidadOrganizacional.objects.create(
+            nombre="Recinto Este",
+            tipo=self.tipo,
+            unidad_padre=self.root,
+            activa=False,
+        )
+        response = self.client.get(
+            f"/api/unidades-organizacionales/?unidad_padre={self.root.pk}&tipo={self.tipo.pk}&activa=false"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([unit["id"] for unit in response.data["results"]], [child.pk])
+
+    def test_actualizar_unidad_no_permite_ciclos(self):
+        child = UnidadOrganizacional.objects.create(
+            nombre="Subunidad",
+            tipo=self.tipo,
+            unidad_padre=self.root,
+        )
+        response = self.client.patch(
+            f"/api/unidades-organizacionales/{self.root.pk}/",
+            {"unidad_padre": child.pk},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unidad_padre", response.data)
+
+    def test_actualizar_unidad_permite_quitar_padre(self):
+        child = UnidadOrganizacional.objects.create(
+            nombre="Subunidad",
+            tipo=self.tipo,
+            unidad_padre=self.root,
+        )
+        response = self.client.patch(
+            f"/api/unidades-organizacionales/{child.pk}/",
+            {"unidad_padre": None},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        child.refresh_from_db()
+        self.assertIsNone(child.unidad_padre_id)

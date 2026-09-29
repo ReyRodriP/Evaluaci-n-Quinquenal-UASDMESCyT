@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
-from organization.models import Departamento, Facultad
+from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
 
 User = get_user_model()
 
@@ -26,10 +26,12 @@ def _token(u):
 def _asignacion(tag="A"):
     fac = Facultad.objects.create(nombre=f"Facultad {tag}")
     dep = Departamento.objects.create(nombre=f"Depto {tag}", facultad=fac)
+    tipo = TipoUnidadOrganizacional.objects.create(nombre=f"Departamento {tag}")
+    unidad = UnidadOrganizacional.objects.create(nombre=dep.nombre, tipo=tipo, departamento_legacy=dep)
     per = Periodo.objects.create(nombre=f"Periodo {tag}", fecha_inicio="2025-01-01", fecha_fin="2025-12-31")
     cri = Criterio.objects.create(nombre=f"Criterio {tag}", periodo=per)
     ind = Indicador.objects.create(nombre=f"Indicador {tag}", criterio=cri)
-    return Asignacion.objects.create(indicador=ind, departamento=dep, periodo=per)
+    return Asignacion.objects.create(indicador=ind, unidad_responsable=unidad, periodo=per)
 
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"])

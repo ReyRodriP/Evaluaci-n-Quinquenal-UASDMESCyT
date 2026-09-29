@@ -6,6 +6,8 @@ las instancias de los modelos del módulo de evaluación a formato JSON y viceve
 
 from rest_framework import serializers
 
+from organization.models import UnidadOrganizacional
+
 from .models import Asignacion, Criterio, HistorialEstado, Indicador, Periodo
 
 
@@ -78,12 +80,14 @@ class AsignacionSerializer(serializers.ModelSerializer):
     """@class AsignacionSerializer
     @brief Serializador para el modelo Asignacion.
     @details Serializa los campos de la asignación incluyendo los nombres
-    del indicador, departamento y período asociados, así como la
+    del indicador, unidad responsable y período asociados, así como la
     representación textual del estado.
     """
 
     indicador_nombre = serializers.CharField(source="indicador.nombre", read_only=True)
-    departamento_nombre = serializers.CharField(source="departamento.nombre", read_only=True)
+    unidad_responsable_nombre = serializers.CharField(source="unidad_responsable.nombre", read_only=True)
+    departamento = serializers.SerializerMethodField()
+    departamento_nombre = serializers.CharField(source="unidad_responsable.nombre", read_only=True)
     periodo_nombre = serializers.CharField(source="periodo.nombre", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
 
@@ -93,10 +97,26 @@ class AsignacionSerializer(serializers.ModelSerializer):
             "id",
             "indicador",
             "indicador_nombre",
-            "departamento",
+            "unidad_responsable",
+            "unidad_responsable_nombre",
             "departamento_nombre",
+            "departamento",
             "periodo",
             "periodo_nombre",
             "estado",
             "estado_display",
         ]
+
+    def get_departamento(self, obj):
+        return obj.unidad_responsable.departamento_legacy_id
+
+    def to_internal_value(self, data):
+        data = data.copy()
+        departamento_id = data.get("departamento")
+        data.pop("departamento", None)
+        if departamento_id is not None and not data.get("unidad_responsable"):
+            unidad = UnidadOrganizacional.objects.filter(departamento_legacy_id=departamento_id).first()
+            if unidad is None:
+                raise serializers.ValidationError({"departamento": "No existe una unidad para ese departamento."})
+            data["unidad_responsable"] = unidad.pk
+        return super().to_internal_value(data)

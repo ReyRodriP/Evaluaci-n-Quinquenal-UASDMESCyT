@@ -22,7 +22,8 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     """
 
     asignacion_indicador = serializers.CharField(source="asignacion.indicador.nombre", read_only=True)
-    asignacion_departamento = serializers.CharField(source="asignacion.departamento.nombre", read_only=True)
+    asignacion_departamento = serializers.CharField(source="asignacion.unidad_responsable.nombre", read_only=True)
+    asignacion_unidad_responsable = serializers.CharField(source="asignacion.unidad_responsable.nombre", read_only=True)
     asignacion_periodo = serializers.CharField(source="asignacion.periodo.nombre", read_only=True)
     subido_por_username = serializers.CharField(source="subido_por.username", read_only=True)
 
@@ -33,6 +34,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
             "asignacion",
             "asignacion_indicador",
             "asignacion_departamento",
+            "asignacion_unidad_responsable",
             "asignacion_periodo",
             "archivo",
             "nombre",

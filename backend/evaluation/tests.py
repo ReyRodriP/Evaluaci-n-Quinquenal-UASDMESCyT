@@ -7,7 +7,13 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from organization.models import Departamento, Facultad
+from organization.models import (
+    Departamento,
+    Facultad,
+    PerfilUsuario,
+    TipoUnidadOrganizacional,
+    UnidadOrganizacional,
+)
 
 from .models import (
     Asignacion,
@@ -19,6 +25,15 @@ from .models import (
 )
 
 User = get_user_model()
+
+
+def _unidad_para_departamento(departamento):
+    tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+    unidad, _ = UnidadOrganizacional.objects.get_or_create(
+        departamento_legacy=departamento,
+        defaults={"nombre": departamento.nombre, "tipo": tipo},
+    )
+    return unidad
 
 
 # ===========================================================================
@@ -151,21 +166,22 @@ class AsignacionModelTests(TestCase):
             nombre="Depto Y",
             facultad=self.facultad,
         )
+        _unidad_para_departamento(self.departamento)
 
     def test_crear_asignacion(self):
         asignacion = Asignacion.objects.create(
             indicador=self.indicador,
-            departamento=self.departamento,
+            unidad_responsable=_unidad_para_departamento(self.departamento),
             periodo=self.periodo,
         )
         self.assertEqual(asignacion.indicador, self.indicador)
-        self.assertEqual(asignacion.departamento, self.departamento)
+        self.assertEqual(asignacion.unidad_responsable.departamento_legacy, self.departamento)
         self.assertEqual(asignacion.periodo, self.periodo)
 
     def test_asignacion_estado_default(self):
         asignacion = Asignacion.objects.create(
             indicador=self.indicador,
-            departamento=self.departamento,
+            unidad_responsable=_unidad_para_departamento(self.departamento),
             periodo=self.periodo,
         )
         self.assertEqual(asignacion.estado, EstadoAsignacion.PENDIENTE)
@@ -173,13 +189,13 @@ class AsignacionModelTests(TestCase):
     def test_asignacion_unique_together(self):
         Asignacion.objects.create(
             indicador=self.indicador,
-            departamento=self.departamento,
+            unidad_responsable=_unidad_para_departamento(self.departamento),
             periodo=self.periodo,
         )
         with self.assertRaises(IntegrityError), transaction.atomic():
             Asignacion.objects.create(
                 indicador=self.indicador,
-                departamento=self.departamento,
+                unidad_responsable=_unidad_para_departamento(self.departamento),
                 periodo=self.periodo,
             )
         self.assertEqual(Asignacion.objects.count(), 1)
@@ -187,7 +203,7 @@ class AsignacionModelTests(TestCase):
     def test_str_representation(self):
         asignacion = Asignacion.objects.create(
             indicador=self.indicador,
-            departamento=self.departamento,
+            unidad_responsable=_unidad_para_departamento(self.departamento),
             periodo=self.periodo,
         )
         expected = f"{self.indicador} - {self.departamento} ({self.periodo})"
@@ -224,7 +240,7 @@ class HistorialEstadoModelTests(TestCase):
         )
         self.asignacion = Asignacion.objects.create(
             indicador=self.indicador,
-            departamento=self.departamento,
+            unidad_responsable=_unidad_para_departamento(self.departamento),
             periodo=self.periodo,
         )
 
@@ -332,7 +348,7 @@ class PeriodoViewSetTests(TestCase):
             "activo": True,
         }
         response = self.client.post("/api/periodos/", payload, format="json")
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201, response.data)
         self.assertTrue(
             Periodo.objects.filter(nombre="Nuevo Periodo").exists(),
         )
@@ -382,6 +398,7 @@ class AsignacionViewSetTests(TestCase):
             nombre="Depto Y",
             facultad=self.facultad,
         )
+        self.unidad = _unidad_para_departamento(self.departamento)
         self.periodo = Periodo.objects.create(
             nombre="P1",
             fecha_inicio=date(2026, 1, 1),
@@ -412,11 +429,40 @@ class AsignacionViewSetTests(TestCase):
             payload,
             format="json",
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201, response.data)
         self.assertTrue(
             Asignacion.objects.filter(
                 indicador=self.indicador,
-                departamento=self.departamento,
+                unidad_responsable=_unidad_para_departamento(self.departamento),
                 periodo=self.periodo,
             ).exists(),
         )
+
+    def test_responsable_puede_asignar_a_unidad_sin_departamento(self):
+        tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Direccion")
+        unidad = UnidadOrganizacional.objects.create(nombre="Recursos Humanos", tipo=tipo)
+        responsable = User.objects.create_user(
+            username="responsable_rrhh",
+            email="responsable_rrhh@test.com",
+            password="claveSeguraTest1",
+        )
+        responsable.user_permissions.add(
+            Permission.objects.get(content_type__app_label="evaluation", codename="view_asignacion"),
+            Permission.objects.get(content_type__app_label="evaluation", codename="add_asignacion"),
+        )
+        PerfilUsuario.objects.create(usuario=responsable, unidad_organizacional=unidad)
+        self.client.force_authenticate(user=responsable)
+
+        response = self.client.post(
+            "/api/asignaciones/",
+            {
+                "indicador": self.indicador.pk,
+                "unidad_responsable": unidad.pk,
+                "periodo": self.periodo.pk,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["unidad_responsable"], unidad.pk)
+        self.assertTrue(Asignacion.objects.filter(unidad_responsable=unidad).exists())

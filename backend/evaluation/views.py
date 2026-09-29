@@ -10,8 +10,9 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db.models import Q
 
-from accounts.permissions import CustomModelPermissions, departamentos_permitidos, filtrar_por_rol
+from accounts.permissions import CustomModelPermissions, filtrar_por_rol, unidades_organizacionales_permitidas
 from auditoria.utils import registrar_auditoria
 from evidence.models import Evidencia, Observacion
 from notificaciones.utils import crear_notificacion
@@ -101,22 +102,27 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     Filtra el queryset según el rol del usuario autenticado.
     """
 
-    queryset = Asignacion.objects.all().order_by("periodo", "departamento")
+    queryset = Asignacion.objects.all().order_by("periodo", "unidad_responsable")
     serializer_class = AsignacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_queryset(self):
-        qs = Asignacion.objects.all().order_by("periodo", "departamento")
-        return filtrar_por_rol(qs, self.request, dept_field="departamento")
+        qs = Asignacion.objects.all().order_by("periodo", "unidad_responsable")
+        return filtrar_por_rol(qs, self.request, dept_field="unidad_responsable")
 
-    def _notificar_departamento(self, departamento, titulo, mensaje):
-        """@brief Envía una notificación a todos los usuarios del departamento.
-        @param departamento Instancia del departamento a notificar.
+    def _notificar_unidad(self, unidad, titulo, mensaje):
+        """@brief Envía una notificación a los usuarios del departamento heredado.
+        @param unidad Instancia de la unidad organizacional a notificar.
         @param titulo Título de la notificación.
         @param mensaje Mensaje descriptivo de la notificación.
         @return None
         """
-        perfiles = PerfilUsuario.objects.filter(departamento=departamento)
+        if unidad.departamento_legacy_id is None:
+            return
+        perfiles = PerfilUsuario.objects.filter(
+            Q(unidad_organizacional=unidad)
+            | Q(departamento_id=unidad.departamento_legacy_id)
+        ).distinct()
         for perfil in perfiles:
             crear_notificacion(usuario=perfil.usuario, titulo=titulo, mensaje=mensaje)
 
@@ -263,8 +269,8 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido aprobada.",
         )
         if comentario:
-            self._notificar_departamento(
-                departamento=asignacion.departamento,
+            self._notificar_unidad(
+                unidad=asignacion.unidad_responsable,
                 titulo="Evidencia aprobada con comentarios",
                 mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' fue aprobada. Comentario: {comentario}",
             )
@@ -332,25 +338,25 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         )
         return Response({"estado": EstadoAsignacion.OBSERVADA})
 
-    def _validar_departamento_permitido(self, validated_data):
-        """@brief Valida que el departamento indicado esté permitido para el usuario.
+    def _validar_unidad_permitida(self, validated_data):
+        """@brief Valida que la unidad indicada esté permitida para el usuario.
         @param validated_data Datos validados del serializador.
         @return None
         @raises ValidationError Si el departamento no está permitido.
         """
-        departamento = validated_data.get("departamento")
-        if not departamento:
+        unidad = validated_data.get("unidad_responsable")
+        if not unidad:
             return
-        permitidos = departamentos_permitidos(self.request)
-        if permitidos is not None and departamento.pk not in permitidos:
-            raise ValidationError({"departamento": "No tiene permiso para asignar indicadores a este departamento."})
+        permitidos = unidades_organizacionales_permitidas(self.request)
+        if permitidos is not None and unidad.pk not in permitidos:
+            raise ValidationError({"unidad_responsable": "No tiene permiso para asignar indicadores a esta unidad."})
 
     def perform_create(self, serializer):
         """@brief Crea una nueva asignación validando el departamento permitido.
         @param serializer Serializador con los datos validados.
         @return None
         """
-        self._validar_departamento_permitido(serializer.validated_data)
+        self._validar_unidad_permitida(serializer.validated_data)
         instance = serializer.save()
         registrar_auditoria(
             usuario=self.request.user,
@@ -359,12 +365,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             registro_id=instance.pk,
             descripcion=(
                 f"Se asignó el indicador '{instance.indicador.nombre}' "
-                f"al departamento '{instance.departamento.nombre}' "
+                f"a la unidad '{instance.unidad_responsable.nombre}' "
                 f"en el período '{instance.periodo.nombre}'"
             ),
         )
-        self._notificar_departamento(
-            departamento=instance.departamento,
+        self._notificar_unidad(
+            unidad=instance.unidad_responsable,
             titulo="Nuevo indicador asignado",
             mensaje=f"Se te ha asignado el indicador '{instance.indicador.nombre}' en el período {instance.periodo.nombre}",
         )
@@ -374,7 +380,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @param serializer Serializador con los datos validados.
         @return None
         """
-        self._validar_departamento_permitido(serializer.validated_data)
+        self._validar_unidad_permitida(serializer.validated_data)
         old_estado = self.get_object().estado
         instance = serializer.save()
 
@@ -390,8 +396,8 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 ),
             )
             estado_choices = {k: v for k, v in EstadoAsignacion.choices}
-            self._notificar_departamento(
-                departamento=instance.departamento,
+            self._notificar_unidad(
+                unidad=instance.unidad_responsable,
                 titulo=f"Estado actualizado: {instance.get_estado_display()}",
                 mensaje=(
                     f"La asignación '{instance.indicador.nombre}' cambió de "
@@ -418,7 +424,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             registro_id=instance.pk,
             descripcion=(
                 f"Se eliminó la asignación del indicador '{instance.indicador.nombre}' "
-                f"del departamento '{instance.departamento.nombre}'"
+                f"de la unidad '{instance.unidad_responsable.nombre}'"
             ),
         )
         instance.delete()
