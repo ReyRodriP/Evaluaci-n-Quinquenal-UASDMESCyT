@@ -189,10 +189,7 @@ textarea:focus-visible,
 /* =========== Proteccion contra copia de texto =========== */
 html,
 body {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+
 }
 
 /* Los campos de formularios siguen funcionando normal (escribir/seleccionar) */
