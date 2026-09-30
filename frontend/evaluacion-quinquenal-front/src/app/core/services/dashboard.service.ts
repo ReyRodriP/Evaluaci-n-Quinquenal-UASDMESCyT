@@ -11,12 +11,16 @@ export class DashboardService {
 
   constructor(private http: HttpClient) {}
 
-  obtenerResumen(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/dashboard/resumen/`);
+  obtenerResumen(periodoId?: number | string | null): Observable<any> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get(`${this.apiUrl}/dashboard/resumen/`, { params });
   }
 
-  obtenerAvance(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/dashboard/avance/`);
+  obtenerAvance(periodoId?: number | string | null): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get<any[]>(`${this.apiUrl}/dashboard/avance/`, { params });
   }
 
   obtenerDashboardDepartamento(id: number): Observable<any> {

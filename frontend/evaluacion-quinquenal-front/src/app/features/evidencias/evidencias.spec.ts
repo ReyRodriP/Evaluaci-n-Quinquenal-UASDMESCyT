@@ -2,6 +2,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ToastrModule } from 'ngx-toastr';
 import { of } from 'rxjs';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { EvidenciasService } from '../../core/services/evidencias.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
@@ -13,15 +14,26 @@ describe('Evidencias', () => {
 
   beforeEach(async () => {
     const evidenciasService = jasmine.createSpyObj<EvidenciasService>('EvidenciasService', ['listarEvidencias', 'crearEvidencia', 'subirVersionEvidencia', 'actualizarEvidencia']);
-    const evaluacionService = jasmine.createSpyObj<EvaluacionService>('EvaluacionService', ['listarAsignaciones']);
+    const evaluacionService = jasmine.createSpyObj<EvaluacionService>('EvaluacionService', ['listarPeriodos', 'listarAsignaciones', 'periodoActivo']);
     evidenciasService.listarEvidencias.and.returnValue(of([]));
     evidenciasService.crearEvidencia.and.returnValue(of({ id: 1 }));
     evidenciasService.subirVersionEvidencia.and.returnValue(of({ id: 1 }));
     evidenciasService.actualizarEvidencia.and.returnValue(of({ id: 1 }));
-    evaluacionService.listarAsignaciones.and.returnValue(of([]));
+    evaluacionService.listarPeriodos.and.returnValue(of([
+      { id: 10, nombre: 'Período actual', activo: true },
+      { id: 11, nombre: 'Período anterior', activo: false },
+    ]));
+    evaluacionService.listarAsignaciones.and.callFake((periodoId) => of([
+      {
+        id: Number(periodoId) === 11 ? 2 : 1,
+        periodo: periodoId,
+        unidad_responsable_nombre: Number(periodoId) === 11 ? 'Unidad anterior' : 'Unidad activa',
+      },
+    ]));
+    evaluacionService.periodoActivo.and.returnValue(of({ id: 10, nombre: 'Período actual' }));
 
     await TestBed.configureTestingModule({
-      imports: [Evidencias, HttpClientTestingModule, ToastrModule.forRoot()],
+      imports: [Evidencias, HttpClientTestingModule, ToastrModule.forRoot(), RouterTestingModule],
       providers: [
         { provide: EvidenciasService, useValue: evidenciasService },
         { provide: EvaluacionService, useValue: evaluacionService },
@@ -33,8 +45,15 @@ describe('Evidencias', () => {
     fixture.detectChanges();
   });
 
-  it('should create and initialize the evidence rows', () => {
+  it('loads assignments only for the active period', () => {
     expect(component).toBeTruthy();
-    expect(component.rows).toEqual([]);
+    expect(component.rows.map((row) => row.id)).toEqual([1]);
+  });
+
+  it('loads historical assignments as read-only', () => {
+    component.onPeriodoChange('11');
+    expect(component.rows.map((row) => row.id)).toEqual([2]);
+    expect(component.periodoSeleccionadoEsActivo).toBeFalse();
+    expect(component.puedeSubir).toBeFalse();
   });
 });

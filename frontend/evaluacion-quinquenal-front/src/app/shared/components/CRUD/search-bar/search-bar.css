@@ -4,8 +4,15 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
+    flex-wrap:wrap;
+    gap:12px 20px;
     margin-bottom:25px;
     color: var(--text-color);
+}
+
+.crud-header > div:first-child{
+    flex:1 1 auto;
+    min-width:180px;
 }
 
 .crud-header h2{
@@ -30,6 +37,16 @@
 
 .btn-primary:hover{
     background: var(--button-hover-bg);
+}
+
+@media (max-width: 600px){
+    .crud-header{
+        align-items:stretch;
+    }
+
+    .crud-header > div:first-child{
+        flex-basis:100%;
+    }
 }
 
 /* TOOLBAR */

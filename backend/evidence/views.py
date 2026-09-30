@@ -9,13 +9,15 @@ import os
 from django.db.models import Max
 from django.http import FileResponse
 from rest_framework import status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import CustomModelPermissions, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
-from evaluation.models import EstadoAsignacion, HistorialEstado
+from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado
+from evaluation.services import finalizar_periodos_vencidos
 from notificaciones.utils import crear_notificacion
 
 from .models import Evidencia, Observacion, VersionEvidencia
@@ -38,8 +40,23 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         """@brief Filtra el queryset según el rol del usuario autenticado
         @return QuerySet filtrado por departamento de la asignación"""
 
+        finalizar_periodos_vencidos()
         qs = Evidencia.objects.all()
+        periodo_id = self.request.query_params.get("periodo")
+        if periodo_id:
+            qs = qs.filter(asignacion__periodo_id=periodo_id)
+        elif self.request.method in ("GET", "HEAD", "OPTIONS"):
+            qs = qs.filter(asignacion__periodo__activo=True)
         return filtrar_por_rol(qs, self.request, dept_field="asignacion__unidad_responsable")
+
+    def get_object(self):
+        evidencia = super().get_object()
+        if self.request.method not in ("GET", "HEAD", "OPTIONS"):
+            finalizar_periodos_vencidos()
+            evidencia.asignacion.periodo.refresh_from_db(fields=["activo"])
+            if not evidencia.asignacion.periodo.activo:
+                raise ValidationError({"periodo": "El período finalizó; la evidencia solo permite consulta."})
+        return evidencia
 
     def create(self, request, *args, **kwargs):
         """@brief Crea una nueva evidencia o reactiva una existente
@@ -50,6 +67,13 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
         asignacion_id = request.data.get("asignacion")
         if asignacion_id:
+            finalizar_periodos_vencidos()
+            asignacion = Asignacion.objects.filter(pk=asignacion_id).select_related("periodo").first()
+            if asignacion is not None and not asignacion.periodo.activo:
+                return Response(
+                    {"asignacion": "Solo se pueden gestionar evidencias del período activo."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             existing = Evidencia.objects.filter(asignacion_id=asignacion_id).first()
             if existing:
                 if existing.estado == "cancelada":
@@ -130,11 +154,13 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         if asignacion:
             from evaluation.serializers import AsignacionSerializer, HistorialEstadoSerializer
 
+            asignacion.periodo.refresh_from_db(fields=["activo"])
             data["asignacion_info"] = AsignacionSerializer(asignacion).data
             historial = asignacion.historial_estados.all().order_by("-fecha")[:20]
             data["historial_estados"] = HistorialEstadoSerializer(historial, many=True).data
 
-        data["puede_observar"] = request.user.has_perm("evidence.add_observacion")
+        periodo_activo = bool(asignacion and asignacion.periodo.activo)
+        data["puede_observar"] = request.user.has_perm("evidence.add_observacion") and periodo_activo
         es_aprobado = asignacion and asignacion.estado == EstadoAsignacion.APROBADO
         puede_subir = request.user.has_perm("evidence.add_versionevidencia") or request.user.has_perm(
             "evidence.add_evidencia"
@@ -142,9 +168,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
         puede_cambiar = request.user.has_perm("evidence.change_evidencia")
 
-        data["puede_subir_version"] = puede_subir and not es_aprobado
-        data["puede_cambiar_estado"] = request.user.has_perm("evaluation.change_asignacion") and not es_aprobado
-        data["puede_editar_info"] = puede_cambiar and not es_aprobado
+        data["puede_subir_version"] = puede_subir and not es_aprobado and periodo_activo
+        data["puede_cambiar_estado"] = (
+            request.user.has_perm("evaluation.change_asignacion") and not es_aprobado and periodo_activo
+        )
+        data["puede_editar_info"] = puede_cambiar and not es_aprobado and periodo_activo
 
         return Response(data)
 
@@ -214,7 +242,14 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         """@brief Filtra el queryset según el rol del usuario autenticado
         @return QuerySet filtrado por departamento de la evidencia"""
 
+        finalizar_periodos_vencidos()
         qs = VersionEvidencia.objects.all()
+        periodo_id = self.request.query_params.get("periodo")
+        qs = (
+            qs.filter(evidencia__asignacion__periodo_id=periodo_id)
+            if periodo_id
+            else qs.filter(evidencia__asignacion__periodo__activo=True)
+        )
         return filtrar_por_rol(qs, self.request, dept_field="evidencia__asignacion__unidad_responsable")
 
     @action(detail=True, methods=["get"])
@@ -308,8 +343,24 @@ class ObservacionViewSet(viewsets.ModelViewSet):
         """@brief Filtra el queryset de observaciones activas según el rol del usuario
         @return QuerySet filtrado por departamento de la evidencia asociada"""
 
+        finalizar_periodos_vencidos()
         qs = Observacion.objects.filter(activo=True)
+        periodo_id = self.request.query_params.get("periodo")
+        if periodo_id:
+            qs = qs.filter(version__evidencia__asignacion__periodo_id=periodo_id)
+        elif self.request.method in ("GET", "HEAD", "OPTIONS"):
+            qs = qs.filter(version__evidencia__asignacion__periodo__activo=True)
         return filtrar_por_rol(qs, self.request, dept_field="version__evidencia__asignacion__unidad_responsable")
+
+    def get_object(self):
+        observacion = super().get_object()
+        if self.request.method not in ("GET", "HEAD", "OPTIONS"):
+            finalizar_periodos_vencidos()
+            periodo = observacion.version.evidencia.asignacion.periodo
+            periodo.refresh_from_db(fields=["activo"])
+            if not periodo.activo:
+                raise ValidationError({"periodo": "El período finalizó; la observación solo permite consulta."})
+        return observacion
 
     def perform_create(self, serializer):
         """@brief Crea una observación y ejecuta acciones secundarias
@@ -318,6 +369,11 @@ class ObservacionViewSet(viewsets.ModelViewSet):
         de la asignación a OBSERVADA.
         @param serializer Serializer con los datos validados de la observación"""
 
+        finalizar_periodos_vencidos()
+        periodo = serializer.validated_data["version"].evidencia.asignacion.periodo
+        periodo.refresh_from_db(fields=["activo"])
+        if not periodo.activo:
+            raise ValidationError({"version": "Solo se pueden gestionar evidencias del período activo."})
         observacion = serializer.save(usuario=self.request.user)
 
         evidencia = observacion.version.evidencia

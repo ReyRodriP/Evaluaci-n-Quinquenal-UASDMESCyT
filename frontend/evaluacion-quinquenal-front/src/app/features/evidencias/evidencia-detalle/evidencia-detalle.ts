@@ -15,6 +15,7 @@ import { EvaluacionService } from '../../../core/services/evaluacion.service';
 })
 export class EvidenciaDetalle implements OnInit {
   evidencia: any = null;
+  periodoId = '';
   loading = false;
   error = '';
 
@@ -59,6 +60,7 @@ export class EvidenciaDetalle implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
+    this.periodoId = this.route.snapshot.queryParamMap.get('periodo') || '';
     if (id) {
       this.cargarDetalle(+id);
     }
@@ -66,7 +68,7 @@ export class EvidenciaDetalle implements OnInit {
 
   cargarDetalle(id: number): void {
     this.loading = true;
-    this.evidenciasService.detalleEvidencia(id).subscribe({
+    this.evidenciasService.detalleEvidencia(id, this.periodoId).subscribe({
       next: (data) => {
         this.evidencia = data;
         this.loading = false;
@@ -123,7 +125,7 @@ export class EvidenciaDetalle implements OnInit {
     payload.append('archivo', archivo, archivo.name);
     payload.append('comentario', this.comentarioVersion || 'Nueva versión');
 
-    this.evidenciasService.subirVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
+    this.evidenciasService.subirVersionEvidencia(this.evidencia.id_evidencia, payload, this.periodoId).subscribe({
       next: () => {
         this.toast.success('Versión subida correctamente');
         this.nuevoArchivo = null;
@@ -140,7 +142,7 @@ export class EvidenciaDetalle implements OnInit {
   }
 
   descargar(versionId: number, nombreArchivo: string): void {
-    this.evidenciasService.descargarVersion(versionId).subscribe({
+    this.evidenciasService.descargarVersion(versionId, this.periodoId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -272,7 +274,7 @@ export class EvidenciaDetalle implements OnInit {
 
     if (['pdf'].includes(ext)) {
       this.previewTipo = 'pdf';
-      this.evidenciasService.previewVersion(version.id_version).subscribe({
+      this.evidenciasService.previewVersion(version.id_version, this.periodoId).subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);
           this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
@@ -285,7 +287,7 @@ export class EvidenciaDetalle implements OnInit {
       });
     } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
       this.previewTipo = 'imagen';
-      this.evidenciasService.previewVersion(version.id_version).subscribe({
+      this.evidenciasService.previewVersion(version.id_version, this.periodoId).subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);
           this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
@@ -298,7 +300,7 @@ export class EvidenciaDetalle implements OnInit {
       });
     } else if (['txt', 'csv', 'json', 'xml', 'html', 'htm', 'md', 'log', 'py', 'js', 'ts', 'java', 'c', 'cpp', 'css'].includes(ext)) {
       this.previewTipo = 'texto';
-      this.evidenciasService.previewVersion(version.id_version).subscribe({
+      this.evidenciasService.previewVersion(version.id_version, this.periodoId).subscribe({
         next: (blob) => {
           const reader = new FileReader();
           reader.onload = () => {
@@ -353,7 +355,7 @@ export class EvidenciaDetalle implements OnInit {
     }
     payload.append('comentario', this.versionEditComentario);
 
-    this.evidenciasService.editarVersionEvidencia(this.evidencia.id_evidencia, payload).subscribe({
+    this.evidenciasService.editarVersionEvidencia(this.evidencia.id_evidencia, payload, this.periodoId).subscribe({
       next: () => {
         this.toast.success('Versión actualizada correctamente');
         this.cancelarEdicionVersion();

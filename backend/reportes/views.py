@@ -39,6 +39,7 @@ from accounts.permissions import (
 )
 from auditoria.models import Auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado, Periodo
+from evaluation.services import finalizar_periodos_vencidos
 from evidence.models import Evidencia, Observacion, VersionEvidencia
 from organization.models import Departamento, Facultad, PerfilUsuario, UnidadOrganizacional
 
@@ -73,9 +74,8 @@ def _base_queryset_observaciones(request):
     if unidades_ids is not None:
         qs = qs.filter(version__evidencia__asignacion__unidad_responsable_id__in=unidades_ids)
 
-    periodo = request.query_params.get("periodo")
-    if periodo:
-        qs = qs.filter(version__evidencia__asignacion__periodo_id=periodo)
+    periodo = _periodo_para_reporte(request)
+    qs = qs.filter(version__evidencia__asignacion__periodo=periodo) if periodo else qs.none()
 
     departamento = request.query_params.get("departamento")
     if departamento:
@@ -90,6 +90,14 @@ def _base_queryset_observaciones(request):
         qs = qs.filter(usuario_id=usuario)
 
     return qs
+
+
+def _periodo_para_reporte(request):
+    finalizar_periodos_vencidos()
+    periodo_id = request.query_params.get("periodo")
+    if periodo_id:
+        return get_object_or_404(Periodo, pk=periodo_id)
+    return Periodo.objects.filter(activo=True).first()
 
 
 def _filas_observaciones(qs):
@@ -290,19 +298,14 @@ COLUMNAS_USUARIOS = ["Usuario", "Nombre", "Correo", "Rol", "Departamento", "Últ
 # Reporte 1: General del periodo
 # ============================================================
 def _data_general(request):
-    periodo_id = request.query_params.get("periodo")
-    if periodo_id:
-        periodo = get_object_or_404(Periodo, pk=periodo_id)
-    else:
-        periodo = Periodo.objects.order_by("-id").first()
+    periodo = _periodo_para_reporte(request)
 
     unidades_ids = unidades_organizacionales_permitidas(request)
 
     qs = Asignacion.objects.all()
     if unidades_ids is not None:
         qs = qs.filter(unidad_responsable_id__in=unidades_ids)
-    if periodo:
-        qs = qs.filter(periodo=periodo)
+    qs = qs.filter(periodo=periodo) if periodo else qs.none()
 
     total_asignaciones = qs.count()
 
@@ -407,7 +410,9 @@ def _data_por_facultad(request, pk):
     if deptos_ids is not None:
         departamentos = departamentos.filter(pk__in=deptos_ids)
 
+    periodo = _periodo_para_reporte(request)
     asignaciones = Asignacion.objects.filter(unidad_responsable__departamento_legacy__in=departamentos)
+    asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
 
     data = {
         "facultad": facultad.nombre,
@@ -418,13 +423,15 @@ def _data_por_facultad(request, pk):
 
     for departamento in departamentos:
         asignaciones_dep = Asignacion.objects.filter(unidad_responsable__departamento_legacy=departamento)
+        asignaciones_dep = asignaciones_dep.filter(periodo=periodo) if periodo else asignaciones_dep.none()
         data["departamentos"].append(
             {
                 "id": departamento.pk,
                 "nombre": departamento.nombre,
                 "total_asignaciones": asignaciones_dep.count(),
                 "evidencias": Evidencia.objects.filter(
-                    asignacion__unidad_responsable__departamento_legacy=departamento
+                    asignacion__unidad_responsable__departamento_legacy=departamento,
+                    asignacion__periodo=periodo,
                 ).count(),
                 "pendientes": asignaciones_dep.filter(estado=EstadoAsignacion.PENDIENTE).count(),
                 "aprobadas": asignaciones_dep.filter(estado=EstadoAsignacion.APROBADO).count(),
@@ -511,9 +518,11 @@ def _data_por_departamento(request, pk):
     if deptos_ids is not None and departamento.pk not in deptos_ids:
         return {"departamento": departamento.nombre, "denegado": True, "total": 0, "rows": []}
 
+    periodo = _periodo_para_reporte(request)
     asignaciones = Asignacion.objects.filter(
         unidad_responsable__departamento_legacy=departamento
     ).select_related("indicador", "unidad_responsable")
+    asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
 
     filas = []
     for asignacion in asignaciones:
@@ -624,9 +633,8 @@ def _base_queryset_evidencias(request):
     if unidad:
         qs = qs.filter(asignacion__unidad_responsable_id=unidad)
 
-    periodo = request.query_params.get("periodo")
-    if periodo:
-        qs = qs.filter(asignacion__periodo_id=periodo)
+    periodo = _periodo_para_reporte(request)
+    qs = qs.filter(asignacion__periodo=periodo) if periodo else qs.none()
 
     criterio = request.query_params.get("criterio")
     if criterio:

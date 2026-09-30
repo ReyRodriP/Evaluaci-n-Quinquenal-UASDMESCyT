@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
@@ -40,8 +43,8 @@ class ReportesTests(TestCase):
         )
         self.periodo = Periodo.objects.create(
             nombre="Periodo 2025",
-            fecha_inicio="2025-01-01",
-            fecha_fin="2025-12-31",
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
         )
         self.criterio = Criterio.objects.create(
             nombre="Criterio 1",
@@ -74,3 +77,29 @@ class ReportesTests(TestCase):
         self.assertIn("total_asignaciones", data)
         self.assertIn("pendientes", data)
         self.assertIn("aprobadas", data)
+
+    def test_reporte_general_active_default_and_historical_selection(self):
+        periodo_historico = Periodo.objects.create(
+            nombre="Periodo histórico",
+            fecha_inicio=timezone.localdate() - timedelta(days=400),
+            fecha_fin=timezone.localdate() - timedelta(days=30),
+            activo=False,
+        )
+        criterio = Criterio.objects.create(nombre="Criterio histórico", periodo=periodo_historico)
+        indicador = Indicador.objects.create(nombre="Indicador histórico", criterio=criterio, obligatorio=True)
+        Asignacion.objects.create(
+            indicador=indicador,
+            unidad_responsable=self.unidad,
+            periodo=periodo_historico,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        activo = self.client.get(self.url)
+        historico = self.client.get(self.url, {"periodo": periodo_historico.pk})
+
+        self.assertEqual(activo.data["periodo"], self.periodo.nombre)
+        self.assertEqual(activo.data["total_asignaciones"], 1)
+        self.assertEqual(historico.data["periodo"], periodo_historico.nombre)
+        self.assertEqual(historico.data["total_asignaciones"], 1)
+        self.assertEqual(historico.data["aprobadas"], 1)

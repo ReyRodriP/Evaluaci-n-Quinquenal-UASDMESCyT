@@ -2,6 +2,73 @@
   padding: 24px;
 }
 
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-header .page-title {
+  flex: 1 1 auto;
+  margin: 0 0 24px;
+}
+
+.period-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px auto;
+  color: var(--text-title-color);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.period-selector select {
+  width: min(280px, 32vw);
+  min-width: 200px;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--body-color);
+  color: var(--text-color);
+  font: inherit;
+}
+
+.period-selector option {
+  color: var(--text-color);
+}
+
+@media (max-width: 600px) {
+  .dashboard-header {
+    align-items: stretch;
+  }
+
+  .dashboard-header .page-title {
+    flex-basis: 100%;
+  }
+
+  .period-selector {
+    width: 100%;
+    margin: 0 0 24px;
+    white-space: normal;
+  }
+
+  .period-selector select {
+    flex: 1 1 180px;
+    width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-header .page-title,
+  .dashboard-header .period-selector {
+    flex-basis: 100%;
+  }
+}
+
 .page-title {
   font-size: 1.6rem;
   font-weight: 700;

@@ -66,6 +66,7 @@ export class Periodos implements OnInit {
   openEdit(item: any) {
     this.selectedItem = {
       ...item,
+      estado: item.activo ? 'Activo' : 'Inactivo',
     };
     this.showModal = true;
   }
@@ -75,7 +76,7 @@ export class Periodos implements OnInit {
       next: (data) => {
         this.datos = data.map((item: any) => ({
           ...item,
-          estado: item.activo ? 'Activo' : 'Inactivo',
+          estado: item.activo ? 'Activo' : 'Finalizado',
           fecha_inicio: item.fecha_inicio ? item.fecha_inicio.split('T')[0] : '',
           fecha_fin: item.fecha_fin ? item.fecha_fin.split('T')[0] : '',
         }));
@@ -105,7 +106,7 @@ export class Periodos implements OnInit {
       const matchesSearch = !normalizedTerm || nombre.includes(normalizedTerm);
       const matchesState = this.selectedState === 'Todas'
         || (this.selectedState === 'Activos' && item.activo)
-        || (this.selectedState === 'Inactivos' && !item.activo);
+        || (this.selectedState === 'Finalizados' && !item.activo);
       return matchesSearch && matchesState;
     });
     this.currentPage = 1;
@@ -136,6 +137,10 @@ export class Periodos implements OnInit {
   onModalSave(saved: any) {
     if (!saved.nombre || !saved.fecha_inicio || !saved.fecha_fin) {
       this.toast.error('Complete todos los campos requeridos');
+      return;
+    }
+    if (saved.fecha_inicio >= saved.fecha_fin) {
+      this.toast.error('La fecha de fin debe ser posterior a la fecha de inicio');
       return;
     }
 

@@ -11,6 +11,16 @@
       [pageSize]="pageSize"
       (search)="onSearch($event)"
       (pageSizeChange)="onPageSizeChange($event)">
+      <div class="period-selector">
+        <label for="evidencias-periodo">Período</label>
+        <select id="evidencias-periodo" [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)">
+          <option *ngIf="!periodoSeleccionadoId" value="">Sin período activo</option>
+          <option *ngFor="let periodo of periodos" [value]="periodo.id">
+            {{ periodo.nombre }} · {{ periodo.activo ? 'Activo' : 'Finalizado' }}
+          </option>
+        </select>
+        <span *ngIf="periodoSeleccionadoId && !periodoSeleccionadoEsActivo">Solo consulta histórica</span>
+      </div>
     </app-search-bar>
 
     <app-crud-table
@@ -48,7 +58,8 @@
       (pageChange)="onPageChange($event)">
     </app-pagination>
 
-    <div *ngIf="!rowsFiltrados.length && !loading" class="state-message">No hay asignaciones disponibles para gestionar evidencias.</div>
+    <div *ngIf="!periodoSeleccionadoId && !loading" class="state-message">No hay un período activo para gestionar evidencias.</div>
+    <div *ngIf="periodoSeleccionadoId && !rowsFiltrados.length && !loading" class="state-message">No hay asignaciones para el período seleccionado.</div>
   </ng-container>
 
   <app-modal

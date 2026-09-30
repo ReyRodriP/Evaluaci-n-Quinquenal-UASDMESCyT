@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
@@ -40,8 +43,8 @@ class DashboardResumenTests(TestCase):
         )
         self.periodo = Periodo.objects.create(
             nombre="Periodo 2025",
-            fecha_inicio="2025-01-01",
-            fecha_fin="2025-12-31",
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
         )
         self.criterio = Criterio.objects.create(
             nombre="Criterio 1",
@@ -74,6 +77,7 @@ class DashboardResumenTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.data
         expected_keys = {
+            "periodo",
             "departamentos",
             "indicadores",
             "asignaciones",
@@ -88,6 +92,36 @@ class DashboardResumenTests(TestCase):
         self.assertEqual(data["indicadores"], 1)
         self.assertEqual(data["asignaciones"], 1)
         self.assertEqual(data["pendientes"], 1)
+
+    def test_resumen_can_select_historical_period(self):
+        periodo_historico = Periodo.objects.create(
+            nombre="Periodo anterior",
+            fecha_inicio=timezone.localdate() - timedelta(days=400),
+            fecha_fin=timezone.localdate() - timedelta(days=30),
+            activo=False,
+        )
+        criterio_historico = Criterio.objects.create(nombre="Criterio anterior", periodo=periodo_historico)
+        indicador_historico = Indicador.objects.create(
+            nombre="Indicador anterior",
+            criterio=criterio_historico,
+            obligatorio=True,
+        )
+        Asignacion.objects.create(
+            indicador=indicador_historico,
+            unidad_responsable=self.unidad,
+            periodo=periodo_historico,
+            estado=EstadoAsignacion.APROBADO,
+        )
+
+        self.client.force_authenticate(user=self.admin_user)
+        activo = self.client.get(self.url)
+        historico = self.client.get(self.url, {"periodo": periodo_historico.pk})
+
+        self.assertEqual(activo.data["periodo"]["id"], self.periodo.pk)
+        self.assertEqual(activo.data["asignaciones"], 1)
+        self.assertEqual(historico.data["periodo"]["id"], periodo_historico.pk)
+        self.assertEqual(historico.data["asignaciones"], 1)
+        self.assertEqual(historico.data["aprobadas"], 1)
 
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"])

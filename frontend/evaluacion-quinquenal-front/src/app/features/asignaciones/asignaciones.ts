@@ -1,5 +1,8 @@
 ﻿import { Component, OnInit } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
@@ -11,7 +14,7 @@ import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-asignaciones',
-  imports: [CrudTable, SearchBar, Pagination, Modal],
+  imports: [CommonModule, FormsModule, CrudTable, SearchBar, Pagination, Modal],
   templateUrl: './asignaciones.html',
   styleUrl: './asignaciones.css',
 })
@@ -28,6 +31,8 @@ export class Asignaciones implements OnInit {
   pageSize = 10;
   unidades: any[] = [];
   periodos: any[] = [];
+  periodoActivo: any = null;
+  periodoSeleccionadoId = '';
 
   showModal: boolean = false;
   selectedItem: any = null;
@@ -46,10 +51,11 @@ export class Asignaciones implements OnInit {
   ];
 
   get puedeCrear(): boolean {
-    return this.permisos.tieneAlgunPermiso(['evaluation.add_asignacion']);
+    return this.periodoSeleccionadoEsActivo && this.permisos.tieneAlgunPermiso(['evaluation.add_asignacion']);
   }
 
   get ocultarAcciones(): string[] {
+    if (!this.periodoSeleccionadoEsActivo) return ['edit', 'toggle', 'remove'];
     if (this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion', 'evaluation.delete_asignacion'])) {
       return [];
     }
@@ -60,17 +66,25 @@ export class Asignaciones implements OnInit {
     private evaluacionService: EvaluacionService,
     private organizacionService: OrganizacionService,
     private permisos: PermisosService,
-    private toast: ToastrService
+    private toast: ToastrService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit() {
     this.loadIndicadores();
     this.loadUnidades();
     this.loadPeriodos();
-    this.loadAsignaciones();
+  }
+
+  get periodoSeleccionadoEsActivo(): boolean {
+    return this.periodos.some((periodo) =>
+      String(periodo.id) === this.periodoSeleccionadoId && periodo.activo
+    );
   }
 
   openNew() {
+    if (!this.periodoSeleccionadoEsActivo) return;
     this.selectedItem = null;
     this.showModal = true;
   }
@@ -148,9 +162,23 @@ export class Asignaciones implements OnInit {
   }
 
   loadPeriodos() {
-    this.evaluacionService.listarPeriodos().subscribe({
-      next: (data) => {
-        this.periodos = data;
+    forkJoin({
+      periodos: this.evaluacionService.listarPeriodos().pipe(catchError(() => of([]))),
+      activo: this.evaluacionService.periodoActivo().pipe(
+        catchError((error) => error.status === 404 ? of(null) : throwError(() => error))
+      ),
+    }).subscribe({
+      next: ({ periodos, activo }) => {
+        this.periodos = periodos;
+        this.periodoActivo = activo;
+        const periodoUrl = this.route.snapshot.queryParamMap.get('periodo');
+        const solicitado = periodos.find((item: any) => String(item.id) === periodoUrl);
+        const seleccionSolicitadaValida = periodoUrl && (solicitado || !periodos.length);
+        this.periodoSeleccionadoId = String(seleccionSolicitadaValida ? periodoUrl : activo?.id ?? '');
+        if (activo && !this.periodos.some((item: any) => Number(item.id) === Number(activo.id))) {
+          this.periodos = [...this.periodos, activo];
+        }
+        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarPeriodoUrl();
         this.asignacionFields = this.asignacionFields.map(field => {
           if (field.name !== 'periodo') {
             return field;
@@ -158,9 +186,11 @@ export class Asignaciones implements OnInit {
 
           return {
             ...field,
-            options: this.periodos.map((periodo: any) => ({ value: periodo.id, label: periodo.nombre }))
+            options: this.periodos.filter((periodo: any) => periodo.activo)
+              .map((periodo: any) => ({ value: periodo.id, label: periodo.nombre }))
           };
         });
+        this.loadAsignaciones();
       },
       error: (err) => {
         console.error('Error cargando períodos', err);
@@ -170,7 +200,12 @@ export class Asignaciones implements OnInit {
   }
 
   loadAsignaciones() {
-    this.evaluacionService.listarAsignaciones().subscribe({
+    if (!this.periodoSeleccionadoId) {
+      this.datos = [];
+      this.applySearch();
+      return;
+    }
+    this.evaluacionService.listarAsignaciones(this.periodoSeleccionadoId).subscribe({
       next: (data) => {
         const grouped = data.reduce((acc: any, item: any) => {
           const key = `${item.unidad_responsable}_${item.periodo}_${item.estado}`;
@@ -206,6 +241,21 @@ export class Asignaciones implements OnInit {
         console.error('Error cargando asignaciones', err);
         this.toast.error('No se pudieron cargar las asignaciones');
       }
+    });
+  }
+
+  onPeriodoChange(periodoId: string): void {
+    this.periodoSeleccionadoId = periodoId;
+    this.actualizarPeriodoUrl();
+    this.loadAsignaciones();
+  }
+
+  private actualizarPeriodoUrl(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { periodo: this.periodoSeleccionadoId || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
     });
   }
 
@@ -257,6 +307,10 @@ export class Asignaciones implements OnInit {
   }
 
   onModalSave(saved: any) {
+    if (!this.periodoSeleccionadoEsActivo) {
+      this.toast.error('No se pueden modificar asignaciones de un período finalizado');
+      return;
+    }
     const selectedIndicadores = Array.isArray(saved.indicador) ? saved.indicador : [saved.indicador];
     if (!selectedIndicadores.length || !saved.unidad_responsable || !saved.periodo) {
       this.toast.error('Complete todos los campos requeridos');

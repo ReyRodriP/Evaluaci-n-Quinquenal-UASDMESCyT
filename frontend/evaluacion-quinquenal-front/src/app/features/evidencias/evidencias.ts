@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { EvidenciasService } from '../../core/services/evidencias.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
@@ -13,7 +14,7 @@ import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-evidencias',
-  imports: [CommonModule, SearchBar, CrudTable, Modal, Pagination],
+  imports: [CommonModule, FormsModule, SearchBar, CrudTable, Modal, Pagination],
   templateUrl: './evidencias.html',
   styleUrl: './evidencias.css',
 })
@@ -25,20 +26,23 @@ export class Evidencias implements OnInit {
   currentPage = 1;
   pageSize = 10;
   loading = false;
+  periodoActivo: any = null;
+  periodos: any[] = [];
+  periodoSeleccionadoId = '';
 
   historialAbierto = false;
   historialCampos: any[] = [];
   historialData: any = null;
 
   get puedeSubir(): boolean {
-    return this.permisos.tieneAlgunPermiso([
+    return this.periodoSeleccionadoEsActivo && this.permisos.tieneAlgunPermiso([
       'evidence.add_evidencia', 'evidence.add_versionevidencia',
       'evidencias.add_evidencia',
     ]);
   }
 
   get puedeCancelarReactivar(): boolean {
-    return this.permisos.tieneAlgunPermiso([
+    return this.periodoSeleccionadoEsActivo && this.permisos.tieneAlgunPermiso([
       'evidence.change_evidencia', 'evidencias.change_evidencia',
     ]);
   }
@@ -48,18 +52,74 @@ export class Evidencias implements OnInit {
     private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
     private toast: ToastrService,
+    private route: ActivatedRoute,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    this.loadPeriodos();
+  }
+
+  get periodoSeleccionadoEsActivo(): boolean {
+    return this.periodos.some((periodo) =>
+      String(periodo.id) === this.periodoSeleccionadoId && periodo.activo
+    );
+  }
+
+  private loadPeriodos(): void {
+    this.loading = true;
+    forkJoin({
+      periodos: this.evaluacionService.listarPeriodos().pipe(catchError(() => of([]))),
+      periodo: this.evaluacionService.periodoActivo().pipe(
+        catchError((error) => error.status === 404 ? of(null) : throwError(() => error))
+      ),
+    }).subscribe({
+      next: ({ periodos, periodo }) => {
+        this.periodos = periodos;
+        this.periodoActivo = periodo;
+        const periodoUrl = this.route.snapshot.queryParamMap.get('periodo');
+        const periodoSolicitado = periodos.find((item: any) => String(item.id) === periodoUrl);
+        const seleccionSolicitadaValida = periodoUrl && (periodoSolicitado || !periodos.length);
+        this.periodoSeleccionadoId = String(seleccionSolicitadaValida ? periodoUrl : periodo?.id ?? '');
+        if (periodo && !this.periodos.some((item: any) => Number(item.id) === Number(periodo.id))) {
+          this.periodos = [...this.periodos, periodo];
+        }
+        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarPeriodoUrl();
+        this.loadData();
+      },
+      error: () => {
+        this.toast.error('No se pudieron cargar los períodos');
+        this.loading = false;
+      },
+    });
+  }
+
+  onPeriodoChange(periodoId: string): void {
+    this.periodoSeleccionadoId = periodoId;
+    this.actualizarPeriodoUrl();
     this.loadData();
   }
 
+  private actualizarPeriodoUrl(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { periodo: this.periodoSeleccionadoId || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
   loadData(): void {
+    if (!this.periodoSeleccionadoId) {
+      this.rows = [];
+      this.applySearch();
+      this.loading = false;
+      return;
+    }
     this.loading = true;
     forkJoin({
-      asignaciones: this.evaluacionService.listarAsignaciones(),
-      evidencias: this.evidenciasService.listarEvidencias(),
+      asignaciones: this.evaluacionService.listarAsignaciones(this.periodoSeleccionadoId),
+      evidencias: this.evidenciasService.listarEvidencias(this.periodoSeleccionadoId),
     }).subscribe({
       next: ({ asignaciones, evidencias }) => {
         this.rows = asignaciones.map((asignacion: any) => {
@@ -91,7 +151,7 @@ export class Evidencias implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.toast.error('No se pudieron cargar las asignaciones para evidencia');
+        this.toast.error('No se pudieron cargar las evidencias del período');
         this.loading = false;
       },
     });
@@ -148,14 +208,20 @@ export class Evidencias implements OnInit {
       this.evidenciasService.crearEvidencia(payload).subscribe({
         next: (res) => {
           const id = res?.id_evidencia ?? res?.id;
-          if (id) this.router.navigate(['/evidencias', id, 'detalle']);
+          if (id) this.irADetalle(id);
           else this.toast.error('No se pudo crear la evidencia');
         },
         error: () => this.toast.error('No se pudo crear la evidencia'),
       });
       return;
     }
-    this.router.navigate(['/evidencias', row.evidenciaId, 'detalle']);
+    this.irADetalle(row.evidenciaId);
+  }
+
+  private irADetalle(evidenciaId: number): void {
+    void this.router.navigate(['/evidencias', evidenciaId, 'detalle'], {
+      queryParams: { periodo: this.periodoSeleccionadoId },
+    });
   }
 
   openManage(row: any): void {
@@ -167,19 +233,19 @@ export class Evidencias implements OnInit {
       this.evidenciasService.crearEvidencia(payload).subscribe({
         next: (res) => {
           const id = res?.id_evidencia ?? res?.id;
-          if (id) this.router.navigate(['/evidencias', id, 'detalle']);
+          if (id) this.irADetalle(id);
           else this.toast.error('No se pudo crear la evidencia');
         },
         error: () => this.toast.error('No se pudo crear la evidencia'),
       });
       return;
     }
-    this.router.navigate(['/evidencias', row.evidenciaId, 'detalle']);
+    this.irADetalle(row.evidenciaId);
   }
 
   cancelar(row: any): void {
     if (!row.evidenciaId) return;
-    this.evidenciasService.actualizarEvidencia(row.evidenciaId, { estado: 'cancelada' }).subscribe({
+    this.evidenciasService.actualizarEvidencia(row.evidenciaId, { estado: 'cancelada' }, this.periodoSeleccionadoId).subscribe({
       next: () => {
         this.toast.success('Evidencia cancelada');
         this.loadData();
@@ -190,7 +256,7 @@ export class Evidencias implements OnInit {
 
   reactivar(row: any): void {
     if (!row.evidenciaId) return;
-    this.evidenciasService.actualizarEvidencia(row.evidenciaId, { estado: 'activa' }).subscribe({
+    this.evidenciasService.actualizarEvidencia(row.evidenciaId, { estado: 'activa' }, this.periodoSeleccionadoId).subscribe({
       next: () => {
         this.toast.success('Evidencia reactivada');
         this.loadData();
@@ -205,7 +271,7 @@ export class Evidencias implements OnInit {
       this.toast.error('No hay archivo disponible para descargar');
       return;
     }
-    this.evidenciasService.descargarVersion(v.id_version).subscribe({
+    this.evidenciasService.descargarVersion(v.id_version, this.periodoSeleccionadoId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -220,7 +286,7 @@ export class Evidencias implements OnInit {
 
   verHistorial(row: any): void {
     if (!row.evidenciaId) return;
-    this.evidenciasService.obtenerHistorial(row.evidenciaId).subscribe({
+    this.evidenciasService.obtenerHistorial(row.evidenciaId, this.periodoSeleccionadoId).subscribe({
       next: (versiones: any[]) => {
         const items = versiones.map((v: any) =>
           `  v${v.version}  ${v.fecha_subida?.slice(0, 10) || ''}  —  ${v.comentario || 'Sin comentario'}`

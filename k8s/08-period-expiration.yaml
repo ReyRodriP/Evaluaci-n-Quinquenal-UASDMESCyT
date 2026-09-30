@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: period-expiration
+  namespace: evaluacion-quinquenal
+spec:
+  schedule: "5 0 * * *"
+  timeZone: America/Santo_Domingo
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: period-expiration
+              image: evaluacion-quinquenal/backend:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python", "manage.py", "finalizar_periodos_vencidos"]
+              env:
+                - name: DJANGO_SETTINGS_MODULE
+                  value: "evaluacionQuinquenal.settings"
+                - name: DEBUG
+                  value: "False"
+                - name: SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: SECRET_KEY
+                - name: DB_ENGINE
+                  value: "django.db.backends.postgresql"
+                - name: DB_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: DB_NAME
+                - name: DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: DB_USER
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: app-secrets
+                      key: DB_PASSWORD
+                - name: DB_HOST
+                  value: "postgres"
+                - name: DB_PORT
+                  value: "5432"

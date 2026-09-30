@@ -9,6 +9,7 @@ from rest_framework import serializers
 from organization.models import UnidadOrganizacional
 
 from .models import Asignacion, Criterio, HistorialEstado, Indicador, Periodo
+from .services import finalizar_periodos_vencidos
 
 
 class HistorialEstadoSerializer(serializers.ModelSerializer):
@@ -45,6 +46,27 @@ class PeriodoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Periodo
         fields = "__all__"
+
+    def validate(self, attrs):
+        finalizar_periodos_vencidos()
+        if self.instance is not None:
+            self.instance.refresh_from_db(fields=["activo"])
+
+        fecha_inicio = attrs.get("fecha_inicio", getattr(self.instance, "fecha_inicio", None))
+        fecha_fin = attrs.get("fecha_fin", getattr(self.instance, "fecha_fin", None))
+        if fecha_inicio and fecha_fin and fecha_inicio >= fecha_fin:
+            raise serializers.ValidationError({"fecha_fin": "Debe ser posterior a la fecha de inicio."})
+
+        activo = attrs.get("activo", getattr(self.instance, "activo", True))
+        if activo:
+            periodos_activos = Periodo.objects.filter(activo=True)
+            if self.instance:
+                periodos_activos = periodos_activos.exclude(pk=self.instance.pk)
+            if periodos_activos.exists():
+                raise serializers.ValidationError(
+                    {"activo": "Ya existe otro período activo. Desactívelo antes de activar este período."}
+                )
+        return attrs
 
 
 class IndicadorSerializer(serializers.ModelSerializer):
@@ -106,6 +128,17 @@ class AsignacionSerializer(serializers.ModelSerializer):
             "estado",
             "estado_display",
         ]
+
+    def validate(self, attrs):
+        finalizar_periodos_vencidos()
+        periodo = attrs.get("periodo", getattr(self.instance, "periodo", None))
+        if periodo is not None:
+            periodo.refresh_from_db(fields=["activo"])
+            if not periodo.activo:
+                raise serializers.ValidationError(
+                    {"periodo": "Solo se pueden gestionar asignaciones del período activo."}
+                )
+        return attrs
 
     def get_departamento(self, obj):
         return obj.unidad_responsable.departamento_legacy_id

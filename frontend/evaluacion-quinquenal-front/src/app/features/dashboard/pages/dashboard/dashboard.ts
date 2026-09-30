@@ -1,27 +1,38 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { DashboardService } from '../../../../core/services/dashboard.service';
+import { EvaluacionService } from '../../../../core/services/evaluacion.service';
 import ApexCharts from 'apexcharts';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
 export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   resumen: any = {}
   avance: any[] = []
+  periodos: any[] = []
+  periodoSeleccionadoId = ''
   loading = true
   private graficos: ApexCharts[] = []
   private observer?: MutationObserver
 
-  constructor(private dashboardService: DashboardService, private toast: ToastrService) {}
+  constructor(
+    private dashboardService: DashboardService,
+    private evaluacionService: EvaluacionService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private toast: ToastrService
+  ) {}
 
   ngOnInit(): void {
-    this.cargarDatos()
+    this.cargarPeriodos()
     this.observarTema()
   }
 
@@ -31,7 +42,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cargarDatos(): void {
-    this.dashboardService.obtenerResumen().subscribe({
+    this.dashboardService.obtenerResumen(this.periodoSeleccionadoId).subscribe({
       next: (data) => {
         this.resumen = data
         this.loading = false
@@ -42,9 +53,51 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         this.toast.error('No se pudo cargar el tablero')
       },
     })
-    this.dashboardService.obtenerAvance().subscribe({
+    this.dashboardService.obtenerAvance(this.periodoSeleccionadoId).subscribe({
       next: (data) => this.avance = data,
       error: () => this.toast.error('No se pudo cargar el avance'),
+    })
+  }
+
+  private cargarPeriodos(): void {
+    forkJoin({
+      periodos: this.evaluacionService.listarPeriodos().pipe(catchError(() => of([]))),
+      activo: this.evaluacionService.periodoActivo().pipe(
+        catchError((error) => error.status === 404 ? of(null) : throwError(() => error))
+      ),
+    }).subscribe({
+      next: ({ periodos, activo }) => {
+        this.periodos = periodos
+        const periodoUrl = this.route.snapshot.queryParamMap.get('periodo')
+        const solicitado = periodos.find((periodo: any) => String(periodo.id) === periodoUrl)
+        const seleccionSolicitadaValida = periodoUrl && (solicitado || !periodos.length)
+        this.periodoSeleccionadoId = String(seleccionSolicitadaValida ? periodoUrl : activo?.id ?? '')
+        if (activo && !this.periodos.some((periodo: any) => Number(periodo.id) === Number(activo.id))) {
+          this.periodos = [...this.periodos, activo]
+        }
+        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarPeriodoUrl()
+        this.cargarDatos()
+      },
+      error: () => {
+        this.toast.error('No se pudieron cargar los períodos')
+        this.loading = false
+      },
+    })
+  }
+
+  onPeriodoChange(periodoId: string): void {
+    this.periodoSeleccionadoId = periodoId
+    this.actualizarPeriodoUrl()
+    this.loading = true
+    this.cargarDatos()
+  }
+
+  private actualizarPeriodoUrl(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { periodo: this.periodoSeleccionadoId || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
     })
   }
 

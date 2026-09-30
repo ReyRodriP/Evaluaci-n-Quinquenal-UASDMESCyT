@@ -1,6 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReportesService } from '../../core/services/reportes.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
@@ -86,6 +88,8 @@ export class Reportes implements OnInit, OnDestroy {
     private evaluacionService: EvaluacionService,
     private organizacionService: OrganizacionService,
     private permisos: PermisosService,
+    private route: ActivatedRoute,
+    private router: Router,
     private toast: ToastrService
   ) {}
 
@@ -99,7 +103,6 @@ export class Reportes implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadSelectores();
-    this.cargarReporteActual();
   }
 
   ngOnDestroy(): void {
@@ -127,8 +130,27 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   private loadSelectores(): void {
-    this.evaluacionService.listarPeriodos().subscribe({
-      next: (data) => (this.periodos = data),
+    forkJoin({
+      periodos: this.evaluacionService.listarPeriodos().pipe(catchError(() => of([]))),
+      activo: this.evaluacionService.periodoActivo().pipe(
+        catchError((error) => error.status === 404 ? of(null) : throwError(() => error))
+      ),
+    }).subscribe({
+      next: ({ periodos, activo }) => {
+        this.periodos = periodos;
+        const periodoUrl = this.route.snapshot.queryParamMap.get('periodo');
+        const solicitado = periodos.find((periodo: any) => String(periodo.id) === periodoUrl);
+        const seleccionSolicitadaValida = periodoUrl && (solicitado || !periodos.length);
+        const periodoInicial = String(seleccionSolicitadaValida ? periodoUrl : activo?.id ?? '');
+        if (activo && !this.periodos.some((periodo: any) => Number(periodo.id) === Number(activo.id))) {
+          this.periodos = [...this.periodos, activo];
+        }
+        this.genFiltros.periodo = periodoInicial;
+        this.evFiltros.periodo = periodoInicial;
+        this.obsFiltros.periodo = periodoInicial;
+        if (periodoInicial !== periodoUrl) this.actualizarPeriodoUrl(periodoInicial);
+        this.cargarReporteActual();
+      },
       error: () => this.toast.error('No se pudieron cargar los períodos'),
     });
     this.organizacionService.listarFacultades().subscribe({
@@ -169,6 +191,25 @@ export class Reportes implements OnInit, OnDestroy {
     return params;
   }
 
+  onPeriodoChange(periodoId: string): void {
+    this.genFiltros.periodo = periodoId;
+    this.evFiltros.periodo = periodoId;
+    this.obsFiltros.periodo = periodoId;
+    this.actualizarPeriodoUrl(periodoId);
+    this.evPage = 1;
+    this.obsPage = 1;
+    this.cargarReporteActual();
+  }
+
+  private actualizarPeriodoUrl(periodoId: string): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { periodo: periodoId || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
   // ===================== GENERAL =====================
   cargarGeneral(): void {
     this.loading = true;
@@ -186,15 +227,15 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosGeneral(): void {
-    this.genFiltros = { periodo: '' };
-    this.cargarGeneral();
+    const periodo = this.periodos.find((item: any) => item.activo);
+    this.onPeriodoChange(periodo ? String(periodo.id) : '');
   }
 
   // ===================== FACULTAD =====================
   cargarFacultad(): void {
     if (!this.facId) return;
     this.loading = true;
-    this.reportesService.reporteFacultad(Number(this.facId)).subscribe({
+    this.reportesService.reporteFacultad(Number(this.facId), this.limpiarParametros({ periodo: this.genFiltros.periodo })).subscribe({
       next: (data) => {
         this.facData = data;
         this.loading = false;
@@ -210,7 +251,7 @@ export class Reportes implements OnInit, OnDestroy {
   cargarDepartamento(): void {
     if (!this.depId) return;
     this.loading = true;
-    const params = { page: this.depPage, page_size: this.pageSize };
+    const params = { page: this.depPage, page_size: this.pageSize, ...this.limpiarParametros({ periodo: this.genFiltros.periodo }) };
     this.reportesService.reporteDepartamento(Number(this.depId), params).subscribe({
       next: (data) => {
         this.depRows = data.rows;
@@ -247,7 +288,7 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosEvidencias(): void {
-    this.evFiltros = { estado: '', unidad_organizacional: '', periodo: '', criterio: '' };
+    this.evFiltros = { estado: '', unidad_organizacional: '', periodo: this.genFiltros.periodo, criterio: '' };
     this.evPage = 1;
     this.cargarEvidencias();
   }
@@ -275,7 +316,7 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosObservaciones(): void {
-    this.obsFiltros = { periodo: '', unidad_organizacional: '', usuario: '' };
+    this.obsFiltros = { periodo: this.genFiltros.periodo, unidad_organizacional: '', usuario: '' };
     this.obsPage = 1;
     this.cargarObservaciones();
   }
@@ -354,9 +395,9 @@ export class Reportes implements OnInit, OnDestroy {
       case 'general':
         return { reporte: 'general', filtros: this.limpiarParametros(this.genFiltros), nombre: 'reporte_general' };
       case 'facultad':
-        return { reporte: `facultad/${this.facId}`, filtros: {}, nombre: `reporte_facultad_${this.facId}` };
+        return { reporte: `facultad/${this.facId}`, filtros: this.limpiarParametros({ periodo: this.genFiltros.periodo }), nombre: `reporte_facultad_${this.facId}` };
       case 'departamento':
-        return { reporte: `departamento/${this.depId}`, filtros: {}, nombre: `reporte_departamento_${this.depId}` };
+        return { reporte: `departamento/${this.depId}`, filtros: this.limpiarParametros({ periodo: this.genFiltros.periodo }), nombre: `reporte_departamento_${this.depId}` };
       case 'evidencias':
         return { reporte: 'evidencias', filtros: this.limpiarParametros(this.evFiltros), nombre: 'reporte_evidencias' };
       case 'observaciones':

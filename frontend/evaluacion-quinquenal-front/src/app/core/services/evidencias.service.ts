@@ -17,45 +17,61 @@ export class EvidenciasService {
   }
 
   // Evidencias
-  listarEvidencias(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.apiUrl}/evidencias/`));
+  listarEvidencias(periodoId?: number | string | null): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/evidencias/`, { params }));
   }
 
   crearEvidencia(payload: FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}/evidencias/`, payload);
   }
 
-  actualizarEvidencia(id: number, payload: any): Observable<any> {
-    return this.http.patch(`${this.apiUrl}/evidencias/${id}/`, payload);
+  actualizarEvidencia(id: number, payload: any, periodoId?: number | string | null): Observable<any> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.patch(`${this.apiUrl}/evidencias/${id}/`, payload, { params });
   }
 
   eliminarEvidencia(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/evidencias/${id}/`);
   }
 
-  subirVersionEvidencia(id: number, payload: FormData): Observable<any> {
-    return this.http.post(`${this.apiUrl}/evidencias/${id}/subir_version/`, payload);
+  subirVersionEvidencia(id: number, payload: FormData, periodoId?: number | string | null): Observable<any> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.post(`${this.apiUrl}/evidencias/${id}/subir_version/`, payload, { params });
   }
 
-  editarVersionEvidencia(id: number, payload: FormData): Observable<any> {
-    return this.http.patch(`${this.apiUrl}/evidencias/${id}/editar_version/`, payload);
+  editarVersionEvidencia(id: number, payload: FormData, periodoId?: number | string | null): Observable<any> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.patch(`${this.apiUrl}/evidencias/${id}/editar_version/`, payload, { params });
   }
 
-  detalleEvidencia(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/evidencias/${id}/detalle/`);
+  detalleEvidencia(id: number, periodoId?: number | string | null): Observable<any> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get(`${this.apiUrl}/evidencias/${id}/detalle/`, { params });
   }
 
-  obtenerHistorial(id: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/evidencias/${id}/historial/`);
+  obtenerHistorial(id: number, periodoId?: number | string | null): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get<any[]>(`${this.apiUrl}/evidencias/${id}/historial/`, { params });
   }
 
   // Versiones
-  descargarVersion(id: number): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/versiones/${id}/descargar/`, { responseType: 'blob' });
+  descargarVersion(id: number, periodoId?: number | string | null): Observable<Blob> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get(`${this.apiUrl}/versiones/${id}/descargar/`, { params, responseType: 'blob' });
   }
 
-  previewVersion(id: number): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/versiones/${id}/preview/`, { responseType: 'blob' });
+  previewVersion(id: number, periodoId?: number | string | null): Observable<Blob> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get(`${this.apiUrl}/versiones/${id}/preview/`, { params, responseType: 'blob' });
   }
 
   // Observaciones

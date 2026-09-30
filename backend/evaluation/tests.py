@@ -1,12 +1,14 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from auditoria.models import Auditoria
 from organization.models import (
     Departamento,
     Facultad,
@@ -66,6 +68,44 @@ class PeriodoModelTests(TestCase):
         )
         self.assertTrue(periodo.activo)
 
+    def test_finalizar_periodos_vencidos(self):
+        hoy = timezone.localdate()
+        vencido = Periodo.objects.create(
+            nombre="Vencido",
+            fecha_inicio=hoy - timedelta(days=10),
+            fecha_fin=hoy - timedelta(days=1),
+        )
+        vigente_hasta_hoy = Periodo.objects.create(
+            nombre="Vigente hoy",
+            fecha_inicio=hoy - timedelta(days=1),
+            fecha_fin=hoy,
+            activo=False,
+        )
+
+        from .services import finalizar_periodos_vencidos
+
+        self.assertEqual(finalizar_periodos_vencidos(), 1)
+        vencido.refresh_from_db()
+        vigente_hasta_hoy.refresh_from_db()
+        self.assertFalse(vencido.activo)
+        self.assertFalse(vigente_hasta_hoy.activo)
+        self.assertTrue(
+            Auditoria.objects.filter(
+                modelo="Periodo",
+                registro_id=vencido.pk,
+                accion="Finalizar automáticamente",
+            ).exists()
+        )
+
+    def test_periodo_rechaza_rango_de_fechas_invalido(self):
+        periodo = Periodo(
+            nombre="Fechas inválidas",
+            fecha_inicio=date(2026, 6, 30),
+            fecha_fin=date(2026, 1, 1),
+        )
+        with self.assertRaises(IntegrityError):
+            periodo.save()
+
 
 # ===========================================================================
 # 2. CriterioModelTests
@@ -74,8 +114,8 @@ class CriterioModelTests(TestCase):
     def setUp(self):
         self.periodo = Periodo.objects.create(
             nombre="P1",
-            fecha_inicio=date(2026, 1, 1),
-            fecha_fin=date(2026, 6, 30),
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
         )
 
     def test_crear_criterio(self):
@@ -110,8 +150,8 @@ class IndicadorModelTests(TestCase):
     def setUp(self):
         self.periodo = Periodo.objects.create(
             nombre="P1",
-            fecha_inicio=date(2026, 1, 1),
-            fecha_fin=date(2026, 6, 30),
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
         )
         self.criterio = Criterio.objects.create(
             nombre="C1",
@@ -325,8 +365,8 @@ class PeriodoViewSetTests(TestCase):
 
         self.periodo = Periodo.objects.create(
             nombre="P1",
-            fecha_inicio=date(2026, 1, 1),
-            fecha_fin=date(2026, 6, 30),
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
         )
 
     def test_list_periodos_requires_auth(self):
@@ -339,19 +379,111 @@ class PeriodoViewSetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertGreaterEqual(len(response.data), 1)
 
+    def test_get_periodo_activo(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.get("/api/periodos/activo/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["id"], self.periodo.pk)
+
+    def test_get_periodo_activo_when_none_exists(self):
+        self.periodo.activo = False
+        self.periodo.save()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.get("/api/periodos/activo/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_periodo_activo_expires_period_after_end_date(self):
+        self.periodo.fecha_inicio = timezone.localdate() - timedelta(days=2)
+        self.periodo.fecha_fin = timezone.localdate() - timedelta(days=1)
+        self.periodo.save()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.get("/api/periodos/activo/")
+        self.assertEqual(response.status_code, 404)
+        self.periodo.refresh_from_db()
+        self.assertFalse(self.periodo.activo)
+
     def test_create_periodo_admin(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
         payload = {
             "nombre": "Nuevo Periodo",
             "fecha_inicio": "2027-01-01",
             "fecha_fin": "2027-06-30",
-            "activo": True,
+            "activo": False,
         }
         response = self.client.post("/api/periodos/", payload, format="json")
         self.assertEqual(response.status_code, 201, response.data)
+        periodo = Periodo.objects.get(nombre="Nuevo Periodo")
+        self.assertFalse(periodo.activo)
         self.assertTrue(
-            Periodo.objects.filter(nombre="Nuevo Periodo").exists(),
+            Auditoria.objects.filter(modelo="Periodo", registro_id=periodo.pk, accion="Crear período").exists()
         )
+
+    def test_update_periodo_admin_is_audited(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.patch(
+            f"/api/periodos/{self.periodo.pk}/",
+            {"nombre": "P1 actualizado"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        auditoria = Auditoria.objects.get(modelo="Periodo", registro_id=self.periodo.pk, accion="Actualizar período")
+        self.assertIn("nombre", auditoria.descripcion)
+
+    def test_expired_period_can_be_extended_and_reactivated(self):
+        hoy = timezone.localdate()
+        self.periodo.fecha_inicio = hoy - timedelta(days=2)
+        self.periodo.fecha_fin = hoy - timedelta(days=1)
+        self.periodo.save()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+
+        vencido = self.client.get("/api/periodos/activo/")
+        actualizado = self.client.patch(
+            f"/api/periodos/{self.periodo.pk}/",
+            {"fecha_fin": (hoy + timedelta(days=30)).isoformat(), "activo": True},
+            format="json",
+        )
+
+        self.assertEqual(vencido.status_code, 404)
+        self.assertEqual(actualizado.status_code, 200, actualizado.data)
+        self.assertTrue(actualizado.data["activo"])
+        self.assertTrue(
+            Auditoria.objects.filter(
+                modelo="Periodo",
+                registro_id=self.periodo.pk,
+                accion="Finalizar automáticamente",
+            ).exists()
+        )
+        self.assertTrue(
+            Auditoria.objects.filter(
+                modelo="Periodo",
+                registro_id=self.periodo.pk,
+                accion="Actualizar período",
+            ).exists()
+        )
+
+    def test_create_active_period_when_another_is_active_denied(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        payload = {
+            "nombre": "Segundo activo",
+            "fecha_inicio": "2027-01-01",
+            "fecha_fin": "2027-06-30",
+            "activo": True,
+        }
+        response = self.client.post("/api/periodos/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("activo", response.data)
+
+    def test_create_period_with_invalid_date_range_denied(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        payload = {
+            "nombre": "Rango inválido",
+            "fecha_inicio": "2027-06-30",
+            "fecha_fin": "2027-01-01",
+            "activo": False,
+        }
+        response = self.client.post("/api/periodos/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("fecha_fin", response.data)
 
     def test_create_periodo_consulta_denied(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.consulta_token))
@@ -401,8 +533,8 @@ class AsignacionViewSetTests(TestCase):
         self.unidad = _unidad_para_departamento(self.departamento)
         self.periodo = Periodo.objects.create(
             nombre="P1",
-            fecha_inicio=date(2026, 1, 1),
-            fecha_fin=date(2026, 6, 30),
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
         )
         self.criterio = Criterio.objects.create(
             nombre="C1",
@@ -437,6 +569,34 @@ class AsignacionViewSetTests(TestCase):
                 periodo=self.periodo,
             ).exists(),
         )
+
+    def test_list_asignaciones_can_query_historical_period(self):
+        self.periodo.activo = False
+        self.periodo.save()
+        asignacion = Asignacion.objects.create(
+            indicador=self.indicador,
+            unidad_responsable=self.unidad,
+            periodo=self.periodo,
+        )
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.get(f"/api/asignaciones/?periodo={self.periodo.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.data["results"]], [asignacion.pk])
+
+    def test_create_asignacion_for_historical_period_is_denied(self):
+        self.periodo.activo = False
+        self.periodo.save()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.post(
+            "/api/asignaciones/",
+            {
+                "indicador": self.indicador.pk,
+                "unidad_responsable": self.unidad.pk,
+                "periodo": self.periodo.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_responsable_puede_asignar_a_unidad_sin_departamento(self):
         tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Direccion")

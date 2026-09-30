@@ -1,7 +1,10 @@
 """Tests del flujo de estados de asignacion (nucleo del sistema)."""
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -28,7 +31,13 @@ def _asignacion(tag="A"):
     dep = Departamento.objects.create(nombre=f"Depto {tag}", facultad=fac)
     tipo = TipoUnidadOrganizacional.objects.create(nombre=f"Departamento {tag}")
     unidad = UnidadOrganizacional.objects.create(nombre=dep.nombre, tipo=tipo, departamento_legacy=dep)
-    per = Periodo.objects.create(nombre=f"Periodo {tag}", fecha_inicio="2025-01-01", fecha_fin="2025-12-31")
+    Periodo.objects.filter(activo=True).update(activo=False)
+    hoy = timezone.localdate()
+    per = Periodo.objects.create(
+        nombre=f"Periodo {tag}",
+        fecha_inicio=hoy - timedelta(days=1),
+        fecha_fin=hoy + timedelta(days=30),
+    )
     cri = Criterio.objects.create(nombre=f"Criterio {tag}", periodo=per)
     ind = Indicador.objects.create(nombre=f"Indicador {tag}", criterio=cri)
     return Asignacion.objects.create(indicador=ind, unidad_responsable=unidad, periodo=per)

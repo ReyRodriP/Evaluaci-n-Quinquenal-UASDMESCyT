@@ -30,9 +30,9 @@
     <div class="reporte-filtros">
       <label>
         Período
-        <select name="gen_periodo" [(ngModel)]="genFiltros.periodo" autocomplete="off" [attr.aria-label]="'Período'" (change)="cargarGeneral()">
-          <option value="">Último período</option>
-          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        <select name="gen_periodo" [(ngModel)]="genFiltros.periodo" autocomplete="off" [attr.aria-label]="'Período'" (ngModelChange)="onPeriodoChange($event)">
+          <option value="">Período activo</option>
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }} · {{ p.activo ? 'Activo' : 'Finalizado' }}</option>
         </select>
       </label>
       <button class="btn-limpiar" (click)="limpiarFiltrosGeneral()">
@@ -185,9 +185,9 @@
       </label>
       <label>
         Período
-        <select name="ev_periodo" [(ngModel)]="evFiltros.periodo" autocomplete="off" [attr.aria-label]="'Período de evidencias'" (change)="evPage = 1; cargarEvidencias()">
-          <option value="">Todos</option>
-          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        <select name="ev_periodo" [(ngModel)]="evFiltros.periodo" autocomplete="off" [attr.aria-label]="'Período de evidencias'" (ngModelChange)="onPeriodoChange($event)">
+          <option value="">Período activo</option>
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }} · {{ p.activo ? 'Activo' : 'Finalizado' }}</option>
         </select>
       </label>
       <label>
@@ -236,9 +236,9 @@
     <div class="reporte-filtros">
       <label>
         Período
-        <select name="obs_periodo" [(ngModel)]="obsFiltros.periodo" autocomplete="off" [attr.aria-label]="'Período de observaciones'" (change)="obsPage = 1; cargarObservaciones()">
-          <option value="">Todos</option>
-          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }}</option>
+        <select name="obs_periodo" [(ngModel)]="obsFiltros.periodo" autocomplete="off" [attr.aria-label]="'Período de observaciones'" (ngModelChange)="onPeriodoChange($event)">
+          <option value="">Período activo</option>
+          <option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }} · {{ p.activo ? 'Activo' : 'Finalizado' }}</option>
         </select>
       </label>
       <label>

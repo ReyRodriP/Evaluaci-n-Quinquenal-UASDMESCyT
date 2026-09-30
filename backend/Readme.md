@@ -93,6 +93,7 @@ UsuarioProfileSerializer (usado en login) devuelve: id, username, email, is_supe
 | GET/POST/PUT/DELETE | /api/departamentos/ | CRUD departamentos |
 | GET/POST/PUT/DELETE | /api/perfiles/ | CRUD perfiles |
 | GET/POST/PUT/DELETE | /api/periodos/ | CRUD períodos |
+| GET | /api/periodos/activo/ | Período activo; responde 404 si no hay uno |
 | GET/POST/PUT/DELETE | /api/criterios/ | CRUD criterios |
 | GET/POST/PUT/DELETE | /api/indicadores/ | CRUD indicadores |
 | GET/POST/PUT/DELETE | /api/asignaciones/ | CRUD asignaciones |
@@ -103,6 +104,8 @@ UsuarioProfileSerializer (usado en login) devuelve: id, username, email, is_supe
 | GET | /api/dashboard/resumen/ | KPIs del dashboard |
 | GET | /api/dashboard/avance/ | Avance por facultad |
 | GET/PATCH | /api/notificaciones/ | Notificaciones |
+
+Solo puede existir un período activo. La fecha final es inclusiva: el período se desactiva al comenzar el día siguiente, según `America/Santo_Domingo`. La expiración se ejecuta periódicamente y también se aplica como corrección al consultar o gestionar períodos, asignaciones y evidencias.
 
 ## Permisos por rol
 

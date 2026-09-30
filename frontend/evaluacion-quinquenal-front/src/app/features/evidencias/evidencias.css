@@ -8,6 +8,55 @@
   text-align: center;
 }
 
+.period-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.period-selector label {
+  font-weight: 600;
+  color: var(--text-title-color);
+  white-space: nowrap;
+}
+
+.period-selector select {
+  width: min(280px, 32vw);
+  min-width: 200px;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--body-color);
+  color: var(--text-color);
+  font: inherit;
+}
+
+.period-selector span {
+  color: var(--text-color);
+  font-size: .9rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .period-selector {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .period-selector select {
+    flex: 1 1 180px;
+    width: auto;
+  }
+
+  .period-selector span {
+    flex-basis: 100%;
+    padding-left: 1px;
+  }
+}
+
 .action-group {
   display: flex;
   gap: 8px;

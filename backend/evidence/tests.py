@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -31,7 +34,12 @@ def _make_asignacion(departamento=None):
         tipo=tipo,
         departamento_legacy=departamento,
     )
-    periodo = Periodo.objects.create(nombre="Periodo 2025", fecha_inicio="2025-01-01", fecha_fin="2025-12-31")
+    hoy = timezone.localdate()
+    periodo = Periodo.objects.create(
+        nombre="Período de prueba",
+        fecha_inicio=hoy - timedelta(days=1),
+        fecha_fin=hoy + timedelta(days=30),
+    )
     criterio = Criterio.objects.create(nombre="Criterio Test", periodo=periodo)
     indicador = Indicador.objects.create(nombre="Indicador Test", criterio=criterio)
     return Asignacion.objects.create(indicador=indicador, unidad_responsable=unidad, periodo=periodo)
@@ -143,3 +151,41 @@ class EvidenciaViewSetTests(TestCase):
         )
         self.assertIn(response.status_code, [200, 201])
         self.assertTrue(Evidencia.objects.filter(titulo="Nueva Evidencia").exists())
+
+    def test_create_evidencia_for_inactive_period_denied(self):
+        self.asignacion.periodo.activo = False
+        self.asignacion.periodo.save()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
+        response = self.client.post(
+            "/api/evidencias/",
+            {
+                "titulo": "Fuera de período",
+                "descripcion": "No debe guardarse",
+                "asignacion": self.asignacion.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Evidencia.objects.filter(titulo="Fuera de período").exists())
+
+    def test_historical_evidence_is_readable_but_cannot_receive_version(self):
+        evidencia = Evidencia.objects.create(
+            titulo="Histórica",
+            descripcion="Consulta histórica",
+            asignacion=self.asignacion,
+        )
+        self.asignacion.periodo.activo = False
+        self.asignacion.periodo.save()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
+
+        listado = self.client.get(f"/api/evidencias/?periodo={self.asignacion.periodo_id}")
+        detalle = self.client.get(
+            f"/api/evidencias/{evidencia.pk}/detalle/?periodo={self.asignacion.periodo_id}"
+        )
+        subir = self.client.post(f"/api/evidencias/{evidencia.pk}/subir_version/")
+
+        self.assertEqual(listado.status_code, 200)
+        self.assertEqual(len(listado.data["results"]), 1)
+        self.assertEqual(detalle.status_code, 200)
+        self.assertFalse(detalle.data["puede_subir_version"])
+        self.assertEqual(subir.status_code, 400)

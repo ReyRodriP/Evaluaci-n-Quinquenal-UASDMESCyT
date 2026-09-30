@@ -7,6 +7,7 @@ detalles por departamento, avance por facultad y filtrado por período.
 """
 
 from django.core.cache import cache
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -14,6 +15,7 @@ from rest_framework.response import Response
 
 from accounts.permissions import departamentos_permitidos, unidades_organizacionales_permitidas
 from evaluation.models import Asignacion, EstadoAsignacion, Indicador, Periodo
+from evaluation.services import finalizar_periodos_vencidos
 from evidencias.models import Evidencia
 from organization.models import Departamento, Facultad
 
@@ -22,6 +24,14 @@ CACHE_TTL = 60
 
 def _cache_key(user, name, extra=""):
     return f"dashboard:{name}:{user.pk}:{extra}"
+
+
+def _periodo_solicitado(request):
+    finalizar_periodos_vencidos()
+    periodo_id = request.query_params.get("periodo")
+    if periodo_id:
+        return get_object_or_404(Periodo, pk=periodo_id)
+    return Periodo.objects.filter(activo=True).first()
 
 
 @api_view(["GET"])
@@ -33,7 +43,8 @@ def resumen(request):
     @param request Request HTTP autenticada.
     @return Response con diccionario de estadísticas generales.
     """
-    key = _cache_key(request.user, "resumen")
+    periodo = _periodo_solicitado(request)
+    key = _cache_key(request.user, "resumen", periodo.pk if periodo else "sin-periodo")
     cached = cache.get(key)
     if cached is not None:
         return Response(cached)
@@ -42,13 +53,14 @@ def resumen(request):
     deptos_ids = departamentos_permitidos(request)
     unidades_ids = unidades_organizacionales_permitidas(request)
     asig_qs = Asignacion.objects.all()
+    if periodo:
+        asig_qs = asig_qs.filter(periodo=periodo)
+    else:
+        asig_qs = asig_qs.none()
     if unidades_ids is not None:
         asig_qs = asig_qs.filter(unidad_responsable_id__in=unidades_ids)
 
-    deptos = Departamento.objects.filter(activo=True)
-    if deptos_ids is not None:
-        deptos = deptos.filter(pk__in=deptos_ids)
-    total_deptos = deptos.count()
+    total_deptos = asig_qs.values("unidad_responsable__departamento_legacy_id").distinct().count()
 
     indicadores_ids = asig_qs.values("indicador").distinct()
     total_indicadores = Indicador.objects.filter(pk__in=indicadores_ids, activo=True).count()
@@ -63,6 +75,7 @@ def resumen(request):
     rechazadas = obligatorias.filter(estado=EstadoAsignacion.RECHAZADO).count()
 
     data = {
+        "periodo": {"id": periodo.pk, "nombre": periodo.nombre, "activo": periodo.activo} if periodo else None,
         "departamentos": total_deptos,
         "indicadores": total_indicadores,
         "asignaciones": asignaciones,
@@ -94,7 +107,9 @@ def departamento_dashboard(request, pk):
     except Departamento.DoesNotExist:
         return Response({"error": "Departamento no encontrado"}, status=404)
 
+    periodo = _periodo_solicitado(request)
     asignaciones = Asignacion.objects.filter(unidad_responsable__departamento_legacy=depto)
+    asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
     total_asignados = asignaciones.count()
     indicadores = asignaciones.values("indicador").distinct().count()
 
@@ -131,7 +146,8 @@ def avance(request):
     @param request Request HTTP autenticada.
     @return Response con lista de facultades y su porcentaje de avance.
     """
-    key = _cache_key(request.user, "avance")
+    periodo = _periodo_solicitado(request)
+    key = _cache_key(request.user, "avance", periodo.pk if periodo else "sin-periodo")
     cached = cache.get(key)
     if cached is not None:
         return Response(cached)
@@ -150,11 +166,13 @@ def avance(request):
         total_asignaciones = Asignacion.objects.filter(
             unidad_responsable__departamento_legacy__in=deptos,
             indicador__obligatorio=True,
+            periodo=periodo,
         ).count()
         completadas = Asignacion.objects.filter(
             unidad_responsable__departamento_legacy__in=deptos,
             indicador__obligatorio=True,
             estado__in=[EstadoAsignacion.APROBADO, EstadoAsignacion.COMPLETADO],
+            periodo=periodo,
         ).count()
 
         porcentaje = round((completadas / total_asignaciones) * 100, 1) if total_asignaciones > 0 else 0.0
@@ -180,6 +198,7 @@ def periodo_dashboard(request, pk):
     @param pk Identificador del período.
     @return Response con estadísticas del período o error 404.
     """
+    finalizar_periodos_vencidos()
     try:
         periodo = Periodo.objects.get(pk=pk)
     except Periodo.DoesNotExist:

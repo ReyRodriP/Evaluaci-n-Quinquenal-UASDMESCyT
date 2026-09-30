@@ -38,7 +38,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
+    environment: &backend_environment
       - DJANGO_SETTINGS_MODULE=evaluacionQuinquenal.settings
       - DEBUG=${DEBUG:-False}
       - SECRET_KEY=${SECRET_KEY:-cambiar-esta-clave-en-produccion}
@@ -68,6 +68,17 @@ services:
     volumes:
       - media_data:/app/media
       - logs_data:/app/logs
+
+  period-expirer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: *backend_environment
+    command: ["sh", "-c", "while true; do python manage.py finalizar_periodos_vencidos; sleep 3600; done"]
 
   frontend:
     build:

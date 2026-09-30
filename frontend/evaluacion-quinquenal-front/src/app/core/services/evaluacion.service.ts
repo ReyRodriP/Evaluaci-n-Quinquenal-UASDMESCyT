@@ -21,6 +21,10 @@ export class EvaluacionService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/periodos/`));
   }
 
+  periodoActivo(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/periodos/activo/`);
+  }
+
   crearPeriodo(payload: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/periodos/`, payload);
   }
@@ -80,8 +84,10 @@ export class EvaluacionService {
   }
 
   // Asignaciones
-  listarAsignaciones(): Observable<any[]> {
-    return this.toList(this.http.get<any>(`${this.apiUrl}/asignaciones/`));
+  listarAsignaciones(periodoId?: number | string | null): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.toList(this.http.get<any>(`${this.apiUrl}/asignaciones/`, { params }));
   }
 
   crearAsignacion(payload: any): Observable<any> {

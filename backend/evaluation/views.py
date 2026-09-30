@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db import IntegrityError
 
 from accounts.permissions import CustomModelPermissions, filtrar_por_rol, unidades_organizacionales_permitidas
 from auditoria.utils import registrar_auditoria
@@ -25,6 +26,7 @@ from .serializers import (
     IndicadorSerializer,
     PeriodoSerializer,
 )
+from .services import finalizar_periodos_vencidos
 
 
 class PeriodoViewSet(viewsets.ModelViewSet):
@@ -37,6 +39,52 @@ class PeriodoViewSet(viewsets.ModelViewSet):
     queryset = Periodo.objects.all().order_by("-fecha_inicio")
     serializer_class = PeriodoSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def get_queryset(self):
+        finalizar_periodos_vencidos()
+        return Periodo.objects.all().order_by("-fecha_inicio")
+
+    @action(detail=False, methods=["get"], url_path="activo", permission_classes=[IsAuthenticated])
+    def activo(self, request):
+        finalizar_periodos_vencidos()
+        periodo = Periodo.objects.filter(activo=True).first()
+        if periodo is None:
+            return Response({"detail": "No hay un período activo."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(self.get_serializer(periodo).data)
+
+    def perform_create(self, serializer):
+        try:
+            periodo = serializer.save()
+        except IntegrityError as exc:
+            raise ValidationError({"activo": "Ya existe otro período activo."}) from exc
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Crear período",
+            modelo="Periodo",
+            registro_id=periodo.pk,
+            descripcion=f"Se creó el período '{periodo.nombre}' ({periodo.fecha_inicio} a {periodo.fecha_fin}), activo={periodo.activo}.",
+        )
+
+    def perform_update(self, serializer):
+        periodo_actual = serializer.instance
+        cambios = {
+            campo: (getattr(periodo_actual, campo), valor)
+            for campo, valor in serializer.validated_data.items()
+            if getattr(periodo_actual, campo) != valor
+        }
+        try:
+            periodo = serializer.save()
+        except IntegrityError as exc:
+            raise ValidationError({"activo": "Ya existe otro período activo."}) from exc
+        if cambios:
+            detalle = "; ".join(f"{campo}: {anterior} -> {nuevo}" for campo, (anterior, nuevo) in cambios.items())
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion="Actualizar período",
+                modelo="Periodo",
+                registro_id=periodo.pk,
+                descripcion=f"Se actualizó el período '{periodo.nombre}'. Cambios: {detalle}.",
+            )
 
     def perform_destroy(self, instance):
         registrar_auditoria(
@@ -106,8 +154,23 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
     def get_queryset(self):
+        finalizar_periodos_vencidos()
         qs = Asignacion.objects.all().order_by("periodo", "unidad_responsable")
+        periodo_id = self.request.query_params.get("periodo")
+        if periodo_id:
+            qs = qs.filter(periodo_id=periodo_id)
+        elif self.request.method in ("GET", "HEAD", "OPTIONS"):
+            qs = qs.filter(periodo__activo=True)
         return filtrar_por_rol(qs, self.request, dept_field="unidad_responsable")
+
+    def get_object(self):
+        instance = super().get_object()
+        if self.request.method not in ("GET", "HEAD", "OPTIONS"):
+            finalizar_periodos_vencidos()
+            instance.periodo.refresh_from_db(fields=["activo"])
+            if not instance.periodo.activo:
+                raise ValidationError({"periodo": "El período finalizó; la asignación solo permite consulta."})
+        return instance
 
     def _notificar_unidad(self, unidad, titulo, mensaje):
         """@brief Envía una notificación a los usuarios del departamento heredado.

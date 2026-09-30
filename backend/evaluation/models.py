@@ -5,6 +5,7 @@ criterios, indicadores, asignaciones y el historial de estados de las asignacion
 """
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -19,6 +20,29 @@ class Periodo(models.Model):
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
     activo = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(fecha_fin__gt=models.F("fecha_inicio")),
+                name="periodo_fecha_fin_posterior_inicio",
+            ),
+            models.UniqueConstraint(
+                fields=["activo"],
+                condition=models.Q(activo=True),
+                name="periodo_unico_activo",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.fecha_inicio and self.fecha_fin and self.fecha_inicio >= self.fecha_fin:
+            errors["fecha_fin"] = "La fecha de fin debe ser posterior a la fecha de inicio."
+        if self.activo and Periodo.objects.exclude(pk=self.pk).filter(activo=True).exists():
+            errors["activo"] = "Ya existe otro período activo. Desactívelo antes de activar este período."
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return self.nombre

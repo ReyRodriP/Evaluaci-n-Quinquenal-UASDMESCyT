@@ -4,10 +4,12 @@ Si un endpoint devuelve 500 cuando deberia devolver 4xx, este suite lo detecta.
 """
 
 import io
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from PIL import Image
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -40,7 +42,12 @@ def _make_asignacion():
     dep = Departamento.objects.create(nombre="D", facultad=facultad)
     tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
     unidad = UnidadOrganizacional.objects.create(nombre=dep.nombre, tipo=tipo, departamento_legacy=dep)
-    periodo = Periodo.objects.create(nombre="P", fecha_inicio="2025-01-01", fecha_fin="2025-12-31")
+    hoy = timezone.localdate()
+    periodo = Periodo.objects.create(
+        nombre="P",
+        fecha_inicio=hoy - timedelta(days=1),
+        fecha_fin=hoy + timedelta(days=30),
+    )
     criterio = Criterio.objects.create(nombre="C", periodo=periodo)
     indicador = Indicador.objects.create(nombre="I", criterio=criterio)
     return Asignacion.objects.create(indicador=indicador, unidad_responsable=unidad, periodo=periodo)

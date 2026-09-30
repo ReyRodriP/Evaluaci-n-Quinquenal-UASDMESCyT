@@ -1,5 +1,16 @@
 <div class="dashboard-page">
-  <h2 class="page-title">Dashboard</h2>
+  <div class="dashboard-header">
+    <h2 class="page-title">Dashboard</h2>
+    <label class="period-selector">
+      Período
+      <select [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)" aria-label="Período del dashboard">
+        <option *ngIf="!periodoSeleccionadoId" value="">Sin período activo</option>
+        <option *ngFor="let periodo of periodos" [value]="periodo.id">
+          {{ periodo.nombre }} · {{ periodo.activo ? 'Activo' : 'Finalizado' }}
+        </option>
+      </select>
+    </label>
+  </div>
 
   <div *ngIf="loading" class="state-msg">Cargando información del dashboard...</div>
 
