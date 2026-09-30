@@ -9,8 +9,7 @@ import { Login } from './features/auth/pages/login/login';
 import { ForgotPassword } from './features/auth/pages/forgot-password/forgot-password';
 import { ResetPassword } from './features/auth/pages/reset-password/reset-password';
 import { Espera } from './features/auth/pages/espera/espera';
-import { Facultades } from './features/facultades/facultades';
-import { Departamentos } from './features/departamentos/departamentos';
+import { Organizacion } from './features/organizacion/organizacion';
 import { Periodos } from './features/periodos/periodos';
 import { Indicadores } from './features/indicadores/indicadores';
 import { Criterios } from './features/criterios/criterios';
@@ -76,13 +75,8 @@ export const routes: Routes = [
                 canActivate: [PermisoGuard]
             },
             {
-                path: 'facultades',
-                component: Facultades,
-                canActivate: [PermisoGuard]
-            },
-            {
-                path: 'departamentos',
-                component: Departamentos,
+                path: 'organizacion',
+                component: Organizacion,
                 canActivate: [PermisoGuard]
             },
             {

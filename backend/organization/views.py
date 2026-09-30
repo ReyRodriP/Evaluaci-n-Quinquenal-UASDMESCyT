@@ -189,9 +189,12 @@ class PerfilUsuarioViewSet(viewsets.ModelViewSet):
         """
         queryset = PerfilUsuario.objects.all().order_by("usuario__username")
 
+        unidad_id = self.request.query_params.get("unidad_organizacional")
         departamento_id = self.request.query_params.get("departamento")
 
-        if departamento_id:
-            queryset = queryset.filter(departamento_id=departamento_id)
+        if unidad_id:
+            queryset = queryset.filter(unidad_organizacional_id=unidad_id)
+        elif departamento_id:
+            queryset = queryset.filter(unidad_organizacional__departamento_legacy_id=departamento_id)
 
         return queryset

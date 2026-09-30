@@ -16,6 +16,34 @@ export class OrganizacionService {
     return obs.pipe(map((data: any) => (Array.isArray(data) ? data : data?.results ?? [])));
   }
 
+  listarTiposUnidad(): Observable<any[]> {
+    return this.toList(this.http.get<any>(`${this.apiUrl}/tipos-unidad-organizacional/`));
+  }
+
+  crearTipoUnidad(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/tipos-unidad-organizacional/`, payload);
+  }
+
+  actualizarTipoUnidad(id: number, payload: any): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/tipos-unidad-organizacional/${id}/`, payload);
+  }
+
+  eliminarTipoUnidad(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/tipos-unidad-organizacional/${id}/`);
+  }
+
+  listarUnidadesOrganizacionales(): Observable<any[]> {
+    return this.toList(this.http.get<any>(`${this.apiUrl}/unidades-organizacionales/`));
+  }
+
+  crearUnidadOrganizacional(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/unidades-organizacionales/`, payload);
+  }
+
+  actualizarUnidadOrganizacional(id: number, payload: any): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/unidades-organizacionales/${id}/`, payload);
+  }
+
   // Facultades
   crearFacultades(facultad: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/facultades/`, facultad);

@@ -74,6 +74,7 @@ export class Evidencias implements OnInit {
 
           return {
             ...asignacion,
+            unidad_responsable: asignacion.unidad_responsable_nombre || asignacion.departamento_nombre || asignacion.unidad_responsable,
             evidenciaId: evidencia?.id_evidencia ?? null,
             evidencia,
             estado: evidencia
@@ -109,7 +110,7 @@ export class Evidencias implements OnInit {
       this.rowsFiltrados = this.rows.filter((row) => {
         const campos = [
           row.indicador_nombre,
-          row.departamento_nombre,
+          row.unidad_responsable_nombre || row.departamento_nombre,
           row.periodo_nombre,
           row.archivoNombre,
           row.estado,

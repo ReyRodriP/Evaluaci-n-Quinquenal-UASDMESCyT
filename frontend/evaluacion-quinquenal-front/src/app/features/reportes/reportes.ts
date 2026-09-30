@@ -32,6 +32,7 @@ export class Reportes implements OnInit, OnDestroy {
   periodos: any[] = [];
   facultades: any[] = [];
   departamentos: any[] = [];
+  unidades: any[] = [];
   criterios: any[] = [];
   usuarios: any[] = [];
   roles: any[] = [];
@@ -53,18 +54,18 @@ export class Reportes implements OnInit, OnDestroy {
   depColumnas = ['Indicador', 'Estado', 'Fecha Modificación', 'Responsable', 'Última Versión'];
 
   // Reporte 4: Evidencias
-  evFiltros = { estado: '', departamento: '', periodo: '', criterio: '' };
+  evFiltros = { estado: '', unidad_organizacional: '', periodo: '', criterio: '' };
   evRows: any[] = [];
   evPage = 1;
   evTotal = 0;
-  evColumnas = ['Indicador', 'Evidencia', 'Departamento', 'Criterio', 'Periodo', 'Estado', 'Fecha'];
+  evColumnas = ['Indicador', 'Evidencia', 'Unidad responsable', 'Criterio', 'Periodo', 'Estado', 'Fecha'];
 
   // Reporte 5: Observaciones
-  obsFiltros = { periodo: '', departamento: '', usuario: '' };
+  obsFiltros = { periodo: '', unidad_organizacional: '', usuario: '' };
   obsRows: any[] = [];
   obsPage = 1;
   obsResumen = { total: 0, evidencias: 0 };
-  obsColumnas = ['Evidencia', 'Indicador', 'Departamento', 'Periodo', 'Versión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones'];
+  obsColumnas = ['Evidencia', 'Indicador', 'Unidad responsable', 'Periodo', 'Versión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones'];
 
   // Reporte 6: Auditoría
   audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
@@ -74,11 +75,11 @@ export class Reportes implements OnInit, OnDestroy {
   audColumnas = ['Usuario', 'Acción', 'Modelo', 'Registro ID', 'Descripción', 'Fecha'];
 
   // Reporte 7: Usuarios
-  usrFiltros = { rol: '', departamento: '', estado: '' };
+  usrFiltros = { rol: '', unidad_organizacional: '', estado: '' };
   usrRows: any[] = [];
   usrPage = 1;
   usrResumen = { total: 0, activos: 0, inactivos: 0 };
-  usrColumnas = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Departamento', 'Último Acceso', 'Estado'];
+  usrColumnas = ['Usuario', 'Nombre', 'Correo', 'Rol', 'Unidad', 'Último Acceso', 'Estado'];
 
   constructor(
     private reportesService: ReportesService,
@@ -137,6 +138,10 @@ export class Reportes implements OnInit, OnDestroy {
     this.organizacionService.listarDepartamentos().subscribe({
       next: (data) => (this.departamentos = data),
       error: () => this.toast.error('No se pudieron cargar los departamentos'),
+    });
+    this.organizacionService.listarUnidadesOrganizacionales().subscribe({
+      next: (data) => (this.unidades = data),
+      error: () => this.toast.error('No se pudieron cargar las unidades organizacionales'),
     });
     this.evaluacionService.listarCriterios().subscribe({
       next: (data) => (this.criterios = data),
@@ -242,7 +247,7 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosEvidencias(): void {
-    this.evFiltros = { estado: '', departamento: '', periodo: '', criterio: '' };
+    this.evFiltros = { estado: '', unidad_organizacional: '', periodo: '', criterio: '' };
     this.evPage = 1;
     this.cargarEvidencias();
   }
@@ -270,7 +275,7 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosObservaciones(): void {
-    this.obsFiltros = { periodo: '', departamento: '', usuario: '' };
+    this.obsFiltros = { periodo: '', unidad_organizacional: '', usuario: '' };
     this.obsPage = 1;
     this.cargarObservaciones();
   }
@@ -333,7 +338,7 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosUsuarios(): void {
-    this.usrFiltros = { rol: '', departamento: '', estado: '' };
+    this.usrFiltros = { rol: '', unidad_organizacional: '', estado: '' };
     this.usrPage = 1;
     this.cargarUsuarios();
   }

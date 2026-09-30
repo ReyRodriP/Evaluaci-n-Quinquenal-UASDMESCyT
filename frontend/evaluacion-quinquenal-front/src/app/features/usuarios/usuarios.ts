@@ -17,12 +17,12 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './usuarios.css',
 })
 export class Usuarios implements OnInit {
-  columnas: string[] = ['Nombre de usuario','Nombre', 'Correo', 'Departamento', 'Rol', 'Estado'];
+  columnas: string[] = ['Nombre de usuario','Nombre', 'Correo', 'Unidad', 'Rol', 'Estado'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
   datosPaginados: any[] = [];
-  departamentos: any[] = [];
+  unidades: any[] = [];
   roles: any[] = [];
   searchTerm = '';
   selectedState = 'Todos';
@@ -36,8 +36,9 @@ export class Usuarios implements OnInit {
     { label: 'Nombre de usuario', name: 'username', type: 'text', placeholder: 'Username', defaultValue: ''},
     { label: 'Contraseña', name: 'password', type: 'password', placeholder: 'Dejar en blanco para no cambiar', defaultValue: '' },
     { label: 'Nombre', name: 'first_name', type: 'text', placeholder: 'Nombre del usuario', defaultValue: '' },
+    { label: 'Apellido', name: 'last_name', type: 'text', placeholder: 'Apellido del usuario', defaultValue: '' },
     { label: 'Correo', name: 'email', type: 'email', placeholder: 'correo@dominio.com', defaultValue: '' },
-    { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '', allowClear: true, searchable: true },
+    { label: 'Unidad organizacional', name: 'unidad_organizacional', type: 'select', options: [], defaultValue: '', allowClear: true, searchable: true },
     { label: 'Rol', name: 'rol', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: ['Activo', 'Inactivo'], defaultValue: 'Activo' }
   ];
@@ -64,7 +65,7 @@ export class Usuarios implements OnInit {
 
   ngOnInit(): void {
     this.loadUsuarios();
-    this.loadDepartamentos();
+    this.loadUnidades();
     this.loadRoles();
   }
 
@@ -78,7 +79,8 @@ export class Usuarios implements OnInit {
       ...item,
       username: item.username ?? '',
       first_name: item.first_name ?? item.username ?? '',
-      departamento: item.departamentoId ?? item.departamento ?? '',
+      last_name: item.last_name ?? '',
+      unidad_organizacional: item.unidadId ?? item.unidad_organizacional ?? '',
       rol: item.rol ?? '',
       estado: item.is_active ? 'Activo' : 'Inactivo'
     };
@@ -100,14 +102,14 @@ export class Usuarios implements OnInit {
 
         this.datos = usuarios.map((item: any) => {
           const profile = profilesMap.get(item.id);
-          const departamentoId = profile?.departamento ?? item.departamento ?? '';
+          const unidadId = profile?.unidad_organizacional ?? item.unidad_organizacional ?? '';
 
           return {
             ...item,
             username: item.username || '',
             first_name: item.first_name || item.username || '',
-            departamento: profile?.departamento_nombre || item.departamento_nombre || item.departamento || '',
-            departamentoId,
+            unidad: profile?.unidad_organizacional_nombre || item.unidad_organizacional_nombre || '',
+            unidadId,
             rol: item.rol || 'Sin rol',
             is_active: item.is_active ?? true,
             estado: item.is_active ? 'Activo' : 'Inactivo'
@@ -122,25 +124,37 @@ export class Usuarios implements OnInit {
     });
   }
 
-  loadDepartamentos(): void {
-    this.organizacionService.listarDepartamentos().subscribe({
+  loadUnidades(): void {
+    this.organizacionService.listarUnidadesOrganizacionales().subscribe({
       next: (data) => {
-        this.departamentos = data;
+        this.unidades = data;
         this.usuarioFields = this.usuarioFields.map(field => {
-          if (field.name !== 'departamento') {
+          if (field.name !== 'unidad_organizacional') {
             return field;
           }
 
           return {
             ...field,
-            options: this.departamentos.map((dep: any) => ({ value: dep.id, label: dep.nombre }))
+            options: this.unidades.map((unidad: any) => ({ value: unidad.id, label: `${this.unitPath(unidad)} · ${unidad.tipo_nombre}` }))
           };
         });
       },
       error: (err) => {
-        console.error('Error cargando departamentos', err);
+        console.error('Error cargando unidades organizacionales', err);
       }
     });
+  }
+
+  private unitPath(unit: any): string {
+    const path = [unit.nombre];
+    let parentId = unit.unidad_padre;
+    while (parentId) {
+      const parent = this.unidades.find(candidate => candidate.id === parentId);
+      if (!parent) break;
+      path.unshift(parent.nombre);
+      parentId = parent.unidad_padre;
+    }
+    return path.join(' / ');
   }
 
   loadRoles(): void {
@@ -183,7 +197,7 @@ export class Usuarios implements OnInit {
     const normalizedTerm = this.searchTerm.toLowerCase().trim();
 
     this.datosFiltrados = this.datos.filter((item: any) => {
-      const searchable = `${item.first_name ?? ''} ${item.username ?? ''} ${item.email ?? ''} ${item.departamento ?? ''} ${item.rol ?? ''}`.toLowerCase();
+      const searchable = `${item.first_name ?? ''} ${item.username ?? ''} ${item.email ?? ''} ${item.unidad ?? ''} ${item.rol ?? ''}`.toLowerCase();
       const matchesSearch = !normalizedTerm || searchable.includes(normalizedTerm);
       const matchesState = this.selectedState === 'Todos'
         || (this.selectedState === 'Activos' && item.is_active)
@@ -216,13 +230,13 @@ export class Usuarios implements OnInit {
     this.selectedItem = null;
   }
 
-  private syncPerfilUsuario(userId: any, departamento: any, onSuccess: () => void, onError: (err: any) => void): void {
+  private syncPerfilUsuario(userId: any, unidad: any, onSuccess: () => void, onError: (err: any) => void): void {
     this.organizacionService.listarPerfiles().subscribe({
       next: (perfiles) => {
         const profile = perfiles.find((perfil: any) => perfil.usuario === userId || perfil.usuario?.id === userId);
 
         if (profile && profile.id) {
-          this.organizacionService.actualizarPerfil(profile.id, { departamento: departamento || null }).subscribe({
+          this.organizacionService.actualizarPerfil(profile.id, { unidad_organizacional: unidad || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error actualizando perfil de usuario', err);
@@ -230,7 +244,7 @@ export class Usuarios implements OnInit {
             }
           });
         } else {
-          this.organizacionService.crearPerfil({ usuario: userId, departamento: departamento || null }).subscribe({
+          this.organizacionService.crearPerfil({ usuario: userId, unidad_organizacional: unidad || null }).subscribe({
             next: () => onSuccess(),
             error: (err) => {
               console.error('Error creando perfil de usuario', err);
@@ -262,10 +276,15 @@ export class Usuarios implements OnInit {
       this.toast.error('El correo electrónico es obligatorio');
       return;
     }
+    if (creando && (!saved.last_name || !String(saved.last_name).trim())) {
+      this.toast.error('El apellido es obligatorio');
+      return;
+    }
 
     const payload: any = {
       username: saved.username,
       first_name: saved.first_name,
+      last_name: saved.last_name,
       email: saved.email,
       is_active: saved.estado === 'Activo'
     };
@@ -293,12 +312,12 @@ export class Usuarios implements OnInit {
     if (this.selectedItem && this.selectedItem.id) {
       this.organizacionService.actualizarUsuario(this.selectedItem.id, payload).subscribe({
         next: () => {
-          this.syncPerfilUsuario(this.selectedItem.id, saved.departamento, () => {
+          this.syncPerfilUsuario(this.selectedItem.id, saved.unidad_organizacional, () => {
             this.toast.success('Usuario actualizado correctamente');
             this.loadUsuarios();
             this.onModalClose();
           }, (err) => {
-            this.toast.error('Error al guardar el departamento del usuario');
+            this.toast.error('Error al guardar la unidad del usuario');
           });
         },
         error: (err) => {
@@ -315,12 +334,12 @@ export class Usuarios implements OnInit {
             this.onModalClose();
           };
 
-          if (createdUser?.id && saved.departamento) {
-            this.organizacionService.crearPerfil({ usuario: createdUser.id, departamento: saved.departamento }).subscribe({
+          if (createdUser?.id && saved.unidad_organizacional) {
+            this.organizacionService.crearPerfil({ usuario: createdUser.id, unidad_organizacional: saved.unidad_organizacional }).subscribe({
               next: () => finishCreation(),
               error: (err) => {
                 console.error('Error creando perfil de usuario', err);
-                this.toast.error('Usuario creado, pero falló asignar el departamento');
+                this.toast.error('Usuario creado, pero falló asignar la unidad');
                 finishCreation();
               }
             });

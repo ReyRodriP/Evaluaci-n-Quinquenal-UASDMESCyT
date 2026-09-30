@@ -33,6 +33,8 @@ ROLE_PERMISSIONS = {
             "view_facultad",
             "view_departamento",
             "view_perfilusuario",
+            "view_unidadorganizacional",
+            "view_tipounidadorganizacional",
         ],
         "notificaciones": [
             "view_notificacion",
@@ -63,6 +65,8 @@ ROLE_PERMISSIONS = {
             "view_facultad",
             "view_departamento",
             "view_perfilusuario",
+            "view_unidadorganizacional",
+            "view_tipounidadorganizacional",
         ],
         "notificaciones": [
             "view_notificacion",
@@ -91,6 +95,8 @@ ROLE_PERMISSIONS = {
             "view_facultad",
             "view_departamento",
             "view_perfilusuario",
+            "view_unidadorganizacional",
+            "view_tipounidadorganizacional",
         ],
         "notificaciones": [
             "view_notificacion",
@@ -117,6 +123,8 @@ ROLE_PERMISSIONS = {
             "view_facultad",
             "view_departamento",
             "view_perfilusuario",
+            "view_unidadorganizacional",
+            "view_tipounidadorganizacional",
         ],
         "notificaciones": [
             "view_notificacion",

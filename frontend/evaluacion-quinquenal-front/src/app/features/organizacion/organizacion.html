@@ -1,0 +1,189 @@
+<main class="organization-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">ADMINISTRACIÓN · ESTRUCTURA</p>
+      <h1>Organización</h1>
+      <p class="page-subtitle">Gestiona los tipos y las unidades que reciben asignaciones.</p>
+    </div>
+    <div class="heading-mark" aria-hidden="true"><i class="bx bx-sitemap"></i></div>
+  </header>
+
+  <nav class="view-tabs" aria-label="Secciones de organización">
+    <button type="button" [class.active]="activeTab === 'estructura'" (click)="activeTab = 'estructura'">
+      <i class="bx bx-git-branch" aria-hidden="true"></i> Estructura
+    </button>
+    <button type="button" [class.active]="activeTab === 'tipos'" (click)="activeTab = 'tipos'">
+      <i class="bx bx-category-alt" aria-hidden="true"></i> Tipos de unidad
+    </button>
+  </nav>
+
+  <section class="structure-view" *ngIf="activeTab === 'estructura'">
+    <aside class="tree-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="section-kicker">JERARQUÍA</span>
+          <h2>Unidades</h2>
+        </div>
+        <button class="icon-button" type="button" title="Crear unidad" aria-label="Crear unidad" (click)="newUnit()">
+          <i class="bx bx-plus" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <label class="tree-search">
+        <i class="bx bx-search" aria-hidden="true"></i>
+        <input type="search" [(ngModel)]="searchTerm" placeholder="Buscar unidad" aria-label="Buscar unidad">
+      </label>
+
+      <div class="tree-scroll" *ngIf="!loading; else loadingTree">
+        <ng-container *ngIf="unitTree.length; else emptyTree">
+          <ng-template #renderNodes let-nodes>
+            <ng-container *ngFor="let node of nodes; trackBy: trackByUnit">
+              <div class="tree-row" [class.selected]="selectedUnit?.id === node.unit.id" [class.inactive]="!node.unit.activa">
+                <span class="tree-indent" [style.width.px]="node.depth * 19"></span>
+                <button
+                  *ngIf="node.children.length; else leafSpace"
+                  class="tree-toggle"
+                  type="button"
+                  [attr.aria-label]="isExpanded(node) ? 'Contraer ' + node.unit.nombre : 'Expandir ' + node.unit.nombre"
+                  (click)="toggleExpanded(node.unit.id)">
+                  <i class="bx" [class.bx-chevron-down]="isExpanded(node)" [class.bx-chevron-right]="!isExpanded(node)" aria-hidden="true"></i>
+                </button>
+                <ng-template #leafSpace><span class="leaf-space"></span></ng-template>
+                <button class="tree-label" type="button" (click)="selectUnit(node.unit)">
+                  <span class="unit-node-icon"><i class="bx bx-buildings" aria-hidden="true"></i></span>
+                  <span class="unit-node-copy">
+                    <span class="unit-node-name">{{ node.unit.nombre }}</span>
+                    <span class="unit-node-type">{{ node.unit.tipo_nombre }}</span>
+                  </span>
+                  <span class="inactive-dot" *ngIf="!node.unit.activa" title="Inactiva"></span>
+                </button>
+              </div>
+              <ng-container *ngIf="node.children.length && isExpanded(node)">
+                <ng-container *ngTemplateOutlet="renderNodes; context: { $implicit: node.children }"></ng-container>
+              </ng-container>
+            </ng-container>
+          </ng-template>
+          <ng-container *ngTemplateOutlet="renderNodes; context: { $implicit: unitTree }"></ng-container>
+        </ng-container>
+        <ng-template #emptyTree><div class="empty-state">No hay unidades para mostrar.</div></ng-template>
+      </div>
+      <ng-template #loadingTree><div class="empty-state">Cargando estructura…</div></ng-template>
+      <div class="tree-footer"><span class="status-dot"></span>{{ unidades.length }} unidades registradas</div>
+    </aside>
+
+    <section class="detail-panel" aria-live="polite">
+      <ng-container *ngIf="tipos.length; else missingTypes">
+        <div class="panel-heading detail-heading">
+          <div>
+            <span class="section-kicker">{{ selectedUnit ? 'UNIDAD SELECCIONADA' : 'NUEVO REGISTRO' }}</span>
+            <h2>{{ selectedUnit ? 'Detalles de unidad' : 'Nueva unidad' }}</h2>
+          </div>
+          <button *ngIf="selectedUnit" class="quiet-button" type="button" (click)="addChild()">
+            <i class="bx bx-subdirectory-right" aria-hidden="true"></i> Añadir subunidad
+          </button>
+        </div>
+
+        <p class="unit-breadcrumb" *ngIf="selectedUnit">{{ unitPath(selectedUnit) }}</p>
+
+        <form class="unit-form" (ngSubmit)="saveUnit()">
+          <label class="field">
+            <span>Nombre</span>
+            <input name="unitName" [(ngModel)]="unitForm.nombre" required maxlength="100" placeholder="Ej. Facultad de Ciencias">
+          </label>
+          <label class="field">
+            <span>Tipo de unidad</span>
+            <select name="unitType" [(ngModel)]="unitForm.tipo" required>
+              <option value="">Selecciona un tipo</option>
+              <option *ngFor="let type of tipos" [ngValue]="type.id">{{ type.nombre }}</option>
+            </select>
+          </label>
+          <label class="field field-wide">
+            <span>Unidad superior</span>
+            <select name="unitParent" [(ngModel)]="unitForm.unidad_padre">
+              <option [ngValue]="null">Sin unidad superior</option>
+              <option *ngFor="let parent of parentOptions" [ngValue]="parent.id">{{ unitPath(parent) }}</option>
+            </select>
+          </label>
+          <label class="field field-wide">
+            <span>Descripción</span>
+            <textarea name="unitDescription" [(ngModel)]="unitForm.descripcion" rows="3" placeholder="Descripción opcional"></textarea>
+          </label>
+          <label class="active-control field-wide">
+            <input name="unitActive" type="checkbox" [(ngModel)]="unitForm.activa">
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span><strong>Unidad activa</strong><small>Las unidades inactivas pueden conservar sus asignaciones.</small></span>
+          </label>
+          <div class="form-actions field-wide">
+            <button class="save-button" type="submit" [disabled]="saving">
+              <i class="bx bx-save" aria-hidden="true"></i>{{ saving ? 'Guardando…' : 'Guardar unidad' }}
+            </button>
+          </div>
+        </form>
+      </ng-container>
+      <ng-template #missingTypes>
+        <div class="empty-detail">
+          <span class="empty-icon"><i class="bx bx-category-alt" aria-hidden="true"></i></span>
+          <h2>Primero crea un tipo</h2>
+          <p>Las unidades deben pertenecer a un tipo organizacional.</p>
+          <button class="save-button" type="button" (click)="activeTab = 'tipos'; newType()">Crear tipo de unidad</button>
+        </div>
+      </ng-template>
+    </section>
+  </section>
+
+  <section class="types-view" *ngIf="activeTab === 'tipos'">
+    <div class="types-list-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="section-kicker">CATÁLOGO</span>
+          <h2>Tipos de unidad</h2>
+        </div>
+        <button class="icon-button" type="button" title="Crear tipo" aria-label="Crear tipo" (click)="newType()">
+          <i class="bx bx-plus" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="type-list" *ngIf="tipos.length; else noTypes">
+        <article class="type-row" *ngFor="let type of tipos" [class.selected]="editingType?.id === type.id">
+          <button type="button" class="type-select" (click)="editType(type)">
+            <span class="type-symbol"><i class="bx bx-category" aria-hidden="true"></i></span>
+            <span class="type-copy"><strong>{{ type.nombre }}</strong><small>{{ type.descripcion || 'Sin descripción' }}</small></span>
+            <span class="type-count">{{ countByType(type.id) }} unidades</span>
+          </button>
+          <button class="icon-button danger-button" type="button" title="Eliminar tipo" [attr.aria-label]="'Eliminar ' + type.nombre" (click)="deleteType(type)">
+            <i class="bx bx-trash" aria-hidden="true"></i>
+          </button>
+        </article>
+      </div>
+      <ng-template #noTypes><div class="empty-state">No hay tipos de unidad.</div></ng-template>
+    </div>
+
+    <section class="type-form-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="section-kicker">{{ editingType ? 'EDICIÓN' : 'NUEVO REGISTRO' }}</span>
+          <h2>{{ editingType ? 'Editar tipo' : 'Nuevo tipo' }}</h2>
+        </div>
+      </div>
+      <form class="unit-form" (ngSubmit)="saveType()">
+        <label class="field field-wide">
+          <span>Nombre</span>
+          <input name="typeName" [(ngModel)]="typeForm.nombre" required maxlength="100" placeholder="Ej. Recinto">
+        </label>
+        <label class="field field-wide">
+          <span>Descripción</span>
+          <textarea name="typeDescription" [(ngModel)]="typeForm.descripcion" rows="4" placeholder="Descripción opcional"></textarea>
+        </label>
+        <label class="active-control field-wide">
+          <input name="typeActive" type="checkbox" [(ngModel)]="typeForm.activo">
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span><strong>Tipo activo</strong><small>Disponible para nuevas unidades.</small></span>
+        </label>
+        <div class="form-actions field-wide">
+          <button class="save-button" type="submit" [disabled]="saving">
+            <i class="bx bx-save" aria-hidden="true"></i>{{ saving ? 'Guardando…' : 'Guardar tipo' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </section>
+</main>

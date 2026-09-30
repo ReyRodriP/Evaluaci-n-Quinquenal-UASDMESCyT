@@ -71,6 +71,10 @@
 
     width:100%;
 
+    max-width:220px;
+
+    box-sizing:border-box;
+
     height:45px;
 
     border:none;
@@ -204,6 +208,13 @@
     gap:15px;
 
     align-items:end;
+}
+
+.password-row .form-group{
+
+    flex:1;
+
+    margin-bottom:0;
 }
 
 .btn-change-password{

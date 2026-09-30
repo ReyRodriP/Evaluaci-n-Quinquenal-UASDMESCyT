@@ -79,13 +79,11 @@ class DepartamentoSerializer(serializers.ModelSerializer):
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     """@class PerfilUsuarioSerializer
     @brief Serializer para el modelo PerfilUsuario.
-    @details Serializa los campos del perfil de usuario incluyendo los
-    nombres del usuario y del departamento como campos de solo lectura.
+    @details Serializa el perfil y el nombre de la unidad organizacional asociada.
     """
 
     usuario_nombre = serializers.CharField(source="usuario.username", read_only=True)
 
-    departamento_nombre = serializers.CharField(source="departamento.nombre", read_only=True)
     unidad_organizacional_nombre = serializers.CharField(source="unidad_organizacional.nombre", read_only=True)
 
     class Meta:
@@ -94,8 +92,6 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
             "id",
             "usuario",
             "usuario_nombre",
-            "departamento",
-            "departamento_nombre",
             "unidad_organizacional",
             "unidad_organizacional_nombre",
         ]

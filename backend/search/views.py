@@ -14,7 +14,7 @@ from rest_framework.response import Response
 
 from accounts.permissions import departamentos_permitidos, unidades_organizacionales_permitidas
 from evaluation.models import Criterio, Indicador
-from organization.models import Departamento, Facultad
+from organization.models import Departamento, Facultad, UnidadOrganizacional
 
 User = get_user_model()
 
@@ -40,6 +40,7 @@ def search(request):
                 "indicadores": [],
                 "departamentos": [],
                 "facultades": [],
+                "unidades": [],
                 "criterios": [],
                 "usuarios": [],
             }
@@ -78,6 +79,14 @@ def search(request):
         facultades_qs = facultades_qs.filter(departamentos__pk__in=deptos_ids).distinct()
     facultades_data = [{"id": f.pk, "nombre": f.nombre, "tipo": "Facultad"} for f in facultades_qs[:10]]
 
+    unidades_qs = UnidadOrganizacional.objects.filter(activa=True, nombre__icontains=q).select_related("tipo")
+    if unidades_ids is not None:
+        unidades_qs = unidades_qs.filter(pk__in=unidades_ids)
+    unidades_data = [
+        {"id": unidad.pk, "nombre": unidad.nombre, "tipo_nombre": unidad.tipo.nombre, "tipo": "UnidadOrganizacional"}
+        for unidad in unidades_qs[:10]
+    ]
+
     criterios = restringir_criterio(Criterio.objects.filter(activo=True)).filter(
         nombre__icontains=q
     ) | restringir_criterio(Criterio.objects.filter(activo=True)).filter(descripcion__icontains=q)
@@ -108,6 +117,7 @@ def search(request):
             "indicadores": indicadores_data,
             "departamentos": departamentos_data,
             "facultades": facultades_data,
+            "unidades": unidades_data,
             "criterios": criterios_data,
             "usuarios": usuarios_data,
         }

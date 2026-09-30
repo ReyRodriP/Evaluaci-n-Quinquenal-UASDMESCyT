@@ -56,6 +56,8 @@ export class CrudTable {
       'fecha fin': 'fecha_fin',
       'acciones': 'acciones',
       'departamento': 'departamento_nombre',
+      'unidad': 'unidad',
+      'unidad responsable': 'unidad_responsable',
       'indicador': 'indicador_nombre',
       'archivo': 'archivoNombre',
       'observaciones': 'observacionesTexto',
@@ -96,6 +98,10 @@ export class CrudTable {
         return ['email', 'correo'];
       case 'departamento':
         return ['departamento_nombre', 'nombre_departamento', 'departamento', 'nombre'];
+      case 'unidad':
+        return ['unidad', 'unidad_organizacional_nombre', 'unidad_organizacional'];
+      case 'unidad responsable':
+        return ['unidad_responsable', 'unidad_responsable_nombre', 'unidad_responsable_id'];
       case 'rol':
         return ['rol', 'role', 'nombre_rol'];
       case 'estado':

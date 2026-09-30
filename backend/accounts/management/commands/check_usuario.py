@@ -32,11 +32,12 @@ class Command(BaseCommand):
         try:
             perfil = user.perfilusuario
             self.stdout.write("\n  PerfilUsuario: OK")
-            if perfil.departamento:
-                self.stdout.write(f"    Departamento: {perfil.departamento.nombre} (ID {perfil.departamento_id})")
-                self.stdout.write(f"    Facultad: {perfil.departamento.facultad.nombre}")
+            if perfil.unidad_organizacional:
+                unidad = perfil.unidad_organizacional
+                self.stdout.write(f"    Unidad: {unidad.nombre} (ID {unidad.pk})")
+                self.stdout.write(f"    Tipo: {unidad.tipo.nombre}")
             else:
-                self.stdout.write(self.style.WARNING("    Departamento: NO ASIGNADO"))
+                self.stdout.write(self.style.WARNING("    Unidad organizacional: NO ASIGNADA"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"\n  PerfilUsuario: NO EXISTE ({e})"))
 

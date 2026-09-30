@@ -40,7 +40,7 @@ from accounts.permissions import (
 from auditoria.models import Auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado, Periodo
 from evidence.models import Evidencia, Observacion, VersionEvidencia
-from organization.models import Departamento, Facultad, PerfilUsuario
+from organization.models import Departamento, Facultad, PerfilUsuario, UnidadOrganizacional
 
 Usuario = get_user_model()
 
@@ -80,6 +80,10 @@ def _base_queryset_observaciones(request):
     departamento = request.query_params.get("departamento")
     if departamento:
         qs = qs.filter(version__evidencia__asignacion__unidad_responsable__departamento_legacy_id=departamento)
+
+    unidad = request.query_params.get("unidad_organizacional")
+    if unidad:
+        qs = qs.filter(version__evidencia__asignacion__unidad_responsable_id=unidad)
 
     usuario = request.query_params.get("usuario")
     if usuario:
@@ -135,7 +139,7 @@ def _filas_usuarios(qs):
                 f"{usuario.first_name} {usuario.last_name}".strip(),
                 usuario.email,
                 (usuario.groups.first().name if usuario.groups.exists() else ""),
-                perfil.departamento.nombre if perfil and perfil.departamento else "",
+                perfil.unidad_organizacional.nombre if perfil and perfil.unidad_organizacional else "",
                 _formato_fecha(usuario.last_login),
                 "Activo" if usuario.is_active else "Inactivo",
             ]
@@ -308,6 +312,11 @@ def _data_general(request):
             qs.values("unidad_responsable_id").distinct().count()
             if total_asignaciones
             else (len(unidades_ids) if unidades_ids is not None else Departamento.objects.count())
+        ),
+        "total_unidades": (
+            qs.values("unidad_responsable_id").distinct().count()
+            if total_asignaciones
+            else (len(unidades_ids) if unidades_ids is not None else UnidadOrganizacional.objects.count())
         ),
         "total_indicadores": qs.values("indicador_id").distinct().count(),
         "total_asignaciones": total_asignaciones,
@@ -611,6 +620,10 @@ def _base_queryset_evidencias(request):
     if departamento:
         qs = qs.filter(asignacion__unidad_responsable__departamento_legacy_id=departamento)
 
+    unidad = request.query_params.get("unidad_organizacional")
+    if unidad:
+        qs = qs.filter(asignacion__unidad_responsable_id=unidad)
+
     periodo = request.query_params.get("periodo")
     if periodo:
         qs = qs.filter(asignacion__periodo_id=periodo)
@@ -846,7 +859,7 @@ def auditoria_exportar(request):
 # Reporte 7: Usuarios
 # ============================================================
 def _base_queryset_usuarios(request):
-    qs = Usuario.objects.all().prefetch_related("groups").select_related("perfilusuario__departamento")
+    qs = Usuario.objects.all().prefetch_related("groups").select_related("perfilusuario__unidad_organizacional")
 
     rol = request.query_params.get("rol")
     if rol:
@@ -854,7 +867,11 @@ def _base_queryset_usuarios(request):
 
     departamento = request.query_params.get("departamento")
     if departamento:
-        qs = qs.filter(perfilusuario__departamento_id=departamento)
+        qs = qs.filter(perfilusuario__unidad_organizacional__departamento_legacy_id=departamento)
+
+    unidad = request.query_params.get("unidad_organizacional")
+    if unidad:
+        qs = qs.filter(perfilusuario__unidad_organizacional_id=unidad)
 
     estado = request.query_params.get("estado")
     if estado:

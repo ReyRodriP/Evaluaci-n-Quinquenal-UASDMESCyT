@@ -48,8 +48,8 @@
         <span class="resumen-etiqueta">Período</span>
       </div>
       <div class="resumen-item">
-        <span class="resumen-valor">{{ genData.total_departamentos }}</span>
-        <span class="resumen-etiqueta">Departamentos</span>
+        <span class="resumen-valor">{{ genData.total_unidades ?? genData.total_departamentos }}</span>
+        <span class="resumen-etiqueta">Unidades responsables</span>
       </div>
       <div class="resumen-item">
         <span class="resumen-valor">{{ genData.total_indicadores }}</span>
@@ -177,10 +177,10 @@
         </select>
       </label>
       <label>
-        Departamento
-        <select name="ev_departamento" [(ngModel)]="evFiltros.departamento" autocomplete="off" [attr.aria-label]="'Departamento de evidencias'" (change)="evPage = 1; cargarEvidencias()">
+        Unidad responsable
+        <select name="ev_unidad" [(ngModel)]="evFiltros.unidad_organizacional" autocomplete="off" [attr.aria-label]="'Unidad responsable de evidencias'" (change)="evPage = 1; cargarEvidencias()">
           <option value="">Todos</option>
-          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+          <option *ngFor="let unidad of unidades" [value]="unidad.id">{{ unidad.nombre }} · {{ unidad.tipo_nombre }}</option>
         </select>
       </label>
       <label>
@@ -242,10 +242,10 @@
         </select>
       </label>
       <label>
-        Departamento
-        <select name="obs_departamento" [(ngModel)]="obsFiltros.departamento" autocomplete="off" [attr.aria-label]="'Departamento de observaciones'" (change)="obsPage = 1; cargarObservaciones()">
+        Unidad responsable
+        <select name="obs_unidad" [(ngModel)]="obsFiltros.unidad_organizacional" autocomplete="off" [attr.aria-label]="'Unidad responsable de observaciones'" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
-          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+          <option *ngFor="let unidad of unidades" [value]="unidad.id">{{ unidad.nombre }} · {{ unidad.tipo_nombre }}</option>
         </select>
       </label>
       <label>
@@ -364,10 +364,10 @@
         </select>
       </label>
       <label>
-        Departamento
-        <select name="usr_departamento" [(ngModel)]="usrFiltros.departamento" autocomplete="off" [attr.aria-label]="'Departamento'" (change)="usrPage = 1; cargarUsuarios()">
+        Unidad organizacional
+        <select name="usr_unidad" [(ngModel)]="usrFiltros.unidad_organizacional" autocomplete="off" [attr.aria-label]="'Unidad organizacional'" (change)="usrPage = 1; cargarUsuarios()">
           <option value="">Todos</option>
-          <option *ngFor="let d of departamentos" [value]="d.id">{{ d.nombre }}</option>
+          <option *ngFor="let unidad of unidades" [value]="unidad.id">{{ unidad.nombre }} · {{ unidad.tipo_nombre }}</option>
         </select>
       </label>
       <label>

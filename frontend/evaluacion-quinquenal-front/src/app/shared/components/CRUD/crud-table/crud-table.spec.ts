@@ -30,6 +30,7 @@ describe('CrudTable', () => {
     expect(component.getColumnKey('Nombre')).toBe('nombre');
     expect(component.getColumnKey('Correo')).toBe('correo');
     expect(component.getColumnKey('Departamento')).toBe('departamento_nombre');
+    expect(component.getColumnKey('Unidad responsable')).toBe('unidad_responsable');
   });
 
   it('should resolve common user values from aliases', () => {

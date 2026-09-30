@@ -32,8 +32,17 @@
             type="text" placeholder="Buscar {{ field.label | lowercase }}..."
             [attr.aria-label]="'Buscar ' + (field.label | lowercase)"
             autocomplete="off"
-            [(ngModel)]="searchTexts[field.name]" (click)="$event.stopPropagation()"
+            [(ngModel)]="searchTexts[field.name]" (ngModelChange)="onSearchTextChange(field.name, $event)"
+            (click)="$event.stopPropagation()"
             [name]="'search_' + field.name" [id]="'search_' + field.name" />
+
+          <div *ngIf="field.type === 'select' && field.searchable && searchTexts[field.name]?.trim() && !searchOptionSelected[field.name]" class="select-suggestions" role="listbox">
+            <button *ngFor="let option of getFilteredOptions(field)" type="button" class="select-suggestion"
+              role="option" (click)="selectSearchOption(field, option)">
+              {{ option?.label ?? option }}
+            </button>
+            <span *ngIf="!getFilteredOptions(field).length" class="select-no-results">Sin coincidencias</span>
+          </div>
 
           <select *ngIf="field.type === 'select'"
             [(ngModel)]="model[field.name]"

@@ -16,7 +16,7 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './asignaciones.css',
 })
 export class Asignaciones implements OnInit {
-  columnas: string[] = ['Departamento', 'Indicadores', 'Período', 'Estado'];
+  columnas: string[] = ['Unidad responsable', 'Indicadores', 'Período', 'Estado'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
@@ -26,14 +26,14 @@ export class Asignaciones implements OnInit {
   selectedState = 'Todos';
   currentPage = 1;
   pageSize = 10;
-  departamentos: any[] = [];
+  unidades: any[] = [];
   periodos: any[] = [];
 
   showModal: boolean = false;
   selectedItem: any = null;
 
   asignacionFields: any[] = [
-    { label: 'Departamento', name: 'departamento', type: 'select', options: [], defaultValue: '' },
+    { label: 'Unidad responsable', name: 'unidad_responsable', type: 'select', options: [], defaultValue: '' },
     { label: 'Indicadores', name: 'indicador', type: 'checkboxgroup', options: [], defaultValue: [] },
     { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: [
@@ -65,7 +65,7 @@ export class Asignaciones implements OnInit {
 
   ngOnInit() {
     this.loadIndicadores();
-    this.loadDepartamentos();
+    this.loadUnidades();
     this.loadPeriodos();
     this.loadAsignaciones();
   }
@@ -84,7 +84,7 @@ export class Asignaciones implements OnInit {
       ...item,
       indicador: indicadoresIds,
       asignaciones: item.asignaciones ?? [],
-      departamento: item.departamentoId ?? item.departamento,
+      unidad_responsable: item.unidadResponsableId ?? item.unidad_responsable,
       periodo: item.periodoId ?? item.periodo,
       estado: (item.estadoRaw ?? item.estado) || item.estado_display || 'pendiente',
     };
@@ -113,26 +113,38 @@ export class Asignaciones implements OnInit {
     });
   }
 
-  loadDepartamentos() {
-    this.organizacionService.listarDepartamentos().subscribe({
+  loadUnidades() {
+    this.organizacionService.listarUnidadesOrganizacionales().subscribe({
       next: (data) => {
-        this.departamentos = data;
+        this.unidades = data;
         this.asignacionFields = this.asignacionFields.map(field => {
-          if (field.name !== 'departamento') {
+          if (field.name !== 'unidad_responsable') {
             return field;
           }
 
           return {
             ...field,
-            options: this.departamentos.map((departamento: any) => ({ value: departamento.id, label: departamento.nombre }))
+            options: this.unidades.map((unidad: any) => ({ value: unidad.id, label: `${this.unitPath(unidad)} · ${unidad.tipo_nombre}` }))
           };
         });
       },
       error: (err) => {
-        console.error('Error cargando departamentos', err);
-        this.toast.error('No se pudieron cargar los departamentos');
+        console.error('Error cargando unidades organizacionales', err);
+        this.toast.error('No se pudieron cargar las unidades organizacionales');
       }
     });
+  }
+
+  private unitPath(unit: any): string {
+    const path = [unit.nombre];
+    let parentId = unit.unidad_padre;
+    while (parentId) {
+      const parent = this.unidades.find(candidate => candidate.id === parentId);
+      if (!parent) break;
+      path.unshift(parent.nombre);
+      parentId = parent.unidad_padre;
+    }
+    return path.join(' / ');
   }
 
   loadPeriodos() {
@@ -161,7 +173,7 @@ export class Asignaciones implements OnInit {
     this.evaluacionService.listarAsignaciones().subscribe({
       next: (data) => {
         const grouped = data.reduce((acc: any, item: any) => {
-          const key = `${item.departamento}_${item.periodo}_${item.estado}`;
+          const key = `${item.unidad_responsable}_${item.periodo}_${item.estado}`;
           const indicadorNombre = item.indicador_nombre || '';
           const indicadorId = item.indicador;
 
@@ -170,8 +182,8 @@ export class Asignaciones implements OnInit {
               ids: [],
               asignaciones: [],
               id: item.id,
-              departamento: item.departamento_nombre || '',
-              departamentoId: item.departamento,
+              unidad_responsable: item.unidad_responsable_nombre || '',
+              unidadResponsableId: item.unidad_responsable,
               periodo: item.periodo_nombre || '',
               periodo_nombre: item.periodo_nombre || '',
               periodoId: item.periodo,
@@ -210,7 +222,7 @@ export class Asignaciones implements OnInit {
   private applySearch() {
     const normalizedTerm = this.searchTerm.toLowerCase().trim();
     this.datosFiltrados = this.datos.filter((item: any) => {
-      const hayCoincidencia = (item.departamento ?? '').toLowerCase().includes(normalizedTerm)
+      const hayCoincidencia = (item.unidad_responsable ?? '').toLowerCase().includes(normalizedTerm)
         || (item.periodo ?? '').toLowerCase().includes(normalizedTerm)
         || (item.indicadores ?? []).some((indicador: any) => `${indicador.nombre ?? ''}`.toLowerCase().includes(normalizedTerm));
       const matchesSearch = !normalizedTerm || hayCoincidencia;
@@ -246,13 +258,13 @@ export class Asignaciones implements OnInit {
 
   onModalSave(saved: any) {
     const selectedIndicadores = Array.isArray(saved.indicador) ? saved.indicador : [saved.indicador];
-    if (!selectedIndicadores.length || !saved.departamento || !saved.periodo) {
+    if (!selectedIndicadores.length || !saved.unidad_responsable || !saved.periodo) {
       this.toast.error('Complete todos los campos requeridos');
       return;
     }
 
     const payloadBase = {
-      departamento: saved.departamento,
+      unidad_responsable: saved.unidad_responsable,
       periodo: saved.periodo,
       estado: saved.estado,
     };

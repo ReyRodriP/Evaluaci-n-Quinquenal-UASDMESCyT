@@ -10,7 +10,6 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q
 
 from accounts.permissions import CustomModelPermissions, filtrar_por_rol, unidades_organizacionales_permitidas
 from auditoria.utils import registrar_auditoria
@@ -119,10 +118,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         """
         if unidad.departamento_legacy_id is None:
             return
-        perfiles = PerfilUsuario.objects.filter(
-            Q(unidad_organizacional=unidad)
-            | Q(departamento_id=unidad.departamento_legacy_id)
-        ).distinct()
+        perfiles = PerfilUsuario.objects.filter(unidad_organizacional=unidad)
         for perfil in perfiles:
             crear_notificacion(usuario=perfil.usuario, titulo=titulo, mensaje=mensaje)
 

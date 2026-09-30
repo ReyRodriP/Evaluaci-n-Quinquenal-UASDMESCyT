@@ -22,6 +22,7 @@ export class Modal implements OnChanges {
 
   model: any = {};
   searchTexts: { [key: string]: string } = {};
+  searchOptionSelected: { [key: string]: boolean } = {};
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['fields'] || changes['data'] || (changes['open'] && this.open)) {
@@ -61,8 +62,19 @@ export class Modal implements OnChanges {
     }
     const term = this.searchTexts[field.name].toLowerCase().trim();
     return (field.options || []).filter((opt: any) =>
-      (opt.label ?? opt).toLowerCase().includes(term)
+      String(opt?.label ?? opt).toLowerCase().includes(term)
     );
+  }
+
+  selectSearchOption(field: any, option: any): void {
+    this.model[field.name] = option?.value ?? option;
+    this.searchTexts[field.name] = option?.label ?? String(option);
+    this.searchOptionSelected[field.name] = true;
+  }
+
+  onSearchTextChange(fieldName: string, value: string): void {
+    this.searchTexts[fieldName] = value;
+    this.searchOptionSelected[fieldName] = false;
   }
 
   onCancel() {

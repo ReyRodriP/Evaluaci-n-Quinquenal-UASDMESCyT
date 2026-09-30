@@ -85,7 +85,6 @@ class PerfilUsuario(models.Model):
 
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
     unidad_organizacional = models.ForeignKey(
         UnidadOrganizacional,
         on_delete=models.SET_NULL,

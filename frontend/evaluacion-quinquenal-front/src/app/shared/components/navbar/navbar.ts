@@ -29,6 +29,7 @@ export class Navbar implements OnInit, OnDestroy {
 
   private readonly tipoRuta: Record<string, string> = {
     Indicador: '/indicadores',
+    UnidadOrganizacional: '/organizacion',
     Departamento: '/departamentos',
     Facultad: '/facultades',
     Criterio: '/criterios',
@@ -37,6 +38,7 @@ export class Navbar implements OnInit, OnDestroy {
 
   private readonly tipoPermiso: Record<string, string> = {
     Indicador: 'evaluation.view_indicador',
+    UnidadOrganizacional: 'organization.view_unidadorganizacional',
     Departamento: 'organization.view_departamento',
     Facultad: 'organization.view_facultad',
     Criterio: 'evaluation.view_criterio',

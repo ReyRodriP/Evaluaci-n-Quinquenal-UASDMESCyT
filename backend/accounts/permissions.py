@@ -7,7 +7,7 @@ y clases de permisos personalizados para el sistema de evaluacion quinquenal.
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission, DjangoModelPermissions
 
-from organization.models import PerfilUsuario
+from organization.models import Facultad, PerfilUsuario
 
 ROLES_SIN_RESTRICCION = {"Administrador General", "Coordinador Quinquenal", "Evaluador Externo"}
 
@@ -52,23 +52,12 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
             return queryset
         return queryset.filter(**{f"{dept_field}_id__in": permitidas})
 
-    try:
-        perfil = user.perfilusuario
-    except PerfilUsuario.DoesNotExist:
-        return queryset.none()
-
-    if not perfil.departamento:
-        return queryset.none()
-
-    unidad_field = dept_field
-    if "unidad_responsable" in dept_field:
-        unidad_field = f"{dept_field}__departamento_legacy"
-
-    if "Revisor Institucional" in grupos or "Consulta" in grupos:
-        facultad_id = perfil.departamento.facultad_id
-        return queryset.filter(**{f"{unidad_field}__facultad_id": facultad_id})
-
-    return queryset.filter(**{f"{unidad_field}_id": perfil.departamento_id})
+    departamentos = departamentos_permitidos(request)
+    if departamentos is None:
+        return queryset
+    if queryset.model._meta.label == "organization.Departamento" and dept_field == "departamento":
+        return queryset.filter(pk__in=departamentos)
+    return queryset.filter(**{f"{dept_field}_id__in": departamentos})
 
 
 def unidades_organizacionales_permitidas(request):
@@ -88,22 +77,17 @@ def unidades_organizacionales_permitidas(request):
     from organization.models import UnidadOrganizacional
 
     unidad = perfil.unidad_organizacional
-    if unidad is None and perfil.departamento_id:
-        unidad = UnidadOrganizacional.objects.filter(departamento_legacy_id=perfil.departamento_id).first()
     if unidad is None:
         return []
 
     if "Revisor Institucional" in grupos or "Consulta" in grupos:
         raiz = unidad
-        if perfil.unidad_organizacional_id is None and perfil.departamento_id:
-            facultad = perfil.departamento.facultad
-            raiz_facultad = UnidadOrganizacional.objects.filter(
-                nombre=facultad.nombre,
-                tipo__nombre="Facultad",
-                unidad_padre__tipo__nombre="Universidad",
-            ).first()
-            if raiz_facultad:
-                raiz = raiz_facultad
+        ancestro = unidad
+        while ancestro:
+            if ancestro.tipo.nombre.casefold() == "facultad":
+                raiz = ancestro
+                break
+            ancestro = ancestro.unidad_padre
 
         permitidas = [raiz.pk]
         padres = [raiz.pk]
@@ -155,14 +139,15 @@ def facultades_permitidas(request):
         return None
 
     try:
-        perfil = user.perfilusuario
+        unidad = user.perfilusuario.unidad_organizacional
     except PerfilUsuario.DoesNotExist:
         return []
 
-    if not perfil.departamento:
-        return []
-
-    return [perfil.departamento.facultad_id]
+    while unidad:
+        if unidad.tipo.nombre.casefold() == "facultad":
+            return list(Facultad.objects.filter(nombre=unidad.nombre).values_list("pk", flat=True)[:1])
+        unidad = unidad.unidad_padre
+    return []
 
 
 class CustomModelPermissions(DjangoModelPermissions):

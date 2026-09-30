@@ -4,7 +4,7 @@
   <ng-container *ngIf="!loading">
     <app-search-bar
       [titulo]="'Evidencias'"
-      [placeholder]="'Buscar por indicador, departamento, estado...'"
+      [placeholder]="'Buscar por indicador, unidad, estado...'"
       [stateOptions]="[]"
       [showCreate]="false"
       [showState]="false"
@@ -14,7 +14,7 @@
     </app-search-bar>
 
     <app-crud-table
-      [columnas]="['Departamento', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
+      [columnas]="['Unidad responsable', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
       [datos]="rowsPaginados"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
       <ng-template #acciones let-row>

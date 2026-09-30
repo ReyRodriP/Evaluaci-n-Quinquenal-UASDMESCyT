@@ -3,6 +3,8 @@
 .modal-overlay {
     position: fixed;
     inset: 0;
+    box-sizing: border-box;
+    padding: 1rem;
     background: rgba(15, 23, 42, 0.45);
     backdrop-filter: blur(4px);
 
@@ -18,6 +20,10 @@
 .crud-modal {
     width: 100%;
     max-width: 550px;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+    display: flex;
+    flex-direction: column;
 
     background: var(--modal-body-bg);
     border-radius: 20px;
@@ -37,6 +43,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex: 0 0 auto;
 
     padding: 1.3rem 1.5rem;
 
@@ -77,6 +84,8 @@
 
 .modal-form {
     padding: 1.5rem;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .form-group {
@@ -158,6 +167,35 @@
     margin-bottom: .4rem;
 }
 
+.select-suggestions {
+    display: grid;
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 0 0 .6rem;
+    border: 1px solid var(--modal-input-border);
+    border-radius: 8px;
+    background: var(--modal-input-bg);
+}
+
+.select-suggestion {
+    padding: .65rem .9rem;
+    border: 0;
+    background: transparent;
+    color: var(--modal-input-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.select-suggestion:hover,
+.select-suggestion:focus-visible {
+    background: var(--button-hover-bg);
+}
+
+.select-no-results {
+    padding: .65rem .9rem;
+    color: var(--modal-label-color);
+}
+
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
@@ -230,8 +268,7 @@
 @media (max-width: 600px) {
 
     .crud-modal {
-        width: 95%;
-        margin: 1rem;
+        width: 100%;
     }
 
     .modal-actions {

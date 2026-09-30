@@ -82,20 +82,63 @@ class PerfilUsuarioModelTests(TestCase):
         self.user = User.objects.create_user(username="testuser", email="testuser@test.com", password="testpass123")
         self.facultad = Facultad.objects.create(nombre="Medicina")
         self.departamento = Departamento.objects.create(nombre="Anatomia", facultad=self.facultad)
-        self.perfil = PerfilUsuario.objects.create(usuario=self.user, departamento=self.departamento)
+        tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+        self.unidad = UnidadOrganizacional.objects.create(
+            nombre=self.departamento.nombre,
+            tipo=tipo,
+            departamento_legacy=self.departamento,
+        )
+        self.perfil = PerfilUsuario.objects.create(usuario=self.user, unidad_organizacional=self.unidad)
 
     def test_crear_perfil(self):
         self.assertEqual(self.perfil.usuario, self.user)
-        self.assertEqual(self.perfil.departamento, self.departamento)
+        self.assertEqual(self.perfil.unidad_organizacional, self.unidad)
 
     def test_perfil_one_to_one(self):
         user2 = User.objects.create_user(username="testuser2", email="testuser2@test.com", password="testpass123")
-        PerfilUsuario.objects.create(usuario=user2, departamento=self.departamento)
+        PerfilUsuario.objects.create(usuario=user2, unidad_organizacional=self.unidad)
         with self.assertRaises(IntegrityError):
-            PerfilUsuario.objects.create(usuario=self.user, departamento=self.departamento)
+            PerfilUsuario.objects.create(usuario=self.user, unidad_organizacional=self.unidad)
 
     def test_str_representation(self):
         self.assertEqual(str(self.perfil), "testuser")
+
+
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"])
+class PerfilUsuarioAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_superuser(
+            username="admin_perfiles",
+            email="admin_perfiles@test.com",
+            password="testpass123",
+        )
+        self.client.force_authenticate(user=self.admin)
+        tipo = TipoUnidadOrganizacional.objects.create(nombre="Dirección")
+        unidad = UnidadOrganizacional.objects.create(nombre="Recursos Humanos", tipo=tipo)
+        usuario = User.objects.create_user(
+            username="usuario_perfil",
+            email="usuario_perfil@test.com",
+            password="testpass123",
+        )
+        PerfilUsuario.objects.create(usuario=usuario, unidad_organizacional=unidad)
+
+    def test_listado_serializa_unidad_sin_departamento_legacy(self):
+        response = self.client.get("/api/perfiles/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        perfil = response.data["results"][0]
+        self.assertEqual(perfil["unidad_organizacional_nombre"], "Recursos Humanos")
+        self.assertNotIn("departamento", perfil)
+
+    def test_peticiones_concurrentes_de_pantalla_usuarios(self):
+        usuarios = self.client.get("/api/usuarios/")
+        perfiles = self.client.get("/api/perfiles/")
+        unidades = self.client.get("/api/unidades-organizacionales/")
+
+        self.assertEqual(usuarios.status_code, status.HTTP_200_OK)
+        self.assertEqual(perfiles.status_code, status.HTTP_200_OK)
+        self.assertEqual(unidades.status_code, status.HTTP_200_OK)
 
 
 @override_settings(
