@@ -6,6 +6,8 @@ y observaciones, incluyendo campos calculados y validaciones."""
 
 from rest_framework import serializers
 
+from accounts.permissions import es_evaluador_externo
+
 from .models import Evidencia, Observacion, VersionEvidencia
 
 
@@ -40,7 +42,7 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
     @details Serializa las versiones de evidencia incluyendo observaciones
     anidadas, URL de descarga y nombre del archivo."""
 
-    observaciones = ObservacionSerializer(many=True, read_only=True)
+    observaciones = serializers.SerializerMethodField()
     descargar_url = serializers.SerializerMethodField()
     nombre_archivo = serializers.SerializerMethodField()
 
@@ -57,6 +59,12 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
             "fecha_subida",
             "observaciones",
         ]
+
+    def get_observaciones(self, obj):
+        request = self.context.get("request")
+        if request is not None and es_evaluador_externo(request):
+            return []
+        return ObservacionSerializer(obj.observaciones.all(), many=True, context=self.context).data
 
     def get_descargar_url(self, obj) -> str | None:
         """@brief Genera la URL de descarga del archivo de la versión
@@ -111,7 +119,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     @details Serializa las evidencias con versiones anidadas, última versión,
     estado de la asignación y última observación recibida."""
 
-    versiones = VersionEvidenciaSerializer(many=True, read_only=True)
+    versiones = serializers.SerializerMethodField()
     ultima_version = serializers.SerializerMethodField()
     asignacion_estado = serializers.SerializerMethodField()
     asignacion_estado_display = serializers.SerializerMethodField()
@@ -121,14 +129,21 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         model = Evidencia
         fields = "__all__"
 
+    def get_versiones(self, obj):
+        versiones = obj.versiones.order_by("-version", "-pk")
+        request = self.context.get("request")
+        if request is not None and es_evaluador_externo(request):
+            versiones = versiones[:1]
+        return VersionEvidenciaSerializer(versiones, many=True, context=self.context).data
+
     def get_ultima_version(self, obj) -> str | None:
         """@brief Obtiene la versión más reciente de la evidencia
         @param obj Instancia de Evidencia
         @return dict Datos serializados de la última versión o None"""
 
-        ultima = obj.versiones.order_by("-version").first()
+        ultima = obj.versiones.order_by("-version", "-pk").first()
         if ultima:
-            return VersionEvidenciaSerializer(ultima).data
+            return VersionEvidenciaSerializer(ultima, context=self.context).data
         return None
 
     def get_asignacion_estado(self, obj) -> str | None:
@@ -156,7 +171,11 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         @param obj Instancia de Evidencia
         @return dict Datos de la última observación activa o None"""
 
-        ultima_version = obj.versiones.order_by("-version").first()
+        request = self.context.get("request")
+        if request is not None and es_evaluador_externo(request):
+            return None
+
+        ultima_version = obj.versiones.order_by("-version", "-pk").first()
         if ultima_version:
             ultima_obs = ultima_version.observaciones.filter(activo=True).order_by("-fecha_creacion").first()
             if ultima_obs:

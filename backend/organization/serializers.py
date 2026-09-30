@@ -7,7 +7,14 @@ y PerfilUsuario, incluyendo campos de solo lectura para nombres relacionados.
 
 from rest_framework import serializers
 
-from .models import Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
+from .models import (
+    AmbitoEvaluacion,
+    Departamento,
+    Facultad,
+    PerfilUsuario,
+    TipoUnidadOrganizacional,
+    UnidadOrganizacional,
+)
 
 
 class TipoUnidadOrganizacionalSerializer(serializers.ModelSerializer):
@@ -95,3 +102,40 @@ class PerfilUsuarioSerializer(serializers.ModelSerializer):
             "unidad_organizacional",
             "unidad_organizacional_nombre",
         ]
+
+
+class AmbitoEvaluacionSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source="usuario.username", read_only=True)
+    unidad_nombre = serializers.CharField(source="unidad_organizacional.nombre", read_only=True)
+    periodo_nombre = serializers.CharField(source="periodo.nombre", read_only=True)
+
+    class Meta:
+        model = AmbitoEvaluacion
+        fields = [
+            "id",
+            "usuario",
+            "usuario_nombre",
+            "unidad_organizacional",
+            "unidad_nombre",
+            "periodo",
+            "periodo_nombre",
+            "activo",
+            "fecha_asignacion",
+        ]
+        read_only_fields = ["fecha_asignacion"]
+
+    def validate(self, attrs):
+        usuario = attrs.get("usuario", getattr(self.instance, "usuario", None))
+        unidad = attrs.get("unidad_organizacional", getattr(self.instance, "unidad_organizacional", None))
+        periodo = attrs.get("periodo", getattr(self.instance, "periodo", None))
+        if usuario and unidad and periodo:
+            duplicate = AmbitoEvaluacion.objects.filter(
+                usuario=usuario,
+                unidad_organizacional=unidad,
+                periodo=periodo,
+            )
+            if self.instance:
+                duplicate = duplicate.exclude(pk=self.instance.pk)
+            if duplicate.exists():
+                raise serializers.ValidationError("Ya existe un ámbito para este usuario, unidad y período.")
+        return attrs

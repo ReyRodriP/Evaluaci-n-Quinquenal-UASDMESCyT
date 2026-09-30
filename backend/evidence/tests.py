@@ -1,13 +1,21 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from evaluation.models import Asignacion, Criterio, Indicador, Periodo
-from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
+from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
+from organization.models import (
+    AmbitoEvaluacion,
+    Departamento,
+    Facultad,
+    PerfilUsuario,
+    TipoUnidadOrganizacional,
+    UnidadOrganizacional,
+)
 
 from .models import EstadoEvidencia, Evidencia, Observacion, VersionEvidencia
 
@@ -189,3 +197,173 @@ class EvidenciaViewSetTests(TestCase):
         self.assertEqual(detalle.status_code, 200)
         self.assertFalse(detalle.data["puede_subir_version"])
         self.assertEqual(subir.status_code, 400)
+
+    def test_external_evaluator_sees_only_approved_evidence_in_assigned_scope(self):
+        self.asignacion.estado = EstadoAsignacion.APROBADO
+        self.asignacion.save()
+        evidencia_aprobada = Evidencia.objects.create(
+            titulo="Aprobada autorizada",
+            descripcion="Dentro del alcance",
+            asignacion=self.asignacion,
+        )
+
+        indicador_pendiente = Indicador.objects.create(
+            nombre="Indicador pendiente",
+            criterio=self.asignacion.indicador.criterio,
+        )
+        asignacion_pendiente = Asignacion.objects.create(
+            indicador=indicador_pendiente,
+            unidad_responsable=self.asignacion.unidad_responsable,
+            periodo=self.asignacion.periodo,
+            estado=EstadoAsignacion.PENDIENTE,
+        )
+        evidencia_pendiente = Evidencia.objects.create(
+            titulo="Pendiente",
+            descripcion="No visible",
+            asignacion=asignacion_pendiente,
+        )
+
+        tipo = TipoUnidadOrganizacional.objects.get_or_create(nombre="Unidad externa test")[0]
+        unidad_no_autorizada = UnidadOrganizacional.objects.create(nombre="Otra unidad", tipo=tipo)
+        asignacion_otra_unidad = Asignacion.objects.create(
+            indicador=self.asignacion.indicador,
+            unidad_responsable=unidad_no_autorizada,
+            periodo=self.asignacion.periodo,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        evidencia_otra_unidad = Evidencia.objects.create(
+            titulo="Otra unidad",
+            descripcion="No visible",
+            asignacion=asignacion_otra_unidad,
+        )
+
+        periodo_no_autorizado = Periodo.objects.create(
+            nombre="Segundo período autorizado",
+            fecha_inicio=timezone.localdate() - timedelta(days=400),
+            fecha_fin=timezone.localdate() - timedelta(days=30),
+            activo=False,
+        )
+        criterio = Criterio.objects.create(nombre="Criterio histórico", periodo=periodo_no_autorizado)
+        indicador = Indicador.objects.create(nombre="Indicador histórico", criterio=criterio)
+        asignacion_otro_periodo = Asignacion.objects.create(
+            indicador=indicador,
+            unidad_responsable=self.asignacion.unidad_responsable,
+            periodo=periodo_no_autorizado,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        evidencia_otro_periodo = Evidencia.objects.create(
+            titulo="Otro período",
+            descripcion="No visible",
+            asignacion=asignacion_otro_periodo,
+        )
+        asignacion_segundo_ambito = Asignacion.objects.create(
+            indicador=indicador,
+            unidad_responsable=unidad_no_autorizada,
+            periodo=periodo_no_autorizado,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        evidencia_segundo_ambito = Evidencia.objects.create(
+            titulo="Segundo ámbito autorizado",
+            descripcion="Visible por su ámbito propio",
+            asignacion=asignacion_segundo_ambito,
+        )
+        version_antigua = VersionEvidencia.objects.create(
+            evidencia=evidencia_aprobada,
+            archivo="evidencias/aprobada-antigua.pdf",
+            version=1,
+        )
+        version_autorizada = VersionEvidencia.objects.create(
+            evidencia=evidencia_aprobada,
+            archivo="evidencias/aprobada.pdf",
+            version=2,
+        )
+        version_segundo_ambito = VersionEvidencia.objects.create(
+            evidencia=evidencia_segundo_ambito,
+            archivo="evidencias/segundo-ambito.pdf",
+        )
+        VersionEvidencia.objects.create(evidencia=evidencia_pendiente, archivo="evidencias/pendiente.pdf")
+        VersionEvidencia.objects.create(evidencia=evidencia_otra_unidad, archivo="evidencias/otra-unidad.pdf")
+        VersionEvidencia.objects.create(evidencia=evidencia_otro_periodo, archivo="evidencias/otro-periodo.pdf")
+
+        evaluador = _make_user("evaluador_externo", "evaluador@test.com")
+        grupo, _ = Group.objects.get_or_create(name="Evaluador Externo")
+        evaluador.groups.add(grupo)
+        evaluador.user_permissions.add(
+            *Permission.objects.filter(
+                content_type__app_label__in=["evidence", "evaluation"],
+                codename__in=["view_evidencia", "view_versionevidencia", "view_observacion", "view_asignacion", "view_periodo"],
+            )
+        )
+        perfil = PerfilUsuario.objects.create(
+            usuario=evaluador,
+            unidad_organizacional=self.asignacion.unidad_responsable,
+        )
+        AmbitoEvaluacion.objects.create(
+            usuario=evaluador,
+            unidad_organizacional=self.asignacion.unidad_responsable,
+            periodo=self.asignacion.periodo,
+        )
+        AmbitoEvaluacion.objects.create(
+            usuario=evaluador,
+            unidad_organizacional=unidad_no_autorizada,
+            periodo=periodo_no_autorizado,
+        )
+        Observacion.objects.create(
+            version=version_autorizada,
+            usuario=self.admin_user,
+            comentario="Nota interna no visible al evaluador.",
+        )
+        self.client.force_authenticate(user=evaluador)
+
+        response = self.client.get("/api/evidencias/")
+        denied_detail = self.client.get(f"/api/evidencias/{evidencia_pendiente.pk}/detalle/?periodo={self.asignacion.periodo_id}")
+        periods = self.client.get("/api/periodos/")
+        versions = self.client.get("/api/versiones/")
+        assignments = self.client.get("/api/asignaciones/")
+        criteria = self.client.get("/api/criterios/")
+        indicators = self.client.get("/api/indicadores/")
+        detail = self.client.get(f"/api/evidencias/{evidencia_aprobada.pk}/detalle/?periodo={self.asignacion.periodo_id}")
+        old_version = self.client.get(f"/api/versiones/{version_antigua.pk}/")
+        observations = self.client.get("/api/observaciones/")
+        create_observation = self.client.post(
+            "/api/observaciones/",
+            {"version": version_autorizada.pk, "comentario": "No autorizado"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            {row["id_evidencia"] for row in response.data["results"]},
+            {evidencia_aprobada.pk, evidencia_segundo_ambito.pk},
+        )
+        self.assertEqual(denied_detail.status_code, 404)
+        self.assertEqual(
+            {row["id"] for row in periods.data["results"]},
+            {self.asignacion.periodo_id, periodo_no_autorizado.pk},
+        )
+        self.assertEqual(
+            {row["id_version"] for row in versions.data["results"]},
+            {version_autorizada.pk, version_segundo_ambito.pk},
+        )
+        self.assertEqual(
+            {row["id"] for row in assignments.data["results"]},
+            {self.asignacion.pk, asignacion_segundo_ambito.pk},
+        )
+        indicadores_visibles = {row["id"] for row in indicators.data["results"]}
+        self.assertEqual(
+            indicadores_visibles,
+            {self.asignacion.indicador_id, indicador.pk},
+        )
+        indicadores_anidados = {
+            indicador_anidado["id"]
+            for criterio_visible in criteria.data["results"]
+            for indicador_anidado in criterio_visible["indicadores"]
+        }
+        self.assertEqual(indicadores_anidados, indicadores_visibles)
+        self.assertEqual(len(detail.data["versiones"]), 1)
+        self.assertEqual(detail.data["versiones"][0]["observaciones"], [])
+        self.assertIsNone(detail.data["ultima_observacion"])
+        self.assertEqual(detail.data["historial_estados"], [])
+        self.assertEqual(old_version.status_code, 404)
+        self.assertEqual(observations.data["results"], [])
+        self.assertEqual(create_observation.status_code, 403)

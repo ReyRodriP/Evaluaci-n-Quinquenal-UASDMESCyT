@@ -42,6 +42,8 @@ El sistema usa el sistema nativo de **Groups** y **Permissions** de Django combi
 | Evaluador Externo | Consulta evidencias aprobadas, revisa indicadores |
 | Consulta | Solo lectura |
 
+El Evaluador Externo solo consulta asignaciones aprobadas dentro de ámbitos activos. Administra cada combinación de usuario, unidad y período en `/api/ambitos-evaluacion/`; autorizar una facultad incluye sus subunidades. Desactivar un ámbito conserva el registro y audita la baja. Sin ámbitos activos, no obtiene registros.
+
 ### Archivos clave
 
 #### accounts/role_permissions.py
@@ -92,6 +94,7 @@ UsuarioProfileSerializer (usado en login) devuelve: id, username, email, is_supe
 | GET/POST/PUT/DELETE | /api/facultades/ | CRUD facultades |
 | GET/POST/PUT/DELETE | /api/departamentos/ | CRUD departamentos |
 | GET/POST/PUT/DELETE | /api/perfiles/ | CRUD perfiles |
+| GET/POST/PUT/PATCH/DELETE | /api/ambitos-evaluacion/ | Ámbitos de usuario por unidad y período; DELETE desactiva sin borrar |
 | GET/POST/PUT/DELETE | /api/periodos/ | CRUD períodos |
 | GET | /api/periodos/activo/ | Período activo; responde 404 si no hay uno |
 | GET/POST/PUT/DELETE | /api/criterios/ | CRUD criterios |

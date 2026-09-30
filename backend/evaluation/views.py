@@ -12,7 +12,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import IntegrityError
 
-from accounts.permissions import CustomModelPermissions, filtrar_por_rol, unidades_organizacionales_permitidas
+from accounts.permissions import (
+    CustomModelPermissions,
+    _grupos_usuario,
+    ambitos_activos,
+    filtrar_por_rol,
+    periodos_autorizados,
+    unidades_organizacionales_permitidas,
+)
 from auditoria.utils import registrar_auditoria
 from evidence.models import Evidencia, Observacion
 from notificaciones.utils import crear_notificacion
@@ -42,12 +49,15 @@ class PeriodoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         finalizar_periodos_vencidos()
+        if not self.request.user.is_superuser and "Evaluador Externo" in _grupos_usuario(self.request.user):
+            periodos = periodos_autorizados(self.request)
+            return Periodo.objects.filter(pk__in=periodos).order_by("-fecha_inicio").distinct()
         return Periodo.objects.all().order_by("-fecha_inicio")
 
     @action(detail=False, methods=["get"], url_path="activo", permission_classes=[IsAuthenticated])
     def activo(self, request):
         finalizar_periodos_vencidos()
-        periodo = Periodo.objects.filter(activo=True).first()
+        periodo = self.get_queryset().filter(activo=True).first()
         if periodo is None:
             return Response({"detail": "No hay un período activo."}, status=status.HTTP_404_NOT_FOUND)
         return Response(self.get_serializer(periodo).data)
@@ -108,6 +118,12 @@ class CriterioViewSet(viewsets.ModelViewSet):
     serializer_class = CriterioSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
+    def get_queryset(self):
+        queryset = Criterio.objects.all().order_by("nombre")
+        if "Evaluador Externo" in _grupos_usuario(self.request.user):
+            queryset = filtrar_por_rol(queryset, self.request, dept_field="unidad_responsable")
+        return queryset.distinct()
+
     def perform_destroy(self, instance):
         registrar_auditoria(
             usuario=self.request.user,
@@ -129,6 +145,12 @@ class IndicadorViewSet(viewsets.ModelViewSet):
     queryset = Indicador.objects.all().order_by("nombre")
     serializer_class = IndicadorSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def get_queryset(self):
+        queryset = Indicador.objects.all().order_by("nombre")
+        if "Evaluador Externo" in _grupos_usuario(self.request.user):
+            queryset = filtrar_por_rol(queryset, self.request, dept_field="unidad_responsable")
+        return queryset.distinct()
 
     def perform_destroy(self, instance):
         registrar_auditoria(
@@ -157,9 +179,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         finalizar_periodos_vencidos()
         qs = Asignacion.objects.all().order_by("periodo", "unidad_responsable")
         periodo_id = self.request.query_params.get("periodo")
+        evaluador_externo = "Evaluador Externo" in _grupos_usuario(self.request.user)
         if periodo_id:
             qs = qs.filter(periodo_id=periodo_id)
-        elif self.request.method in ("GET", "HEAD", "OPTIONS"):
+        elif self.request.method in ("GET", "HEAD", "OPTIONS") and not evaluador_externo:
             qs = qs.filter(periodo__activo=True)
         return filtrar_por_rol(qs, self.request, dept_field="unidad_responsable")
 
@@ -270,8 +293,11 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         except Evidencia.DoesNotExist:
             data["total_evidencias"] = 0
             data["ultima_actualizacion"] = None
-        historial = asignacion.historial_estados.all()[:10]
-        data["historial_reciente"] = HistorialEstadoSerializer(historial, many=True).data
+        if "Evaluador Externo" in _grupos_usuario(request.user):
+            data["historial_reciente"] = []
+        else:
+            historial = asignacion.historial_estados.all()[:10]
+            data["historial_reciente"] = HistorialEstadoSerializer(historial, many=True).data
         return Response(data)
 
     @action(detail=True, methods=["post"])

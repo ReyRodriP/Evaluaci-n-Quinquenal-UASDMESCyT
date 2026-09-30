@@ -5,11 +5,12 @@
 y clases de permisos personalizados para el sistema de evaluacion quinquenal.
 """
 
+from django.db.models import Q
 from rest_framework.permissions import SAFE_METHODS, BasePermission, DjangoModelPermissions
 
-from organization.models import Facultad, PerfilUsuario
+from organization.models import AmbitoEvaluacion, Facultad, PerfilUsuario, UnidadOrganizacional
 
-ROLES_SIN_RESTRICCION = {"Administrador General", "Coordinador Quinquenal", "Evaluador Externo"}
+ROLES_SIN_RESTRICCION = {"Administrador General", "Coordinador Quinquenal"}
 
 ROLES_REPORTES = {"Administrador General", "Coordinador Quinquenal", "Revisor Institucional"}
 
@@ -27,6 +28,82 @@ def _grupos_usuario(user):
     return set(user.groups.values_list("name", flat=True))
 
 
+def es_evaluador_externo(request):
+    return "Evaluador Externo" in _grupos_usuario(request.user)
+
+
+def ambitos_activos(usuario):
+    return AmbitoEvaluacion.objects.filter(usuario=usuario, activo=True).select_related(
+        "unidad_organizacional", "periodo"
+    )
+
+
+def periodos_autorizados(request):
+    return list(ambitos_activos(request.user).values_list("periodo_id", flat=True).distinct())
+
+
+def _unidades_del_ambito(unidad_id):
+    unidades = {unidad_id}
+    padres = {unidad_id}
+    while padres:
+        hijos = set(
+            UnidadOrganizacional.objects.filter(unidad_padre_id__in=padres).values_list("pk", flat=True)
+        )
+        hijos -= unidades
+        unidades.update(hijos)
+        padres = hijos
+    return unidades
+
+
+def _filtrar_evaluador_externo(queryset, request):
+    ambitos = list(ambitos_activos(request.user))
+    if not ambitos:
+        return queryset.none()
+
+    model_label = queryset.model._meta.label
+    scope = {
+        "evaluation.Asignacion": ("periodo_id", "unidad_responsable_id", "estado"),
+        "evaluation.Criterio": (
+            "periodo_id",
+            "indicadores__asignaciones__unidad_responsable_id",
+            "indicadores__asignaciones__estado",
+        ),
+        "evaluation.Indicador": (
+            "criterio__periodo_id",
+            "asignaciones__unidad_responsable_id",
+            "asignaciones__estado",
+        ),
+        "evaluation.HistorialEstado": (
+            "asignacion__periodo_id",
+            "asignacion__unidad_responsable_id",
+            "asignacion__estado",
+        ),
+        "evidence.Evidencia": ("asignacion__periodo_id", "asignacion__unidad_responsable_id", "asignacion__estado"),
+        "evidencias.Evidencia": ("asignacion__periodo_id", "asignacion__unidad_responsable_id", "asignacion__estado"),
+        "evidence.VersionEvidencia": (
+            "evidencia__asignacion__periodo_id",
+            "evidencia__asignacion__unidad_responsable_id",
+            "evidencia__asignacion__estado",
+        ),
+        "evidence.Observacion": None,
+    }
+    if model_label not in scope:
+        return queryset.none()
+    if scope[model_label] is None:
+        return queryset.none()
+
+    period_lookup, unit_lookup, state_lookup = scope[model_label]
+    allowed_scopes = Q(pk__in=[])  # Empty disjunction before adding each authorized unit-period pair.
+    for ambito in ambitos:
+        allowed_scopes |= Q(
+            **{
+                period_lookup: ambito.periodo_id,
+                f"{unit_lookup}__in": _unidades_del_ambito(ambito.unidad_organizacional_id),
+            }
+        )
+    return queryset.filter(allowed_scopes, **{state_lookup: "aprobado"}).distinct()
+
+
 def filtrar_por_rol(queryset, request, dept_field="departamento"):
     """
     @brief Filtra un queryset segun el rol y departamento del usuario
@@ -34,8 +111,9 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
     @param request Request HTTP con el usuario autenticado
     @param dept_field Nombre del campo de departamento en el queryset
     @return Queryset filtrado segun las reglas de negocio del rol
-    @details Administrador General, Coordinador Quinquenal y Evaluador Externo
-    ven todo. Responsable Departamental solo ve su departamento.
+    @details Administrador General y Coordinador Quinquenal ven todo.
+    Evaluador Externo solo ve registros aprobados de su unidad y períodos asignados.
+    Responsable Departamental solo ve su departamento.
     Revisor Institucional y Consulta ven toda su facultad.
     """
     user = request.user
@@ -45,6 +123,8 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
     grupos = _grupos_usuario(user)
     if ROLES_SIN_RESTRICCION & grupos:
         return queryset
+    if "Evaluador Externo" in grupos:
+        return _filtrar_evaluador_externo(queryset, request)
 
     if "unidad_responsable" in dept_field:
         permitidas = unidades_organizacionales_permitidas(request)
@@ -68,6 +148,12 @@ def unidades_organizacionales_permitidas(request):
     grupos = _grupos_usuario(user)
     if ROLES_SIN_RESTRICCION & grupos:
         return None
+
+    if "Evaluador Externo" in grupos:
+        unidades = set()
+        for ambito in ambitos_activos(user).only("unidad_organizacional_id"):
+            unidades.update(_unidades_del_ambito(ambito.unidad_organizacional_id))
+        return sorted(unidades)
 
     try:
         perfil = user.perfilusuario
@@ -138,6 +224,23 @@ def facultades_permitidas(request):
     if ROLES_SIN_RESTRICCION & grupos:
         return None
 
+    if "Evaluador Externo" in grupos:
+        unidades_ids = unidades_organizacionales_permitidas(request)
+        if not unidades_ids:
+            return []
+        unidades = UnidadOrganizacional.objects.filter(pk__in=unidades_ids).select_related(
+            "tipo", "unidad_padre"
+        )
+        nombres_facultades = set()
+        for unidad in unidades:
+            ancestro = unidad
+            while ancestro:
+                if ancestro.tipo.nombre.casefold() == "facultad":
+                    nombres_facultades.add(ancestro.nombre)
+                    break
+                ancestro = ancestro.unidad_padre
+        return list(Facultad.objects.filter(nombre__in=nombres_facultades).values_list("pk", flat=True))
+
     try:
         unidad = user.perfilusuario.unidad_organizacional
     except PerfilUsuario.DoesNotExist:
@@ -167,6 +270,17 @@ class CustomModelPermissions(DjangoModelPermissions):
         "PATCH": ["%(app_label)s.change_%(model_name)s"],
         "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
+
+    def has_permission(self, request, view):
+        if (
+            request.user
+            and request.user.is_authenticated
+            and not request.user.is_superuser
+            and es_evaluador_externo(request)
+            and not (ROLES_SIN_RESTRICCION & _grupos_usuario(request.user))
+        ):
+            return request.method in SAFE_METHODS
+        return super().has_permission(request, view)
 
 
 class IsAdminGroup(BasePermission):

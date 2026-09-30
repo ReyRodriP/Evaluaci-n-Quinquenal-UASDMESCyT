@@ -6,7 +6,7 @@ de archivos, con control de permisos y auditoría integrada."""
 
 import os
 
-from django.db.models import Max
+from django.db.models import Max, OuterRef, Subquery
 from django.http import FileResponse
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import CustomModelPermissions, filtrar_por_rol
+from accounts.permissions import CustomModelPermissions, es_evaluador_externo, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado
 from evaluation.services import finalizar_periodos_vencidos
@@ -45,7 +45,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         periodo_id = self.request.query_params.get("periodo")
         if periodo_id:
             qs = qs.filter(asignacion__periodo_id=periodo_id)
-        elif self.request.method in ("GET", "HEAD", "OPTIONS"):
+        elif self.request.method in ("GET", "HEAD", "OPTIONS") and not es_evaluador_externo(self.request):
             qs = qs.filter(asignacion__periodo__activo=True)
         return filtrar_por_rol(qs, self.request, dept_field="asignacion__unidad_responsable")
 
@@ -156,8 +156,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
             asignacion.periodo.refresh_from_db(fields=["activo"])
             data["asignacion_info"] = AsignacionSerializer(asignacion).data
-            historial = asignacion.historial_estados.all().order_by("-fecha")[:20]
-            data["historial_estados"] = HistorialEstadoSerializer(historial, many=True).data
+            if es_evaluador_externo(request):
+                data["historial_estados"] = []
+            else:
+                historial = asignacion.historial_estados.all().order_by("-fecha")[:20]
+                data["historial_estados"] = HistorialEstadoSerializer(historial, many=True).data
 
         periodo_activo = bool(asignacion and asignacion.periodo.activo)
         data["puede_observar"] = request.user.has_perm("evidence.add_observacion") and periodo_activo
@@ -168,11 +171,16 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
         puede_cambiar = request.user.has_perm("evidence.change_evidencia")
 
-        data["puede_subir_version"] = puede_subir and not es_aprobado and periodo_activo
+        puede_modificar = not es_evaluador_externo(request)
+        data["puede_observar"] = data["puede_observar"] and puede_modificar
+        data["puede_subir_version"] = puede_modificar and puede_subir and not es_aprobado and periodo_activo
         data["puede_cambiar_estado"] = (
-            request.user.has_perm("evaluation.change_asignacion") and not es_aprobado and periodo_activo
+            puede_modificar
+            and request.user.has_perm("evaluation.change_asignacion")
+            and not es_aprobado
+            and periodo_activo
         )
-        data["puede_editar_info"] = puede_cambiar and not es_aprobado and periodo_activo
+        data["puede_editar_info"] = puede_modificar and puede_cambiar and not es_aprobado and periodo_activo
 
         return Response(data)
 
@@ -185,9 +193,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         @return Response con la lista serializada de versiones"""
 
         evidencia = self.get_object()
-        versiones = evidencia.versiones.order_by("-version")
+        versiones = evidencia.versiones.order_by("-version", "-pk")
+        if es_evaluador_externo(request):
+            versiones = versiones[:1]
 
-        return Response(VersionEvidenciaSerializer(versiones, many=True).data)
+        return Response(VersionEvidenciaSerializer(versiones, many=True, context={"request": request}).data)
 
     @action(detail=True, methods=["patch"])
     def editar_version(self, request, pk=None):
@@ -245,11 +255,15 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         finalizar_periodos_vencidos()
         qs = VersionEvidencia.objects.all()
         periodo_id = self.request.query_params.get("periodo")
-        qs = (
-            qs.filter(evidencia__asignacion__periodo_id=periodo_id)
-            if periodo_id
-            else qs.filter(evidencia__asignacion__periodo__activo=True)
-        )
+        if periodo_id:
+            qs = qs.filter(evidencia__asignacion__periodo_id=periodo_id)
+        elif self.request.method in ("GET", "HEAD", "OPTIONS") and not es_evaluador_externo(self.request):
+            qs = qs.filter(evidencia__asignacion__periodo__activo=True)
+        if es_evaluador_externo(self.request):
+            ultima_version = VersionEvidencia.objects.filter(evidencia_id=OuterRef("evidencia_id")).order_by(
+                "-version", "-pk"
+            )
+            qs = qs.filter(pk=Subquery(ultima_version.values("pk")[:1]))
         return filtrar_por_rol(qs, self.request, dept_field="evidencia__asignacion__unidad_responsable")
 
     @action(detail=True, methods=["get"])
@@ -322,6 +336,9 @@ class VersionEvidenciaViewSet(viewsets.ReadOnlyModelViewSet):
         @return Response con la lista serializada de observaciones"""
 
         version = self.get_object()
+
+        if es_evaluador_externo(request):
+            return Response([])
 
         return Response(ObservacionSerializer(version.observaciones.all(), many=True).data)
 

@@ -6,6 +6,7 @@ las instancias de los modelos del módulo de evaluación a formato JSON y viceve
 
 from rest_framework import serializers
 
+from accounts.permissions import es_evaluador_externo, filtrar_por_rol
 from organization.models import UnidadOrganizacional
 
 from .models import Asignacion, Criterio, HistorialEstado, Indicador, Periodo
@@ -91,11 +92,18 @@ class CriterioSerializer(serializers.ModelSerializer):
     """
 
     periodo_nombre = serializers.CharField(source="periodo.nombre", read_only=True)
-    indicadores = IndicadorSerializer(many=True, read_only=True)
+    indicadores = serializers.SerializerMethodField()
 
     class Meta:
         model = Criterio
         fields = ["id", "nombre", "descripcion", "periodo", "periodo_nombre", "indicadores", "activo"]
+
+    def get_indicadores(self, obj):
+        indicadores = obj.indicadores.all()
+        request = self.context.get("request")
+        if request is not None and es_evaluador_externo(request):
+            indicadores = filtrar_por_rol(indicadores, request, dept_field="unidad_responsable")
+        return IndicadorSerializer(indicadores, many=True, context=self.context).data
 
 
 class AsignacionSerializer(serializers.ModelSerializer):

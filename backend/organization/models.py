@@ -92,6 +92,37 @@ class PerfilUsuario(models.Model):
         blank=True,
         related_name="perfiles",
     )
-
     def __str__(self):
         return self.usuario.username
+
+
+class AmbitoEvaluacion(models.Model):
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ambitos_evaluacion",
+    )
+    unidad_organizacional = models.ForeignKey(
+        UnidadOrganizacional,
+        on_delete=models.PROTECT,
+        related_name="ambitos_evaluacion",
+    )
+    periodo = models.ForeignKey(
+        "evaluation.Periodo",
+        on_delete=models.PROTECT,
+        related_name="ambitos_evaluacion",
+    )
+    activo = models.BooleanField(default=True)
+    fecha_asignacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "unidad_organizacional", "periodo"],
+                name="ambito_evaluacion_usuario_unidad_periodo_unico",
+            )
+        ]
+        ordering = ["usuario__username", "periodo__fecha_inicio", "unidad_organizacional__nombre"]
+
+    def __str__(self):
+        return f"{self.usuario} · {self.unidad_organizacional} · {self.periodo}"

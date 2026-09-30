@@ -9,12 +9,18 @@ personalizados y registro de auditoría.
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from accounts.permissions import CustomModelPermissions, departamentos_permitidos, facultades_permitidas
+from accounts.permissions import (
+    CustomModelPermissions,
+    _grupos_usuario,
+    departamentos_permitidos,
+    facultades_permitidas,
+)
 from accounts.permissions import unidades_organizacionales_permitidas
 from auditoria.utils import registrar_auditoria
 
-from .models import Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
+from .models import AmbitoEvaluacion, Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
 from .serializers import (
+    AmbitoEvaluacionSerializer,
     DepartamentoSerializer,
     FacultadSerializer,
     PerfilUsuarioSerializer,
@@ -189,6 +195,9 @@ class PerfilUsuarioViewSet(viewsets.ModelViewSet):
         """
         queryset = PerfilUsuario.objects.all().order_by("usuario__username")
 
+        if "Evaluador Externo" in _grupos_usuario(self.request.user):
+            queryset = queryset.filter(usuario=self.request.user)
+
         unidad_id = self.request.query_params.get("unidad_organizacional")
         departamento_id = self.request.query_params.get("departamento")
 
@@ -198,3 +207,72 @@ class PerfilUsuarioViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(unidad_organizacional__departamento_legacy_id=departamento_id)
 
         return queryset
+
+
+class AmbitoEvaluacionViewSet(viewsets.ModelViewSet):
+    queryset = AmbitoEvaluacion.objects.select_related(
+        "usuario", "unidad_organizacional", "periodo"
+    ).all()
+    serializer_class = AmbitoEvaluacionSerializer
+    permission_classes = [IsAuthenticated, CustomModelPermissions]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        for parameter, field in (
+            ("usuario", "usuario_id"),
+            ("unidad_organizacional", "unidad_organizacional_id"),
+            ("periodo", "periodo_id"),
+        ):
+            value = self.request.query_params.get(parameter)
+            if value:
+                queryset = queryset.filter(**{field: value})
+        activo = self.request.query_params.get("activo")
+        if activo in ("true", "false"):
+            queryset = queryset.filter(activo=activo == "true")
+        return queryset
+
+    def perform_create(self, serializer):
+        ambito = serializer.save()
+        registrar_auditoria(
+            usuario=self.request.user,
+            accion="Asignar ámbito de evaluación",
+            modelo="AmbitoEvaluacion",
+            registro_id=ambito.pk,
+            descripcion=(
+                f"Se autorizó a '{ambito.usuario.username}' a evaluar "
+                f"'{ambito.unidad_organizacional.nombre}' en '{ambito.periodo.nombre}'."
+            ),
+        )
+
+    def perform_update(self, serializer):
+        ambito_actual = serializer.instance
+        cambios = {
+            campo: (getattr(ambito_actual, campo), valor)
+            for campo, valor in serializer.validated_data.items()
+            if getattr(ambito_actual, campo) != valor
+        }
+        ambito = serializer.save()
+        if cambios:
+            detalle = "; ".join(f"{campo}: {anterior} -> {nuevo}" for campo, (anterior, nuevo) in cambios.items())
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion="Actualizar ámbito de evaluación",
+                modelo="AmbitoEvaluacion",
+                registro_id=ambito.pk,
+                descripcion=f"Se actualizó el ámbito de '{ambito.usuario.username}'. Cambios: {detalle}.",
+            )
+
+    def perform_destroy(self, instance):
+        if instance.activo:
+            instance.activo = False
+            instance.save(update_fields=["activo"])
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion="Desactivar ámbito de evaluación",
+                modelo="AmbitoEvaluacion",
+                registro_id=instance.pk,
+                descripcion=(
+                    f"Se desactivó el ámbito de '{instance.usuario.username}' para "
+                    f"'{instance.unidad_organizacional.nombre}' en '{instance.periodo.nombre}'."
+                ),
+            )

@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.db import IntegrityError
@@ -6,7 +8,11 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from auditoria.models import Auditoria
+from evaluation.models import Periodo
+
 from .models import (
+    AmbitoEvaluacion,
     Departamento,
     Facultad,
     PerfilUsuario,
@@ -139,6 +145,48 @@ class PerfilUsuarioAPITests(TestCase):
         self.assertEqual(usuarios.status_code, status.HTTP_200_OK)
         self.assertEqual(perfiles.status_code, status.HTTP_200_OK)
         self.assertEqual(unidades.status_code, status.HTTP_200_OK)
+
+    def test_admin_configura_ambito_de_evaluacion(self):
+        perfil = PerfilUsuario.objects.get(usuario__username="usuario_perfil")
+        periodo = Periodo.objects.create(
+            nombre="Período para evaluador",
+            fecha_inicio=date(2026, 1, 1),
+            fecha_fin=date(2027, 1, 1),
+            activo=False,
+        )
+
+        response = self.client.post(
+            "/api/ambitos-evaluacion/",
+            {
+                "usuario": perfil.usuario_id,
+                "unidad_organizacional": perfil.unidad_organizacional_id,
+                "periodo": periodo.pk,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data["periodo"], periodo.pk)
+        self.assertTrue(
+            AmbitoEvaluacion.objects.filter(
+                usuario=perfil.usuario,
+                unidad_organizacional=perfil.unidad_organizacional,
+                periodo=periodo,
+                activo=True,
+            ).exists()
+        )
+        ambito = AmbitoEvaluacion.objects.get(usuario=perfil.usuario, periodo=periodo)
+        deleted = self.client.delete(f"/api/ambitos-evaluacion/{ambito.pk}/")
+        ambito.refresh_from_db()
+        self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ambito.activo)
+        self.assertTrue(
+            Auditoria.objects.filter(
+                modelo="AmbitoEvaluacion",
+                registro_id=ambito.pk,
+                accion="Desactivar ámbito de evaluación",
+            ).exists()
+        )
 
 
 @override_settings(

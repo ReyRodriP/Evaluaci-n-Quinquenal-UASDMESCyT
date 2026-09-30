@@ -6,11 +6,12 @@ incluyendo subida, descarga y eliminación de archivos.
 """
 
 from django.http import FileResponse
+from django.db.models import OuterRef, Subquery
 from rest_framework import parsers, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from accounts.permissions import CustomModelPermissions, filtrar_por_rol
+from accounts.permissions import CustomModelPermissions, es_evaluador_externo, filtrar_por_rol
 from auditoria.utils import registrar_auditoria
 
 from .models import Evidencia
@@ -35,6 +36,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         asignacion_id = self.request.query_params.get("asignacion")
         if asignacion_id:
             queryset = queryset.filter(asignacion_id=asignacion_id)
+        if es_evaluador_externo(self.request):
+            ultima_version = Evidencia.objects.filter(asignacion_id=OuterRef("asignacion_id")).order_by(
+                "-version", "-pk"
+            )
+            queryset = queryset.filter(pk=Subquery(ultima_version.values("pk")[:1]))
         return filtrar_por_rol(queryset, self.request, dept_field="asignacion__unidad_responsable")
 
     def perform_create(self, serializer):

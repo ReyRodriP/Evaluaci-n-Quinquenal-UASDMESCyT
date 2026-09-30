@@ -113,8 +113,6 @@ ROLE_PERMISSIONS = {
         "evidence": [
             "view_evidencia",
             "view_versionevidencia",
-            "add_observacion",
-            "view_observacion",
         ],
         "evidencias": [
             "view_evidencia",

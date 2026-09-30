@@ -9,6 +9,8 @@ de archivos.
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
+from accounts.permissions import es_evaluador_externo
+
 from .models import Evidencia
 
 
@@ -72,6 +74,13 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         if value.size > max_size:
             raise serializers.ValidationError("El archivo no puede superar los 50 MB.")
         return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request is not None and es_evaluador_externo(request):
+            data.pop("observaciones", None)
+        return data
 
     def create(self, validated_data):
         validated_data["subido_por"] = self.context["request"].user
