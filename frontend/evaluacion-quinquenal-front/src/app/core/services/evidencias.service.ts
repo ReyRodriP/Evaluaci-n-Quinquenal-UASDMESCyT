@@ -23,6 +23,14 @@ export class EvidenciasService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/evidencias/`, { params }));
   }
 
+  descargarMasiva(evidenciaIds: number[]): Observable<Blob> {
+    return this.http.post(
+      `${this.apiUrl}/evidencias/descargas-masivas/`,
+      { evidencias: evidenciaIds },
+      { responseType: 'blob' }
+    );
+  }
+
   crearEvidencia(payload: FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}/evidencias/`, payload);
   }

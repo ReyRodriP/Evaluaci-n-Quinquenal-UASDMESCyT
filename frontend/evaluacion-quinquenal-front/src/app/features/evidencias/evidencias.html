@@ -23,10 +23,30 @@
       </div>
     </app-search-bar>
 
+    <div class="bulk-download-bar" *ngIf="puedeDescargarMasivo">
+      <button type="button" class="select-page-btn" (click)="alternarSeleccionPagina()" [disabled]="!seleccionablesPagina.length">
+        {{ paginaCompletaSeleccionada ? 'Quitar selección de esta página' : 'Seleccionar esta página' }}
+      </button>
+      <span class="selection-count">
+        {{ seleccionadas.size }} evidencias seleccionadas · máximo {{ limiteDescargaMasiva }} por ZIP
+      </span>
+      <button type="button" class="bulk-download-btn" (click)="descargarSeleccionadas()"
+        [disabled]="!seleccionadas.size || seleccionadas.size > limiteDescargaMasiva || descargandoMasivo">
+        <i class="bx bx-download" aria-hidden="true"></i>
+        {{ descargandoMasivo ? 'Preparando ZIP...' : 'Descargar seleccionadas' }}
+      </button>
+    </div>
+
     <app-crud-table
-      [columnas]="['Unidad responsable', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
+      [columnas]="['Selección', 'Unidad responsable', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
       [datos]="rowsPaginados"
+      [plantillasCelda]="{ 'Selección': plantillaSeleccion }"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
+      <ng-template #plantillaSeleccion let-row>
+        <input class="evidence-select-checkbox" type="checkbox" [checked]="filaSeleccionada(row)" [disabled]="!row.evidenciaId || !puedeDescargarMasivo"
+          [attr.aria-label]="'Seleccionar evidencia ' + row.indicador_nombre"
+          (change)="cambiarSeleccionFila(row, $event)" />
+      </ng-template>
       <ng-template #acciones let-row>
         <div class="action-group">
           <button *ngIf="!row.evidenciaId && puedeSubir" type="button" class="action-btn action-primary" (click)="openManage(row)">

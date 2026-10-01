@@ -26,9 +26,12 @@ export class Evidencias implements OnInit {
   currentPage = 1;
   pageSize = 10;
   loading = false;
+  descargandoMasivo = false;
   periodoActivo: any = null;
   periodos: any[] = [];
   periodoSeleccionadoId = '';
+  readonly limiteDescargaMasiva = 100;
+  seleccionadas = new Set<number>();
 
   historialAbierto = false;
   historialCampos: any[] = [];
@@ -45,6 +48,19 @@ export class Evidencias implements OnInit {
     return this.periodoSeleccionadoEsActivo && this.permisos.tieneAlgunPermiso([
       'evidence.change_evidencia', 'evidencias.change_evidencia',
     ]);
+  }
+
+  get puedeDescargarMasivo(): boolean {
+    return this.permisos.tieneAlgunPermiso(['evidence.view_evidencia', 'evidencias.view_evidencia']);
+  }
+
+  get seleccionablesPagina(): any[] {
+    return this.rowsPaginados.filter((row) => row.evidenciaId);
+  }
+
+  get paginaCompletaSeleccionada(): boolean {
+    return this.seleccionablesPagina.length > 0
+      && this.seleccionablesPagina.every((row) => this.seleccionadas.has(row.evidenciaId));
   }
 
   constructor(
@@ -96,6 +112,7 @@ export class Evidencias implements OnInit {
 
   onPeriodoChange(periodoId: string): void {
     this.periodoSeleccionadoId = periodoId;
+    this.seleccionadas = new Set<number>();
     this.actualizarPeriodoUrl();
     this.loadData();
   }
@@ -197,6 +214,60 @@ export class Evidencias implements OnInit {
   private actualizarPagina(): void {
     const start = (this.currentPage - 1) * this.pageSize;
     this.rowsPaginados = this.rowsFiltrados.slice(start, start + this.pageSize);
+  }
+
+  filaSeleccionada(row: any): boolean {
+    return Boolean(row.evidenciaId && this.seleccionadas.has(row.evidenciaId));
+  }
+
+  cambiarSeleccionFila(row: any, event: Event): void {
+    if (!row.evidenciaId) return;
+    const checked = (event.target as HTMLInputElement).checked;
+    const seleccion = new Set(this.seleccionadas);
+    if (checked) seleccion.add(row.evidenciaId);
+    else seleccion.delete(row.evidenciaId);
+    this.seleccionadas = seleccion;
+  }
+
+  alternarSeleccionPagina(): void {
+    const seleccion = new Set(this.seleccionadas);
+    if (this.paginaCompletaSeleccionada) {
+      this.seleccionablesPagina.forEach((row) => seleccion.delete(row.evidenciaId));
+    } else {
+      this.seleccionablesPagina.forEach((row) => seleccion.add(row.evidenciaId));
+    }
+    this.seleccionadas = seleccion;
+  }
+
+  descargarSeleccionadas(): void {
+    const evidenciaIds = [...this.seleccionadas];
+    if (!evidenciaIds.length) {
+      this.toast.error('Seleccione evidencias para descargar');
+      return;
+    }
+    if (evidenciaIds.length > this.limiteDescargaMasiva) {
+      this.toast.error(`Seleccione como máximo ${this.limiteDescargaMasiva} evidencias por ZIP`);
+      return;
+    }
+
+    this.descargandoMasivo = true;
+    this.evidenciasService.descargarMasiva(evidenciaIds).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = 'evidencias_seleccionadas.zip';
+        enlace.click();
+        window.URL.revokeObjectURL(url);
+        this.toast.success(`ZIP preparado con ${evidenciaIds.length} evidencias`);
+        this.seleccionadas = new Set<number>();
+        this.descargandoMasivo = false;
+      },
+      error: () => {
+        this.toast.error('No se pudo preparar la descarga. Revise el tamaño y sus permisos.');
+        this.descargandoMasivo = false;
+      },
+    });
   }
 
   onEdit(row: any): void {

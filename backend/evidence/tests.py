@@ -1,12 +1,18 @@
+import csv
+import io
+import tempfile
+import zipfile
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from auditoria.models import Auditoria
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
 from organization.models import (
     AmbitoEvaluacion,
@@ -142,9 +148,68 @@ class EvidenciaViewSetTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.asignacion = _make_asignacion()
+        self.media_temp = tempfile.TemporaryDirectory()
+        media_override = override_settings(MEDIA_ROOT=self.media_temp.name)
+        media_override.enable()
+        self.addCleanup(media_override.disable)
+        self.addCleanup(self.media_temp.cleanup)
 
         self.admin_user = _make_user("admin", "admin@test.com", is_superuser=True)
         self.token = RefreshToken.for_user(self.admin_user).access_token
+
+    def test_bulk_download_builds_zip_and_manifest(self):
+        evidencia = Evidencia.objects.create(
+            titulo="Informe de investigación",
+            descripcion="Documento aprobado",
+            asignacion=self.asignacion,
+        )
+        version = VersionEvidencia.objects.create(
+            evidencia=evidencia,
+            archivo=SimpleUploadedFile("informe final.pdf", b"contenido pdf de prueba"),
+            version=1,
+        )
+        self.addCleanup(version.archivo.delete, save=False)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
+
+        response = self.client.post(
+            "/api/evidencias/descargas-masivas/",
+            {"evidencias": [evidencia.pk, evidencia.pk]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/zip")
+        archive = zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content)))
+        names = archive.namelist()
+        self.assertEqual(len([name for name in names if name.endswith(".pdf")]), 1)
+        self.assertIn("manifest.csv", names)
+        rows = list(csv.DictReader(io.StringIO(archive.read("manifest.csv").decode("utf-8-sig"))))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["evidencia_id"], str(evidencia.pk))
+        self.assertEqual(rows[0]["version"], "1")
+        self.assertTrue(
+            Auditoria.objects.filter(
+                usuario=self.admin_user,
+                accion="Descarga masiva",
+                registro_id__isnull=True,
+            ).exists()
+        )
+
+    def test_bulk_download_rejects_unauthorized_ids_and_oversized_selection(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
+        unauthorized = self.client.post(
+            "/api/evidencias/descargas-masivas/",
+            {"evidencias": [self.asignacion.pk, 999999]},
+            format="json",
+        )
+        too_many = self.client.post(
+            "/api/evidencias/descargas-masivas/",
+            {"evidencias": list(range(1, 102))},
+            format="json",
+        )
+
+        self.assertEqual(unauthorized.status_code, 404)
+        self.assertEqual(too_many.status_code, 413)
 
     def test_list_requires_auth(self):
         response = self.client.get("/api/evidencias/")
@@ -325,6 +390,16 @@ class EvidenciaViewSetTests(TestCase):
         detail = self.client.get(f"/api/evidencias/{evidencia_aprobada.pk}/detalle/?periodo={self.asignacion.periodo_id}")
         old_version = self.client.get(f"/api/versiones/{version_antigua.pk}/")
         observations = self.client.get("/api/observaciones/")
+        bulk_denied = self.client.post(
+            "/api/evidencias/descargas-masivas/",
+            {"evidencias": [evidencia_aprobada.pk, evidencia_pendiente.pk]},
+            format="json",
+        )
+        bulk_allowed = self.client.post(
+            "/api/evidencias/descargas-masivas/",
+            {"evidencias": [evidencia_aprobada.pk]},
+            format="json",
+        )
         create_observation = self.client.post(
             "/api/observaciones/",
             {"version": version_autorizada.pk, "comentario": "No autorizado"},
@@ -367,3 +442,8 @@ class EvidenciaViewSetTests(TestCase):
         self.assertEqual(old_version.status_code, 404)
         self.assertEqual(observations.data["results"], [])
         self.assertEqual(create_observation.status_code, 403)
+        self.assertEqual(bulk_denied.status_code, 404)
+        self.assertEqual(bulk_allowed.status_code, 200)
+        bulk_zip = zipfile.ZipFile(io.BytesIO(b"".join(bulk_allowed.streaming_content)))
+        self.assertIn("manifest.csv", bulk_zip.namelist())
+        self.assertIn("errors.csv", bulk_zip.namelist())

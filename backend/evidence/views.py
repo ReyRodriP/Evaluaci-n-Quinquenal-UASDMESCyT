@@ -4,17 +4,31 @@
 completo de evidencias, subida de versiones, observaciones y descarga
 de archivos, con control de permisos y auditoría integrada."""
 
+import csv
 import os
+import re
+import shutil
+import tempfile
+import unicodedata
+import zipfile
+from io import StringIO
+from pathlib import PurePosixPath
 
 from django.db.models import Max, OuterRef, Subquery
 from django.http import FileResponse
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import CustomModelPermissions, es_evaluador_externo, filtrar_por_rol
+from accounts.permissions import (
+    CustomModelPermissions,
+    PuedeDescargarEvidencias,
+    es_evaluador_externo,
+    filtrar_por_rol,
+)
 from auditoria.utils import registrar_auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado
 from evaluation.services import finalizar_periodos_vencidos
@@ -22,6 +36,20 @@ from notificaciones.utils import crear_notificacion
 
 from .models import Evidencia, Observacion, VersionEvidencia
 from .serializers import EditarVersionSerializer, EvidenciaSerializer, ObservacionSerializer, VersionEvidenciaSerializer
+
+MAX_DESCARGA_EVIDENCIAS = 100
+MAX_TAMANO_DESCARGA = 250 * 1024 * 1024
+ZIP_SPOOL_MEMORIA = 8 * 1024 * 1024
+
+
+class _DescargaMasivaExcedida(Exception):
+    pass
+
+
+def _nombre_zip_seguro(valor):
+    ascii_valor = unicodedata.normalize("NFKD", str(valor)).encode("ascii", "ignore").decode("ascii")
+    seguro = re.sub(r"[^A-Za-z0-9._-]+", "_", ascii_valor).strip("._")
+    return seguro or "sin_nombre"
 
 
 # CRUD de Evidencias
@@ -48,6 +76,170 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         elif self.request.method in ("GET", "HEAD", "OPTIONS") and not es_evaluador_externo(self.request):
             qs = qs.filter(asignacion__periodo__activo=True)
         return filtrar_por_rol(qs, self.request, dept_field="asignacion__unidad_responsable")
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="descargas-masivas",
+        permission_classes=[IsAuthenticated, PuedeDescargarEvidencias],
+    )
+    def descargas_masivas(self, request):
+        raw_ids = request.data.get("evidencias")
+        if not isinstance(raw_ids, list) or not raw_ids:
+            return Response({"detail": "Seleccione al menos una evidencia."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            evidencia_ids = list(dict.fromkeys(int(value) for value in raw_ids))
+        except (TypeError, ValueError):
+            return Response({"detail": "La selección contiene identificadores inválidos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(evidencia_ids) > MAX_DESCARGA_EVIDENCIAS:
+            return Response(
+                {"detail": f"El límite por descarga es {MAX_DESCARGA_EVIDENCIAS} evidencias."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        evidencias = list(
+            self.get_queryset()
+            .filter(pk__in=evidencia_ids)
+            .select_related(
+                "asignacion__periodo",
+                "asignacion__unidad_responsable",
+                "asignacion__indicador__criterio",
+            )
+            .prefetch_related("versiones")
+        )
+        if len(evidencias) != len(evidencia_ids):
+            return Response(
+                {"detail": "Una o más evidencias no existen o no están autorizadas."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        evidencias_por_id = {evidencia.pk: evidencia for evidencia in evidencias}
+        evidencias = [evidencias_por_id[evidencia_id] for evidencia_id in evidencia_ids]
+        versiones = {}
+        tamano_estimado = 0
+        for evidencia in evidencias:
+            version = evidencia.versiones.order_by("-version", "-pk").first()
+            versiones[evidencia.pk] = version
+            if version is None or not version.archivo:
+                continue
+            try:
+                tamano_estimado += version.archivo.size
+            except (OSError, ValueError):
+                continue
+            if tamano_estimado > MAX_TAMANO_DESCARGA:
+                return Response(
+                    {"detail": "La selección supera el límite de 250 MB sin comprimir."},
+                    status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                )
+
+        zip_buffer = tempfile.SpooledTemporaryFile(max_size=ZIP_SPOOL_MEMORIA, mode="w+b")
+        manifest = StringIO(newline="")
+        manifest_writer = csv.writer(manifest)
+        manifest_writer.writerow(
+            ["evidencia_id", "asignacion_id", "periodo", "unidad", "criterio", "indicador", "version", "archivo", "bytes", "resultado"]
+        )
+        errores = StringIO(newline="")
+        errores_writer = csv.writer(errores)
+        errores_writer.writerow(["evidencia_id", "archivo", "error"])
+        errores_count = 0
+        archivos_incluidos = 0
+        bytes_incluidos = 0
+
+        try:
+            with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
+                for evidencia in evidencias:
+                    asignacion = evidencia.asignacion
+                    indicador = asignacion.indicador
+                    version = versiones[evidencia.pk]
+                    nombre_original = PurePosixPath(version.archivo.name).name if version and version.archivo else ""
+                    if version is None or not version.archivo:
+                        mensaje = "La evidencia no tiene una versión con archivo."
+                        errores_writer.writerow([evidencia.pk, nombre_original, mensaje])
+                        errores_count += 1
+                        manifest_writer.writerow(
+                            [evidencia.pk, asignacion.pk, asignacion.periodo.nombre, asignacion.unidad_responsable.nombre,
+                             indicador.criterio.nombre, indicador.nombre, "", "", 0, "SIN_ARCHIVO"]
+                        )
+                        continue
+
+                    carpeta = "/".join(
+                        _nombre_zip_seguro(segmento)
+                        for segmento in (
+                            asignacion.periodo.nombre,
+                            indicador.criterio.nombre,
+                            asignacion.unidad_responsable.nombre,
+                            indicador.nombre,
+                        )
+                    )
+                    nombre_archivo = _nombre_zip_seguro(nombre_original)
+                    destino = (
+                        f"{carpeta}/EVID-{evidencia.pk}_IND-{_nombre_zip_seguro(indicador.nombre)}_"
+                        f"v{version.version}_{nombre_archivo}"
+                    )
+
+                    staging = tempfile.SpooledTemporaryFile(max_size=ZIP_SPOOL_MEMORIA, mode="w+b")
+                    tamano_archivo = 0
+                    try:
+                        with version.archivo.open("rb") as source:
+                            while chunk := source.read(1024 * 1024):
+                                tamano_archivo += len(chunk)
+                                if bytes_incluidos + tamano_archivo > MAX_TAMANO_DESCARGA:
+                                    raise _DescargaMasivaExcedida
+                                staging.write(chunk)
+                        staging.seek(0)
+                        with zip_file.open(destino, mode="w") as target:
+                            shutil.copyfileobj(staging, target, length=1024 * 1024)
+                    except (OSError, ValueError) as exc:
+                        mensaje = "No se pudo leer el archivo almacenado."
+                        errores_writer.writerow([evidencia.pk, nombre_original, mensaje])
+                        errores_count += 1
+                        manifest_writer.writerow(
+                            [evidencia.pk, asignacion.pk, asignacion.periodo.nombre, asignacion.unidad_responsable.nombre,
+                             indicador.criterio.nombre, indicador.nombre, version.version, nombre_original,
+                             tamano_archivo, "ERROR_ARCHIVO"]
+                        )
+                        continue
+                    finally:
+                        staging.close()
+
+                    archivos_incluidos += 1
+                    bytes_incluidos += tamano_archivo
+                    manifest_writer.writerow(
+                        [evidencia.pk, asignacion.pk, asignacion.periodo.nombre, asignacion.unidad_responsable.nombre,
+                         indicador.criterio.nombre, indicador.nombre, version.version, destino, tamano_archivo, "INCLUIDO"]
+                    )
+
+                zip_file.writestr("manifest.csv", manifest.getvalue().encode("utf-8-sig"))
+                if errores_count:
+                    zip_file.writestr("errors.csv", errores.getvalue().encode("utf-8-sig"))
+
+            zip_buffer.seek(0)
+            periodos = sorted({evidencia.asignacion.periodo.nombre for evidencia in evidencias})
+            periodos_texto = ", ".join(periodos)
+            registrar_auditoria(
+                usuario=request.user,
+                accion="Descarga masiva",
+                modelo="Evidencia",
+                descripcion=(
+                    f"Se solicitó un ZIP de {len(evidencias)} evidencias; archivos incluidos: {archivos_incluidos}; "
+                    f"tamaño sin comprimir: {bytes_incluidos} bytes; períodos: {periodos_texto}; "
+                    f"IDs: {','.join(str(pk) for pk in evidencia_ids)}."
+                ),
+            )
+            nombre_periodo = _nombre_zip_seguro(periodos[0]) if len(periodos) == 1 else "varios_periodos"
+            filename = f"Evidencias_{nombre_periodo}_{timezone.localdate().isoformat()}.zip"
+            return FileResponse(zip_buffer, as_attachment=True, filename=filename, content_type="application/zip")
+        except _DescargaMasivaExcedida:
+            zip_buffer.close()
+            return Response(
+                {"detail": "La selección supera el límite de 250 MB sin comprimir."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+        except Exception:
+            zip_buffer.close()
+            raise
 
     def get_object(self):
         evidencia = super().get_object()
