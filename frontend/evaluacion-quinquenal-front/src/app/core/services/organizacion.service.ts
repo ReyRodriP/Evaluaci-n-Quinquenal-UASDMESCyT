@@ -124,4 +124,17 @@ export class OrganizacionService {
   actualizarPerfil(id: any, perfil: any): Observable<any> {
     return this.http.patch(`${this.apiUrl}/perfiles/${id}/`, perfil);
   }
+
+  listarAmbitosEvaluacion(usuarioId: number): Observable<any[]> {
+    const params = { usuario: String(usuarioId) };
+    return this.toList(this.http.get<any>(`${this.apiUrl}/ambitos-evaluacion/`, { params }));
+  }
+
+  crearAmbitoEvaluacion(payload: { usuario: number; unidad_organizacional: number; periodo: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/ambitos-evaluacion/`, payload);
+  }
+
+  actualizarAmbitoEvaluacion(id: number, payload: { activo: boolean }): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/ambitos-evaluacion/${id}/`, payload);
+  }
 }

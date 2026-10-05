@@ -211,6 +211,49 @@ class EvidenciaViewSetTests(TestCase):
         self.assertEqual(unauthorized.status_code, 404)
         self.assertEqual(too_many.status_code, 413)
 
+    def test_revisor_asignado_a_uasd_ve_evidencias_de_facultades_hijas(self):
+        self.asignacion.estado = EstadoAsignacion.APROBADO
+        self.asignacion.save()
+        evidencia = Evidencia.objects.create(
+            titulo="Evidencia universitaria aprobada",
+            descripcion="Debe llegar al revisor de UASD",
+            asignacion=self.asignacion,
+        )
+
+        universidad_tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Universidad")
+        facultad_tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Facultad")
+        universidad = UnidadOrganizacional.objects.create(nombre="UASD", tipo=universidad_tipo)
+        facultad = UnidadOrganizacional.objects.create(
+            nombre=self.asignacion.unidad_responsable.departamento_legacy.facultad.nombre,
+            tipo=facultad_tipo,
+            unidad_padre=universidad,
+        )
+        self.asignacion.unidad_responsable.unidad_padre = facultad
+        self.asignacion.unidad_responsable.save(update_fields=["unidad_padre"])
+
+        revisor = _make_user("revisor_uasd", "revisor_uasd@test.com")
+        grupo, _ = Group.objects.get_or_create(name="Revisor Institucional")
+        revisor.groups.add(grupo)
+        revisor.user_permissions.add(
+            *Permission.objects.filter(
+                content_type__app_label__in=["evidence", "organization"],
+                codename__in=["view_evidencia", "view_facultad"],
+            )
+        )
+        PerfilUsuario.objects.create(usuario=revisor, unidad_organizacional=universidad)
+        self.client.force_authenticate(user=revisor)
+
+        evidencias = self.client.get("/api/evidencias/")
+        facultades = self.client.get("/api/facultades/")
+
+        self.assertEqual(evidencias.status_code, 200)
+        self.assertEqual([row["id_evidencia"] for row in evidencias.data["results"]], [evidencia.pk])
+        self.assertEqual(facultades.status_code, 200)
+        self.assertIn(
+            self.asignacion.unidad_responsable.departamento_legacy.facultad.pk,
+            [row["id"] for row in facultades.data["results"]],
+        )
+
     def test_list_requires_auth(self):
         response = self.client.get("/api/evidencias/")
         self.assertEqual(response.status_code, 401)
@@ -383,6 +426,7 @@ class EvidenciaViewSetTests(TestCase):
         response = self.client.get("/api/evidencias/")
         denied_detail = self.client.get(f"/api/evidencias/{evidencia_pendiente.pk}/detalle/?periodo={self.asignacion.periodo_id}")
         periods = self.client.get("/api/periodos/")
+        dashboard_advance = self.client.get("/api/dashboard/avance/")
         versions = self.client.get("/api/versiones/")
         assignments = self.client.get("/api/asignaciones/")
         criteria = self.client.get("/api/criterios/")
@@ -412,6 +456,7 @@ class EvidenciaViewSetTests(TestCase):
             {evidencia_aprobada.pk, evidencia_segundo_ambito.pk},
         )
         self.assertEqual(denied_detail.status_code, 404)
+        self.assertEqual(dashboard_advance.status_code, 200)
         self.assertEqual(
             {row["id"] for row in periods.data["results"]},
             {self.asignacion.periodo_id, periodo_no_autorizado.pk},

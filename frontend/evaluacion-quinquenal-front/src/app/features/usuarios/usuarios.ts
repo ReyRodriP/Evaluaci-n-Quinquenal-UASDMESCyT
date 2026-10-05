@@ -7,6 +7,7 @@ import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { OrganizacionService } from '../../core/services/organizacion.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
@@ -24,6 +25,7 @@ export class Usuarios implements OnInit {
   datosPaginados: any[] = [];
   unidades: any[] = [];
   roles: any[] = [];
+  periodos: any[] = [];
   searchTerm = '';
   selectedState = 'Todos';
   currentPage = 1;
@@ -31,6 +33,12 @@ export class Usuarios implements OnInit {
 
   showModal = false;
   selectedItem: any = null;
+  usuarioAmbitos: any = null;
+  ambitosUsuario: any[] = [];
+  showAmbitos = false;
+  loadingAmbitos = false;
+  nuevoAmbitoUnidad = '';
+  nuevoAmbitoPeriodo = '';
 
   usuarioFields: any[] = [
     { label: 'Nombre de usuario', name: 'username', type: 'text', placeholder: 'Username', defaultValue: ''},
@@ -47,6 +55,13 @@ export class Usuarios implements OnInit {
     return this.permisos.tieneAlgunPermiso(['accounts.add_usuario']);
   }
 
+  get puedeGestionarAmbitos(): boolean {
+    return this.permisos.tieneAlgunPermiso([
+      'organization.add_ambitoevaluacion',
+      'organization.change_ambitoevaluacion',
+    ]);
+  }
+
   get ocultarAcciones(): string[] {
     if (this.permisos.tieneAlgunPermiso(['accounts.change_usuario', 'accounts.delete_usuario'])) {
       return [];
@@ -59,6 +74,7 @@ export class Usuarios implements OnInit {
 
   constructor(
     private organizacionService: OrganizacionService,
+    private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
     private toast: ToastrService
   ) {}
@@ -67,6 +83,85 @@ export class Usuarios implements OnInit {
     this.loadUsuarios();
     this.loadUnidades();
     this.loadRoles();
+    this.loadPeriodos();
+  }
+
+  esEvaluadorExterno(item: any): boolean {
+    const roles = Array.isArray(item?.rol) ? item.rol : [item?.rol];
+    return roles.some((rol: any) => String(rol?.name ?? rol).toLowerCase() === 'evaluador externo');
+  }
+
+  abrirAmbitos(item: any): void {
+    if (!this.puedeGestionarAmbitos || !item?.id) return;
+    this.usuarioAmbitos = item;
+    this.ambitosUsuario = [];
+    this.nuevoAmbitoUnidad = item.unidadId ? String(item.unidadId) : '';
+    this.nuevoAmbitoPeriodo = '';
+    this.showAmbitos = true;
+    this.cargarAmbitosUsuario();
+  }
+
+  cerrarAmbitos(): void {
+    this.showAmbitos = false;
+    this.usuarioAmbitos = null;
+    this.ambitosUsuario = [];
+  }
+
+  private cargarAmbitosUsuario(): void {
+    if (!this.usuarioAmbitos?.id) return;
+    this.loadingAmbitos = true;
+    this.organizacionService.listarAmbitosEvaluacion(this.usuarioAmbitos.id).subscribe({
+      next: (data) => {
+        this.ambitosUsuario = data;
+        this.loadingAmbitos = false;
+      },
+      error: () => {
+        this.toast.error('No se pudieron cargar los ámbitos del evaluador');
+        this.loadingAmbitos = false;
+      },
+    });
+  }
+
+  crearAmbito(): void {
+    const unidad = Number(this.nuevoAmbitoUnidad);
+    const periodo = Number(this.nuevoAmbitoPeriodo);
+    if (!this.usuarioAmbitos?.id || !unidad || !periodo) {
+      this.toast.error('Seleccione una unidad y un período');
+      return;
+    }
+    this.organizacionService.crearAmbitoEvaluacion({
+      usuario: this.usuarioAmbitos.id,
+      unidad_organizacional: unidad,
+      periodo,
+    }).subscribe({
+      next: () => {
+        this.toast.success('Ámbito asignado correctamente');
+        this.nuevoAmbitoUnidad = '';
+        this.nuevoAmbitoPeriodo = '';
+        this.cargarAmbitosUsuario();
+      },
+      error: (err) => {
+        const detalle = err?.error?.detail || err?.error?.non_field_errors?.[0];
+        this.toast.error(detalle || 'No se pudo asignar el ámbito');
+      },
+    });
+  }
+
+  alternarAmbito(ambito: any): void {
+    this.organizacionService.actualizarAmbitoEvaluacion(ambito.id, { activo: !ambito.activo }).subscribe({
+      next: () => {
+        this.toast.success(`Ámbito ${ambito.activo ? 'desactivado' : 'activado'}`);
+        this.cargarAmbitosUsuario();
+      },
+      error: () => this.toast.error('No se pudo cambiar el estado del ámbito'),
+    });
+  }
+
+  loadPeriodos(): void {
+    this.evaluacionService.listarPeriodos().subscribe({
+      next: (data) => this.periodos = data,
+      error: () => this.toast.error('No se pudieron cargar los períodos'),
+    });
   }
 
   openNew(): void {
@@ -145,7 +240,7 @@ export class Usuarios implements OnInit {
     });
   }
 
-  private unitPath(unit: any): string {
+  unitPath(unit: any): string {
     const path = [unit.nombre];
     let parentId = unit.unidad_padre;
     while (parentId) {

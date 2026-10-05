@@ -73,6 +73,7 @@
       </ng-container>
 
       <div class="modal-actions">
+        <ng-content select="[modalExtraActions]"></ng-content>
         <button type="button" class="btn-cancel" (click)="onCancel()">
           Cancelar
         </button>

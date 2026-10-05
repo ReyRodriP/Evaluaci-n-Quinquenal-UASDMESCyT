@@ -38,5 +38,68 @@
     [fields]="usuarioFields"
     (close)="onModalClose()"
     (save)="onModalSave($event)">
+    <button modalExtraActions *ngIf="selectedItem && esEvaluadorExterno(selectedItem) && puedeGestionarAmbitos"
+      type="button" class="modal-scope-action" (click)="abrirAmbitos(selectedItem)">
+      <i class="bx bx-sitemap" aria-hidden="true"></i>
+      Gestionar ámbitos
+    </button>
   </app-modal>
+
+  <div *ngIf="showAmbitos" class="scope-overlay" role="dialog" aria-modal="true" aria-labelledby="ambitos-title">
+    <section class="scope-modal">
+      <header class="scope-header">
+        <div>
+          <h2 id="ambitos-title">Ámbitos de {{ usuarioAmbitos?.username }}</h2>
+          <p>Asigne cada unidad y período como un ámbito independiente.</p>
+        </div>
+        <button type="button" class="scope-close" aria-label="Cerrar" (click)="cerrarAmbitos()">×</button>
+      </header>
+
+      <div *ngIf="loadingAmbitos" class="scope-empty">Cargando ámbitos...</div>
+      <div *ngIf="!loadingAmbitos && !ambitosUsuario.length" class="scope-empty">
+        Este evaluador aún no tiene ámbitos asignados.
+      </div>
+
+      <div *ngIf="ambitosUsuario.length" class="scope-list">
+        <div class="scope-row" *ngFor="let ambito of ambitosUsuario">
+          <div class="scope-description">
+            <strong>{{ ambito.unidad_nombre }}</strong>
+            <span>{{ ambito.periodo_nombre }}</span>
+          </div>
+          <span class="scope-status" [class.scope-inactive]="!ambito.activo">
+            {{ ambito.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+          <button type="button" class="scope-toggle-btn" (click)="alternarAmbito(ambito)">
+            {{ ambito.activo ? 'Desactivar' : 'Activar' }}
+          </button>
+        </div>
+      </div>
+
+      <form class="scope-form" (ngSubmit)="crearAmbito()">
+        <label>
+          Unidad autorizada
+          <select name="ambito_unidad" [(ngModel)]="nuevoAmbitoUnidad" required>
+            <option value="">Seleccione unidad</option>
+            <option *ngFor="let unidad of unidades" [value]="unidad.id">
+              {{ unitPath(unidad) }} · {{ unidad.tipo_nombre }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Período autorizado
+          <select name="ambito_periodo" [(ngModel)]="nuevoAmbitoPeriodo" required>
+            <option value="">Seleccione período</option>
+            <option *ngFor="let periodo of periodos" [value]="periodo.id">
+              {{ periodo.nombre }} · {{ periodo.activo ? 'Activo' : 'Finalizado' }}
+            </option>
+          </select>
+        </label>
+        <button type="submit" class="scope-add-btn">Agregar ámbito</button>
+      </form>
+
+      <footer class="scope-footer">
+        <button type="button" class="scope-done-btn" (click)="cerrarAmbitos()">Listo</button>
+      </footer>
+    </section>
+  </div>
 </div>

@@ -150,9 +150,10 @@ def unidades_organizacionales_permitidas(request):
         return None
 
     if "Evaluador Externo" in grupos:
+        unidades_ambito = ambitos_activos(user).values_list("unidad_organizacional_id", flat=True).distinct()
         unidades = set()
-        for ambito in ambitos_activos(user).only("unidad_organizacional_id"):
-            unidades.update(_unidades_del_ambito(ambito.unidad_organizacional_id))
+        for unidad_id in unidades_ambito:
+            unidades.update(_unidades_del_ambito(unidad_id))
         return sorted(unidades)
 
     try:
@@ -223,6 +224,16 @@ def facultades_permitidas(request):
     grupos = _grupos_usuario(user)
     if ROLES_SIN_RESTRICCION & grupos:
         return None
+
+    if grupos & {"Revisor Institucional", "Consulta"}:
+        unidades_ids = unidades_organizacionales_permitidas(request)
+        if unidades_ids is None:
+            return None
+        nombres = UnidadOrganizacional.objects.filter(
+            pk__in=unidades_ids,
+            tipo__nombre__iexact="Facultad",
+        ).values_list("nombre", flat=True)
+        return list(Facultad.objects.filter(nombre__in=nombres).values_list("pk", flat=True))
 
     if "Evaluador Externo" in grupos:
         unidades_ids = unidades_organizacionales_permitidas(request)
