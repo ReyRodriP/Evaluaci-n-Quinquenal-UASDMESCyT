@@ -7,6 +7,7 @@ detalles por departamento, avance por facultad y filtrado por período.
 """
 
 from django.core.cache import cache
+from django.db.models import Count, Exists, OuterRef, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
@@ -19,17 +20,121 @@ from accounts.permissions import (
     departamentos_permitidos,
     filtrar_por_rol,
     periodos_autorizados,
+    unidades_organizacionales_permitidas,
+    _unidades_del_ambito,
 )
 from evaluation.models import Asignacion, EstadoAsignacion, Indicador, Periodo
 from evaluation.services import finalizar_periodos_vencidos
-from evidencias.models import Evidencia
-from organization.models import Departamento, Facultad
+from evidence.models import Evidencia as EvidenciaVersionada
+from evidencias.models import Evidencia as EvidenciaLegada
+from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
 
 CACHE_TTL = 60
 
 
 def _cache_key(user, name, extra=""):
     return f"dashboard:{name}:{user.pk}:{extra}"
+
+
+def _filtros_cache(request):
+    keys = ("unidad", "tipo", "criterio", "indicador", "estado", "departamento")
+    return "|".join(f"{key}={request.query_params.get(key, '')}" for key in keys)
+
+
+def _asignaciones_dashboard(request, periodo, departamento_id=None):
+    if periodo is None:
+        return Asignacion.objects.none()
+
+    qs = Asignacion.objects.filter(periodo=periodo)
+    qs = filtrar_por_rol(qs, request, dept_field="unidad_responsable")
+
+    unidad_id = request.query_params.get("unidad")
+    if unidad_id:
+        try:
+            unidad_id = int(unidad_id)
+        except (TypeError, ValueError):
+            return qs.none()
+        unidades_permitidas = unidades_organizacionales_permitidas(request)
+        if unidades_permitidas is not None and unidad_id not in unidades_permitidas:
+            return qs.none()
+        descendientes = _unidades_del_ambito(unidad_id)
+        if unidades_permitidas is not None:
+            descendientes &= set(unidades_permitidas)
+        qs = qs.filter(unidad_responsable_id__in=descendientes)
+
+    tipo_id = request.query_params.get("tipo")
+    if tipo_id:
+        qs = qs.filter(unidad_responsable__tipo_id=tipo_id)
+
+    criterio_id = request.query_params.get("criterio")
+    if criterio_id:
+        qs = qs.filter(indicador__criterio_id=criterio_id)
+
+    indicador_id = request.query_params.get("indicador")
+    if indicador_id:
+        qs = qs.filter(indicador_id=indicador_id)
+
+    estado = request.query_params.get("estado")
+    if estado:
+        valid_states = {value for value, _label in EstadoAsignacion.choices}
+        if estado not in valid_states:
+            return qs.none()
+        qs = qs.filter(estado=estado)
+
+    departamento_id = departamento_id or request.query_params.get("departamento")
+    if departamento_id:
+        try:
+            departamento_id = int(departamento_id)
+        except (TypeError, ValueError):
+            return qs.none()
+        departamentos_visibles = departamentos_permitidos(request)
+        if departamentos_visibles is not None and departamento_id not in departamentos_visibles:
+            return qs.none()
+        qs = qs.filter(unidad_responsable__departamento_legacy_id=departamento_id)
+
+    return qs.distinct()
+
+
+def _metricas_asignaciones(qs):
+    tiene_evidencia = Exists(EvidenciaVersionada.objects.filter(asignacion_id=OuterRef("pk"))) | Exists(
+        EvidenciaLegada.objects.filter(asignacion_id=OuterRef("pk"))
+    )
+    agrupado = qs.annotate(_tiene_evidencia=tiene_evidencia).aggregate(
+        total=Count("pk", distinct=True),
+        con_evidencia=Count("pk", filter=Q(_tiene_evidencia=True), distinct=True),
+        aprobadas=Count("pk", filter=Q(estado=EstadoAsignacion.APROBADO), distinct=True),
+        pendientes=Count("pk", filter=Q(estado=EstadoAsignacion.PENDIENTE), distinct=True),
+        en_progreso=Count("pk", filter=Q(estado=EstadoAsignacion.EN_PROGRESO), distinct=True),
+        observadas=Count("pk", filter=Q(estado=EstadoAsignacion.OBSERVADA), distinct=True),
+        rechazadas=Count("pk", filter=Q(estado=EstadoAsignacion.RECHAZADO), distinct=True),
+        completadas=Count("pk", filter=Q(estado=EstadoAsignacion.COMPLETADO), distinct=True),
+        indicadores=Count("indicador_id", distinct=True),
+        unidades=Count("unidad_responsable_id", distinct=True),
+        departamentos=Count(
+            "unidad_responsable__departamento_legacy_id",
+            filter=Q(unidad_responsable__departamento_legacy_id__isnull=False),
+            distinct=True,
+        ),
+    )
+    total = agrupado["total"] or 0
+    con_evidencia = agrupado["con_evidencia"] or 0
+    aprobadas = agrupado["aprobadas"] or 0
+    return {
+        "asignaciones": total,
+        "indicadores": agrupado["indicadores"] or 0,
+        "unidades": agrupado["unidades"] or 0,
+        "departamentos": agrupado["departamentos"] or 0,
+        "evidencias": con_evidencia,
+        "sin_evidencia": total - con_evidencia,
+        "cobertura_porcentaje": round(con_evidencia * 100 / total, 1) if total else 0,
+        "cumplimiento_porcentaje": round(aprobadas * 100 / total, 1) if total else 0,
+        "aprobadas": aprobadas,
+        "pendientes": agrupado["pendientes"] or 0,
+        "en_progreso": agrupado["en_progreso"] or 0,
+        "observadas": agrupado["observadas"] or 0,
+        "rechazadas": agrupado["rechazadas"] or 0,
+        "completadas": agrupado["completadas"] or 0,
+    }
 
 
 def _periodo_solicitado(request, periodo_id=None):
@@ -55,40 +160,26 @@ def resumen(request):
     @return Response con diccionario de estadísticas generales.
     """
     periodo = _periodo_solicitado(request)
-    key = _cache_key(request.user, "resumen", periodo.pk if periodo else "sin-periodo")
+    extra_cache = f"{periodo.pk if periodo else 'sin-periodo'}|{_filtros_cache(request)}"
+    key = _cache_key(request.user, "resumen", extra_cache)
     cached = cache.get(key)
     if cached is not None:
         return Response(cached)
 
-    asig_qs = filtrar_por_rol(Asignacion.objects.all(), request, dept_field="unidad_responsable")
-    if periodo:
-        asig_qs = asig_qs.filter(periodo=periodo)
-    else:
-        asig_qs = asig_qs.none()
-    total_deptos = asig_qs.values("unidad_responsable__departamento_legacy_id").distinct().count()
-
-    indicadores_ids = asig_qs.values("indicador").distinct()
-    total_indicadores = Indicador.objects.filter(pk__in=indicadores_ids, activo=True).count()
-
-    asignaciones = asig_qs.count()
-
-    obligatorias = asig_qs.filter(indicador__obligatorio=True)
-    pendientes = obligatorias.filter(estado=EstadoAsignacion.PENDIENTE).count()
-    en_progreso = obligatorias.filter(estado=EstadoAsignacion.EN_PROGRESO).count()
-    observadas = obligatorias.filter(estado=EstadoAsignacion.OBSERVADA).count()
-    aprobadas = obligatorias.filter(estado=EstadoAsignacion.APROBADO).count()
-    rechazadas = obligatorias.filter(estado=EstadoAsignacion.RECHAZADO).count()
-
+    metricas = _metricas_asignaciones(_asignaciones_dashboard(request, periodo))
     data = {
-        "periodo": {"id": periodo.pk, "nombre": periodo.nombre, "activo": periodo.activo} if periodo else None,
-        "departamentos": total_deptos,
-        "indicadores": total_indicadores,
-        "asignaciones": asignaciones,
-        "pendientes": pendientes,
-        "en_progreso": en_progreso,
-        "observadas": observadas,
-        "aprobadas": aprobadas,
-        "rechazadas": rechazadas,
+        "periodo": (
+            {
+                "id": periodo.pk,
+                "nombre": periodo.nombre,
+                "activo": periodo.activo,
+                "fecha_inicio": periodo.fecha_inicio,
+                "fecha_fin": periodo.fecha_fin,
+            }
+            if periodo
+            else None
+        ),
+        **metricas,
     }
     cache.set(key, data, CACHE_TTL)
     return Response(data)
@@ -113,18 +204,7 @@ def departamento_dashboard(request, pk):
         return Response({"error": "Departamento no encontrado"}, status=404)
 
     periodo = _periodo_solicitado(request)
-    asignaciones = Asignacion.objects.filter(unidad_responsable__departamento_legacy=depto)
-    asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
-    asignaciones = filtrar_por_rol(asignaciones, request, dept_field="unidad_responsable")
-    total_asignados = asignaciones.count()
-    indicadores = asignaciones.values("indicador").distinct().count()
-
-    aprobados = asignaciones.filter(estado=EstadoAsignacion.APROBADO).count()
-    pendientes = asignaciones.filter(estado=EstadoAsignacion.PENDIENTE).count()
-
-    ids_asignacion = asignaciones.values_list("pk", flat=True)
-    con_evidencia = Evidencia.objects.filter(asignacion_id__in=ids_asignacion).values("asignacion").distinct().count()
-    sin_evidencia = total_asignados - con_evidencia
+    metricas = _metricas_asignaciones(_asignaciones_dashboard(request, periodo, departamento_id=depto.pk))
 
     return Response(
         {
@@ -133,12 +213,10 @@ def departamento_dashboard(request, pk):
                 "nombre": depto.nombre,
                 "facultad": depto.facultad.nombre,
             },
-            "indicadores": indicadores,
-            "asignados": total_asignados,
-            "con_evidencia": con_evidencia,
-            "sin_evidencia": sin_evidencia,
-            "aprobados": aprobados,
-            "pendientes": pendientes,
+            **metricas,
+            "asignados": metricas["asignaciones"],
+            "con_evidencia": metricas["evidencias"],
+            "aprobados": metricas["aprobadas"],
         }
     )
 
@@ -153,12 +231,14 @@ def avance(request):
     @return Response con lista de facultades y su porcentaje de avance.
     """
     periodo = _periodo_solicitado(request)
-    key = _cache_key(request.user, "avance", periodo.pk if periodo else "sin-periodo")
+    extra_cache = f"{periodo.pk if periodo else 'sin-periodo'}|{_filtros_cache(request)}"
+    key = _cache_key(request.user, "avance", extra_cache)
     cached = cache.get(key)
     if cached is not None:
         return Response(cached)
 
     deptos_ids = departamentos_permitidos(request)
+    asignaciones_base = _asignaciones_dashboard(request, periodo)
 
     facultades_qs = Facultad.objects.filter(activo=True)
     if deptos_ids is not None:
@@ -169,30 +249,63 @@ def avance(request):
         deptos = facultad.departamentos.filter(activo=True)
         if deptos_ids is not None:
             deptos = deptos.filter(pk__in=deptos_ids)
-        asignaciones_facultad = filtrar_por_rol(
-            Asignacion.objects.filter(periodo=periodo) if periodo else Asignacion.objects.none(),
-            request,
-            dept_field="unidad_responsable",
-        ).filter(unidad_responsable__departamento_legacy__in=deptos)
-        total_asignaciones = asignaciones_facultad.filter(
-            indicador__obligatorio=True,
-        ).count()
-        completadas = asignaciones_facultad.filter(
-            indicador__obligatorio=True,
-            estado__in=[EstadoAsignacion.APROBADO, EstadoAsignacion.COMPLETADO],
-        ).count()
-
-        porcentaje = round((completadas / total_asignaciones) * 100, 1) if total_asignaciones > 0 else 0.0
+        metricas = _metricas_asignaciones(
+            asignaciones_base.filter(unidad_responsable__departamento_legacy__in=deptos)
+        )
 
         resultado.append(
             {
                 "facultad": facultad.nombre,
-                "porcentaje": porcentaje,
+                "porcentaje": metricas["cumplimiento_porcentaje"],
+                **metricas,
             }
         )
 
     cache.set(key, resultado, CACHE_TTL)
     return Response(resultado)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def pendientes(request):
+    periodo = _periodo_solicitado(request)
+    if periodo is None:
+        return Response([])
+
+    grupos = _grupos_usuario(request.user)
+    if request.user.is_superuser or grupos & {"Administrador General", "Coordinador Quinquenal"}:
+        estados = [
+            EstadoAsignacion.PENDIENTE,
+            EstadoAsignacion.EN_PROGRESO,
+            EstadoAsignacion.OBSERVADA,
+            EstadoAsignacion.RECHAZADO,
+        ]
+    elif "Revisor Institucional" in grupos:
+        estados = [EstadoAsignacion.EN_PROGRESO]
+    elif "Responsable Departamental" in grupos:
+        estados = [EstadoAsignacion.PENDIENTE, EstadoAsignacion.OBSERVADA, EstadoAsignacion.RECHAZADO]
+    else:
+        return Response([])
+
+    queryset = _asignaciones_dashboard(request, periodo).filter(estado__in=estados).select_related(
+        "indicador__criterio", "unidad_responsable", "periodo"
+    ).order_by("estado", "pk")[:50]
+
+    rows = []
+    for asignacion in queryset:
+        evidencia = EvidenciaVersionada.objects.filter(asignacion=asignacion).first()
+        rows.append({
+            "asignacion_id": asignacion.pk,
+            "evidencia_id": evidencia.pk if evidencia else None,
+            "indicador": asignacion.indicador.nombre,
+            "criterio": asignacion.indicador.criterio.nombre,
+            "unidad": asignacion.unidad_responsable.nombre,
+            "periodo": asignacion.periodo.nombre,
+            "periodo_id": asignacion.periodo_id,
+            "estado": asignacion.estado,
+            "estado_display": asignacion.get_estado_display(),
+        })
+    return Response(rows)
 
 
 @api_view(["GET"])
@@ -212,11 +325,7 @@ def periodo_dashboard(request, pk):
     if periodo is None:
         return Response({"error": "Período no encontrado"}, status=404)
 
-    asignaciones = filtrar_por_rol(
-        Asignacion.objects.filter(periodo=periodo),
-        request,
-        dept_field="unidad_responsable",
-    )
+    asignaciones = _asignaciones_dashboard(request, periodo)
 
     deptos_ids = departamentos_permitidos(request)
     deptos = Departamento.objects.filter(activo=True)
@@ -226,10 +335,7 @@ def periodo_dashboard(request, pk):
     indicadores_ids = asignaciones.values("indicador").distinct()
     total_indicadores = Indicador.objects.filter(pk__in=indicadores_ids, activo=True).count()
 
-    pendientes = asignaciones.filter(estado=EstadoAsignacion.PENDIENTE).count()
-    observadas = asignaciones.filter(estado=EstadoAsignacion.OBSERVADA).count()
-    aprobadas = asignaciones.filter(estado=EstadoAsignacion.APROBADO).count()
-    rechazadas = asignaciones.filter(estado=EstadoAsignacion.RECHAZADO).count()
+    metricas = _metricas_asignaciones(asignaciones)
 
     return Response(
         {
@@ -238,12 +344,7 @@ def periodo_dashboard(request, pk):
                 "nombre": periodo.nombre,
             },
             "departamentos": deptos.count(),
-            "indicadores": total_indicadores,
-            "asignaciones": asignaciones.count(),
-            "pendientes": pendientes,
-            "observadas": observadas,
-            "aprobadas": aprobadas,
-            "rechazadas": rechazadas,
+            **{**metricas, "indicadores": total_indicadores},
         }
     )
 
@@ -253,6 +354,7 @@ class _ApiDocSerializer(serializers.Serializer):
 
 
 resumen.cls.serializer_class = _ApiDocSerializer
+pendientes.cls.serializer_class = _ApiDocSerializer
 departamento_dashboard.cls.serializer_class = _ApiDocSerializer
 avance.cls.serializer_class = _ApiDocSerializer
 periodo_dashboard.cls.serializer_class = _ApiDocSerializer

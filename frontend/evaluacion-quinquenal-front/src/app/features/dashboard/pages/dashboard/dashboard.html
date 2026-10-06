@@ -1,6 +1,9 @@
 <div class="dashboard-page">
   <div class="dashboard-header">
-    <h2 class="page-title">Dashboard</h2>
+    <div class="dashboard-title">
+      <h2 class="page-title">Dashboard</h2>
+      <p>{{ rolDashboard }}</p>
+    </div>
     <label class="period-selector">
       Período
       <select [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)" aria-label="Período del dashboard">
@@ -12,16 +15,94 @@
     </label>
   </div>
 
+  <div class="dashboard-filters" aria-label="Filtros del dashboard">
+    <label>
+      Unidad organizacional
+      <select [ngModel]="unidadSeleccionadaId" (ngModelChange)="unidadSeleccionadaId = $event; onFiltrosChange()">
+        <option value="">Todas las unidades permitidas</option>
+        <option *ngFor="let unidad of unidades" [value]="unidad.id">
+          {{ unitPath(unidad) }}
+        </option>
+      </select>
+    </label>
+    <label>
+      Tipo de unidad
+      <select [ngModel]="tipoSeleccionadoId" (ngModelChange)="tipoSeleccionadoId = $event; onFiltrosChange()">
+        <option value="">Todos los tipos</option>
+        <option *ngFor="let tipo of tiposUnidad" [value]="tipo.id">{{ tipo.nombre }}</option>
+      </select>
+    </label>
+    <label>
+      Criterio
+      <select [ngModel]="criterioSeleccionadoId" (ngModelChange)="onCriterioChange($event)">
+        <option value="">Todos los criterios</option>
+        <option *ngFor="let criterio of criteriosPeriodo" [value]="criterio.id">{{ criterio.nombre }}</option>
+      </select>
+    </label>
+    <label>
+      Indicador
+      <select [ngModel]="indicadorSeleccionadoId" (ngModelChange)="indicadorSeleccionadoId = $event; onFiltrosChange()">
+        <option value="">Todos los indicadores</option>
+        <option *ngFor="let indicador of indicadoresPeriodo" [value]="indicador.id">{{ indicador.nombre }}</option>
+      </select>
+    </label>
+    <label>
+      Estado
+      <select [ngModel]="estadoSeleccionado" (ngModelChange)="estadoSeleccionado = $event; onFiltrosChange()">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let estado of estadosAsignacion" [value]="estado.value">{{ estado.label }}</option>
+      </select>
+    </label>
+  </div>
+
   <div *ngIf="loading" class="state-msg">Cargando información del dashboard...</div>
 
   <ng-container *ngIf="!loading">
-    <!-- KPI Cards -->
+    <section class="period-summary" *ngIf="resumen.periodo as periodo">
+      <div>
+        <span class="summary-label">Período consultado</span>
+        <strong>{{ periodo.nombre }}</strong>
+      </div>
+      <span class="period-status" [class.period-closed]="!periodo.activo">
+        {{ periodo.activo ? 'Activo' : 'Finalizado' }}
+      </span>
+      <div class="period-dates">
+        <span>Inicio <strong>{{ periodo.fecha_inicio | date:'dd/MM/yyyy' }}</strong></span>
+        <span>Fin <strong>{{ periodo.fecha_fin | date:'dd/MM/yyyy' }}</strong></span>
+      </div>
+    </section>
+
+    <section class="pending-panel" *ngIf="pendientes.length">
+      <header class="pending-header">
+        <div>
+          <span class="section-label">SEGUIMIENTO</span>
+          <h3>{{ esRevisorInstitucional ? 'Pendientes de revisión' : 'Mis pendientes' }}</h3>
+        </div>
+        <span class="pending-count">{{ pendientes.length }}</span>
+      </header>
+      <div class="pending-list">
+        <article class="pending-row" *ngFor="let item of pendientes">
+          <div class="pending-main">
+            <strong>{{ item.indicador }}</strong>
+            <span>{{ item.criterio }} · {{ item.unidad }}</span>
+          </div>
+          <span class="pending-state">{{ item.estado_display }}</span>
+          <a *ngIf="item.evidencia_id; else asignacionLink"
+            [routerLink]="['/evidencias', item.evidencia_id, 'detalle']"
+            [queryParams]="{periodo: item.periodo_id}">Revisar</a>
+          <ng-template #asignacionLink>
+            <a routerLink="/asignaciones" [queryParams]="{periodo: item.periodo_id}">Abrir asignación</a>
+          </ng-template>
+        </article>
+      </div>
+    </section>
+
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-icon blue"><i class="bx bx-building"></i></div>
         <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.departamentos || 0 }}</span>
-          <span class="kpi-label">Departamentos</span>
+          <span class="kpi-value">{{ resumen.unidades || 0 }}</span>
+          <span class="kpi-label">Unidades responsables</span>
         </div>
       </div>
       <div class="kpi-card">
@@ -39,6 +120,20 @@
         </div>
       </div>
       <div class="kpi-card">
+        <div class="kpi-icon cyan"><i class="bx bx-file"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.evidencias || 0 }}</span>
+          <span class="kpi-label">Con evidencia · {{ resumen.cobertura_porcentaje || 0 }}% cobertura</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bx bx-file-blank"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.sin_evidencia || 0 }}</span>
+          <span class="kpi-label">Sin evidencia</span>
+        </div>
+      </div>
+      <div class="kpi-card">
         <div class="kpi-icon amber"><i class="bx bx-clock-dashed-half"></i></div>
         <div class="kpi-body">
           <span class="kpi-value">{{ resumen.pendientes || 0 }}</span>
@@ -46,10 +141,24 @@
         </div>
       </div>
       <div class="kpi-card">
+        <div class="kpi-icon teal"><i class="bx bx-check-double"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.cumplimiento_porcentaje || 0 }}%</span>
+          <span class="kpi-label">Cumplimiento aprobado</span>
+        </div>
+      </div>
+      <div class="kpi-card">
         <div class="kpi-icon green"><i class="bx bx-check-circle"></i></div>
         <div class="kpi-body">
           <span class="kpi-value">{{ resumen.aprobadas || 0 }}</span>
           <span class="kpi-label">Aprobadas</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon red"><i class="bx bx-x-circle"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.rechazadas || 0 }}</span>
+          <span class="kpi-label">Rechazadas</span>
         </div>
       </div>
       <div class="kpi-card">

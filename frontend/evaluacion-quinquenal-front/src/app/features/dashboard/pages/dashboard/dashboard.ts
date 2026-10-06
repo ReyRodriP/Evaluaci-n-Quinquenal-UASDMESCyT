@@ -6,6 +6,8 @@ import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { EvaluacionService } from '../../../../core/services/evaluacion.service';
+import { OrganizacionService } from '../../../../core/services/organizacion.service';
+import { PermisosService } from '../../../../core/services/permisos.service';
 import ApexCharts from 'apexcharts';
 
 @Component({
@@ -18,7 +20,25 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   resumen: any = {}
   avance: any[] = []
   periodos: any[] = []
+  unidades: any[] = []
+  tiposUnidad: any[] = []
+  criterios: any[] = []
+  indicadores: any[] = []
+  pendientes: any[] = []
   periodoSeleccionadoId = ''
+  unidadSeleccionadaId = ''
+  tipoSeleccionadoId = ''
+  criterioSeleccionadoId = ''
+  indicadorSeleccionadoId = ''
+  estadoSeleccionado = ''
+  readonly estadosAsignacion = [
+    { value: 'pendiente', label: 'Pendiente' },
+    { value: 'en_progreso', label: 'En revisión' },
+    { value: 'observada', label: 'Observada' },
+    { value: 'aprobado', label: 'Aprobada' },
+    { value: 'rechazado', label: 'Rechazada' },
+    { value: 'completado', label: 'Completada' },
+  ]
   loading = true
   private graficos: ApexCharts[] = []
   private observer?: MutationObserver
@@ -26,6 +46,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private dashboardService: DashboardService,
     private evaluacionService: EvaluacionService,
+    private organizacionService: OrganizacionService,
+    private permisos: PermisosService,
     private route: ActivatedRoute,
     private router: Router,
     private toast: ToastrService
@@ -42,7 +64,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   cargarDatos(): void {
-    this.dashboardService.obtenerResumen(this.periodoSeleccionadoId).subscribe({
+    const filtros = this.construirFiltros()
+    this.dashboardService.obtenerResumen(filtros).subscribe({
       next: (data) => {
         this.resumen = data
         this.loading = false
@@ -53,9 +76,13 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         this.toast.error('No se pudo cargar el tablero')
       },
     })
-    this.dashboardService.obtenerAvance(this.periodoSeleccionadoId).subscribe({
+    this.dashboardService.obtenerAvance(filtros).subscribe({
       next: (data) => this.avance = data,
       error: () => this.toast.error('No se pudo cargar el avance'),
+    })
+    this.dashboardService.obtenerPendientes(filtros).subscribe({
+      next: (data) => this.pendientes = data,
+      error: () => this.toast.error('No se pudieron cargar las acciones pendientes'),
     })
   }
 
@@ -65,17 +92,30 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       activo: this.evaluacionService.periodoActivo().pipe(
         catchError((error) => error.status === 404 ? of(null) : throwError(() => error))
       ),
+      unidades: this.organizacionService.listarUnidadesOrganizacionales().pipe(catchError(() => of([]))),
+      tipos: this.organizacionService.listarTiposUnidad().pipe(catchError(() => of([]))),
+      criterios: this.evaluacionService.listarCriterios().pipe(catchError(() => of([]))),
+      indicadores: this.evaluacionService.listarIndicadores().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ periodos, activo }) => {
+      next: ({ periodos, activo, unidades, tipos, criterios, indicadores }) => {
         this.periodos = periodos
+        this.unidades = unidades
+        this.tiposUnidad = tipos
+        this.criterios = criterios
+        this.indicadores = indicadores
         const periodoUrl = this.route.snapshot.queryParamMap.get('periodo')
         const solicitado = periodos.find((periodo: any) => String(periodo.id) === periodoUrl)
         const seleccionSolicitadaValida = periodoUrl && (solicitado || !periodos.length)
         this.periodoSeleccionadoId = String(seleccionSolicitadaValida ? periodoUrl : activo?.id ?? '')
+        this.unidadSeleccionadaId = this.route.snapshot.queryParamMap.get('unidad') || ''
+        this.tipoSeleccionadoId = this.route.snapshot.queryParamMap.get('tipo') || ''
+        this.criterioSeleccionadoId = this.route.snapshot.queryParamMap.get('criterio') || ''
+        this.indicadorSeleccionadoId = this.route.snapshot.queryParamMap.get('indicador') || ''
+        this.estadoSeleccionado = this.route.snapshot.queryParamMap.get('estado') || ''
         if (activo && !this.periodos.some((periodo: any) => Number(periodo.id) === Number(activo.id))) {
           this.periodos = [...this.periodos, activo]
         }
-        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarPeriodoUrl()
+        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarFiltrosUrl()
         this.cargarDatos()
       },
       error: () => {
@@ -87,18 +127,89 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   onPeriodoChange(periodoId: string): void {
     this.periodoSeleccionadoId = periodoId
-    this.actualizarPeriodoUrl()
+    this.criterioSeleccionadoId = ''
+    this.indicadorSeleccionadoId = ''
+    this.onFiltrosChange()
+  }
+
+  onCriterioChange(criterioId: string): void {
+    this.criterioSeleccionadoId = criterioId
+    this.indicadorSeleccionadoId = ''
+    this.onFiltrosChange()
+  }
+
+  onFiltrosChange(): void {
     this.loading = true
+    this.actualizarFiltrosUrl()
     this.cargarDatos()
   }
 
-  private actualizarPeriodoUrl(): void {
+  private construirFiltros(): Record<string, string> {
+    const filtros: Record<string, string> = {}
+    const valores: Record<string, string> = {
+      periodo: this.periodoSeleccionadoId,
+      unidad: this.unidadSeleccionadaId,
+      tipo: this.tipoSeleccionadoId,
+      criterio: this.criterioSeleccionadoId,
+      indicador: this.indicadorSeleccionadoId,
+      estado: this.estadoSeleccionado,
+    }
+    Object.entries(valores).forEach(([key, value]) => {
+      if (value) filtros[key] = value
+    })
+    return filtros
+  }
+
+  private actualizarFiltrosUrl(): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { periodo: this.periodoSeleccionadoId || null },
+      queryParams: {
+        periodo: this.periodoSeleccionadoId || null,
+        unidad: this.unidadSeleccionadaId || null,
+        tipo: this.tipoSeleccionadoId || null,
+        criterio: this.criterioSeleccionadoId || null,
+        indicador: this.indicadorSeleccionadoId || null,
+        estado: this.estadoSeleccionado || null,
+      },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     })
+  }
+
+  unitPath(unit: any): string {
+    const names = [unit.nombre]
+    let parentId = unit.unidad_padre
+    while (parentId) {
+      const parent = this.unidades.find((candidate) => Number(candidate.id) === Number(parentId))
+      if (!parent) break
+      names.unshift(parent.nombre)
+      parentId = parent.unidad_padre
+    }
+    return names.join(' / ')
+  }
+
+  get rolDashboard(): string {
+    if (this.permisos.esSuperuser || this.permisos.tieneGrupo('Administrador General')) return 'Vista institucional'
+    if (this.permisos.tieneGrupo('Coordinador Quinquenal')) return 'Seguimiento institucional'
+    if (this.permisos.tieneGrupo('Responsable Departamental')) return 'Seguimiento de mi unidad'
+    if (this.permisos.tieneGrupo('Revisor Institucional')) return 'Revisión de mi ámbito'
+    if (this.permisos.tieneGrupo('Evaluador Externo')) return 'Evaluación externa'
+    return 'Resumen de consulta'
+  }
+
+  get esRevisorInstitucional(): boolean {
+    return this.permisos.tieneGrupo('Revisor Institucional')
+  }
+
+  get criteriosPeriodo(): any[] {
+    return this.criterios.filter((criterio: any) =>
+      !criterio.periodo || String(criterio.periodo) === this.periodoSeleccionadoId
+    )
+  }
+
+  get indicadoresPeriodo(): any[] {
+    const criteriosIds = new Set(this.criteriosPeriodo.map((criterio: any) => Number(criterio.id)))
+    return this.indicadores.filter((indicador: any) => criteriosIds.has(Number(indicador.criterio)))
   }
 
   private diferirGraficos(): void {

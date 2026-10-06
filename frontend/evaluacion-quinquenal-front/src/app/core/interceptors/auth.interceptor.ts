@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from '../../features/auth/services/auth-service';
@@ -9,7 +10,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.authService.getToken();
@@ -26,7 +27,8 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(authReq).pipe(
       catchError((error: HttpErrorResponse) => {
-        if (error.status !== 401 || !token || req.url.includes('/token/')) {
+        const tieneSesionLocal = Boolean(token || this.authService.getUser());
+        if (error.status !== 401 || !tieneSesionLocal || req.url.includes('/token/')) {
           return throwError(() => error);
         }
 
@@ -46,7 +48,6 @@ export class AuthInterceptor implements HttpInterceptor {
           const newToken = data?.access ?? data?.token;
 
           if (!newToken) {
-            this.authService.logout();
             return throwError(() => new Error('Sesion expirada'));
           }
 
@@ -63,8 +64,9 @@ export class AuthInterceptor implements HttpInterceptor {
         }),
         catchError((err) => {
           this.isRefreshing = false;
+          this.refreshTokenSubject.next('');
           this.authService.logout();
-          window.location.assign('/login');
+          void this.router.navigate(['/auth/login']);
           return throwError(() => err);
         }),
       );
@@ -73,15 +75,16 @@ export class AuthInterceptor implements HttpInterceptor {
     return this.refreshTokenSubject.pipe(
       filter((token) => token !== null),
       take(1),
-      switchMap((token) =>
-        next.handle(
+      switchMap((token) => {
+        if (!token) return throwError(() => new Error('Sesion expirada'));
+        return next.handle(
           request.clone({
             setHeaders: {
               Authorization: `Bearer ${token}`,
             },
           }),
-        ),
-      ),
+        );
+      }),
     );
   }
 }
