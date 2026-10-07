@@ -31,6 +31,10 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   criterioSeleccionadoId = ''
   indicadorSeleccionadoId = ''
   estadoSeleccionado = ''
+  filtrosAplicados: Record<string, string> = {}
+  mostrarFiltrosExtras = false
+  agrupamientoAvance = 'unidad'
+  loading = true
   readonly estadosAsignacion = [
     { value: 'pendiente', label: 'Pendiente' },
     { value: 'en_progreso', label: 'En revisión' },
@@ -39,9 +43,16 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     { value: 'rechazado', label: 'Rechazada' },
     { value: 'completado', label: 'Completada' },
   ]
-  loading = true
+  readonly agrupamientos = [
+    { value: 'unidad', label: 'Por unidad' },
+    { value: 'criterio', label: 'Por criterio' },
+    { value: 'estado', label: 'Por estado' },
+  ]
   private graficos: ApexCharts[] = []
   private observer?: MutationObserver
+  private resumenCargado = false
+  private avanceCargado = false
+  private renderEnCola = false
 
   constructor(
     private dashboardService: DashboardService,
@@ -65,25 +76,53 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   cargarDatos(): void {
     const filtros = this.construirFiltros()
+    this.loading = true
+    this.resumenCargado = false
+    this.avanceCargado = false
+    this.renderEnCola = false
     this.dashboardService.obtenerResumen(filtros).subscribe({
       next: (data) => {
         this.resumen = data
         this.loading = false
-        this.diferirGraficos()
+        this.resumenCargado = true
+        this.marcarListo()
       },
       error: () => {
         this.loading = false
+        this.resumenCargado = true
         this.toast.error('No se pudo cargar el tablero')
       },
     })
-    this.dashboardService.obtenerAvance(filtros).subscribe({
-      next: (data) => this.avance = data,
-      error: () => this.toast.error('No se pudo cargar el avance'),
-    })
-    this.dashboardService.obtenerPendientes(filtros).subscribe({
+    this.cargarPendientes()
+    this.cargarAvance()
+  }
+
+  private cargarPendientes(): void {
+    this.dashboardService.obtenerPendientes(this.construirFiltros()).subscribe({
       next: (data) => this.pendientes = data,
       error: () => this.toast.error('No se pudieron cargar las acciones pendientes'),
     })
+  }
+
+  private cargarAvance(): void {
+    this.dashboardService.obtenerAvance(this.construirFiltros(), this.agrupamientoAvance).subscribe({
+      next: (data) => {
+        this.avance = data
+        this.avanceCargado = true
+        this.marcarListo()
+      },
+      error: () => {
+        this.avanceCargado = true
+        this.toast.error('No se pudo cargar el avance')
+      },
+    })
+  }
+
+  private marcarListo(): void {
+    if (this.resumenCargado && this.avanceCargado && !this.renderEnCola) {
+      this.renderEnCola = true
+      this.diferirGraficos()
+    }
   }
 
   private cargarPeriodos(): void {
@@ -115,7 +154,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         if (activo && !this.periodos.some((periodo: any) => Number(periodo.id) === Number(activo.id))) {
           this.periodos = [...this.periodos, activo]
         }
-        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarFiltrosUrl()
+        this.filtrosAplicados = { ...this.construirFiltros() }
         this.cargarDatos()
       },
       error: () => {
@@ -129,19 +168,55 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     this.periodoSeleccionadoId = periodoId
     this.criterioSeleccionadoId = ''
     this.indicadorSeleccionadoId = ''
-    this.onFiltrosChange()
+    this.aplicarFiltros()
   }
 
   onCriterioChange(criterioId: string): void {
     this.criterioSeleccionadoId = criterioId
     this.indicadorSeleccionadoId = ''
-    this.onFiltrosChange()
   }
 
-  onFiltrosChange(): void {
-    this.loading = true
+  aplicarFiltros(): void {
+    this.filtrosAplicados = { ...this.construirFiltros() }
+    this.mostrarFiltrosExtras = false
     this.actualizarFiltrosUrl()
     this.cargarDatos()
+  }
+
+  cancelarFiltros(): void {
+    this.unidadSeleccionadaId = this.filtrosAplicados['unidad'] ?? ''
+    this.tipoSeleccionadoId = this.filtrosAplicados['tipo'] ?? ''
+    this.criterioSeleccionadoId = this.filtrosAplicados['criterio'] ?? ''
+    this.indicadorSeleccionadoId = this.filtrosAplicados['indicador'] ?? ''
+    this.estadoSeleccionado = this.filtrosAplicados['estado'] ?? ''
+    this.mostrarFiltrosExtras = false
+  }
+
+  limpiarFiltros(): void {
+    this.unidadSeleccionadaId = ''
+    this.tipoSeleccionadoId = ''
+    this.criterioSeleccionadoId = ''
+    this.indicadorSeleccionadoId = ''
+    this.estadoSeleccionado = ''
+    this.aplicarFiltros()
+  }
+
+  cambiarAgrupamiento(agrupamiento: string): void {
+    if (agrupamiento === this.agrupamientoAvance) return
+    this.agrupamientoAvance = agrupamiento
+    this.renderEnCola = false
+    this.avanceCargado = false
+    this.cargarAvance()
+  }
+
+  get filtrosModificados(): boolean {
+    const actual = this.construirFiltros()
+    const claves = new Set([...Object.keys(this.filtrosAplicados), ...Object.keys(actual)])
+    return Array.from(claves).some((key) => (actual[key] ?? '') !== (this.filtrosAplicados[key] ?? ''))
+  }
+
+  get tieneFiltrosAplicados(): boolean {
+    return Object.values(this.filtrosAplicados).some(Boolean)
   }
 
   private construirFiltros(): Record<string, string> {
@@ -197,8 +272,30 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     return 'Resumen de consulta'
   }
 
-  get esRevisorInstitucional(): boolean {
-    return this.permisos.tieneGrupo('Revisor Institucional')
+  get tituloPendientes(): string {
+    if (this.permisos.esSuperuser || this.permisos.tieneGrupo('Administrador General')) return 'Alertas y pendientes'
+    if (this.permisos.tieneGrupo('Coordinador Quinquenal')) return 'Pendientes de la evaluación'
+    if (this.permisos.tieneGrupo('Responsable Departamental')) return 'Mis pendientes'
+    if (this.permisos.tieneGrupo('Revisor Institucional')) return 'Pendientes de revisión'
+    if (this.permisos.tieneGrupo('Evaluador Externo')) return 'Elementos pendientes'
+    return ''
+  }
+
+  get hayAlertas(): boolean {
+    return Boolean(this.resumen?.observadas || this.resumen?.sin_evidencia || this.resumen?.pendientes)
+  }
+
+  claseEstado(estado: string): string {
+    return (
+      {
+        pendiente: 'chip-pendiente',
+        en_progreso: 'chip-en-progreso',
+        observada: 'chip-observada',
+        aprobado: 'chip-aprobado',
+        rechazado: 'chip-rechazado',
+        completado: 'chip-completado',
+      }[estado] ?? 'chip-pendiente'
+    )
   }
 
   get criteriosPeriodo(): any[] {
@@ -239,7 +336,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         ? window.requestIdleCallback(() => cb(), { timeout: 3000 })
         : window.setTimeout(() => cb(), 300)
     // Un grafico por callback para que ningun ciclo supere los 50ms de "long task".
-    idle(() => this.graficoPastel())
+    idle(() => this.graficoEstado())
     idle(() => this.graficoAvance())
   }
 
@@ -248,28 +345,35 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     this.graficos = []
   }
 
-  private graficoPastel(): void {
-    const el = document.getElementById('chart-pastel')
+  private graficoEstado(): void {
+    const el = document.getElementById('chart-estado')
     if (!el) return
     const dark = this.esOscuro()
+    const filas = [
+      { nombre: 'Pendientes', valor: this.resumen.pendientes || 0, color: '#f59e0b' },
+      { nombre: 'En revisión', valor: this.resumen.en_progreso || 0, color: '#3b82f6' },
+      { nombre: 'Observadas', valor: this.resumen.observadas || 0, color: '#a855f7' },
+      { nombre: 'Aprobadas', valor: this.resumen.aprobadas || 0, color: '#22c55e' },
+      { nombre: 'Rechazadas', valor: this.resumen.rechazadas || 0, color: '#ef4444' },
+      { nombre: 'Completadas', valor: this.resumen.completadas || 0, color: '#0f766e' },
+    ].filter((fila) => fila.valor > 0)
     const grafico = new ApexCharts(el, {
       chart: {
-        type: 'donut',
+        type: 'bar',
         fontFamily: 'inherit',
+        toolbar: { show: false },
         foreColor: dark ? '#cbd5e1' : '#475569',
+        height: 250,
       },
-      labels: ['Pendientes', 'En progreso', 'Aprobadas', 'Observadas', 'Rechazadas'],
-      series: [
-        this.resumen.pendientes || 0,
-        this.resumen.en_progreso || 0,
-        this.resumen.aprobadas || 0,
-        this.resumen.observadas || 0,
-        this.resumen.rechazadas || 0,
-      ],
-      colors: ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444'],
-      plotOptions: { pie: { donut: { size: '60%' } } },
-      legend: { position: 'bottom' },
-      responsive: [{ breakpoint: 480, options: { chart: { width: 300 }, legend: { position: 'bottom' } } }],
+      series: [{ name: 'Asignaciones', data: filas.map((fila) => fila.valor) }],
+      colors: filas.map((fila) => fila.color),
+      plotOptions: {
+        bar: { borderRadius: 4, horizontal: true, distributed: true, barHeight: '55%' },
+      },
+      dataLabels: { enabled: true },
+      xaxis: { categories: filas.map((fila) => fila.nombre) },
+      legend: { show: false },
+      tooltip: { y: { formatter: (v: number) => v + ' asignaciones' } },
     })
     grafico.render()
     this.graficos.push(grafico)
@@ -279,10 +383,11 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     const el = document.getElementById('chart-avance')
     if (!el || !this.avance.length) return
     const dark = this.esOscuro()
+    const esEstado = this.agrupamientoAvance === 'estado'
     const ordenado = [...this.avance].sort((a, b) => b.porcentaje - a.porcentaje)
-    const facultades = ordenado.map(a => a.facultad)
-    const porcentajes = ordenado.map(a => Math.round(a.porcentaje * 100) / 100)
-    const altura = Math.max(280, facultades.length * 42 + 60)
+    const nombres = ordenado.map((a) => a.nombre)
+    const valores = ordenado.map((a) => (esEstado ? a.asignaciones || 0 : a.porcentaje))
+    const altura = Math.max(250, nombres.length * 42 + 60)
     const grafico = new ApexCharts(el, {
       chart: {
         type: 'bar',
@@ -291,17 +396,19 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         foreColor: dark ? '#cbd5e1' : '#475569',
         height: altura,
       },
-      series: [{ name: 'Avance (%)', data: porcentajes }],
+      series: [{ name: esEstado ? 'Asignaciones' : 'Avance (%)', data: valores }],
       colors: ['#3b82f6'],
       plotOptions: { bar: { borderRadius: 4, horizontal: true } },
       dataLabels: {
         enabled: true,
-        formatter: (v: number) => v + '%',
+        formatter: (v: number) => (esEstado ? String(v) : v + '%'),
         style: { colors: [dark ? '#e2e8f0' : '#0f172a'], fontSize: '11px' },
       },
-      xaxis: { categories: facultades, max: 100, labels: { formatter: (v: number) => v + '%' } },
+      xaxis: esEstado
+        ? { categories: nombres }
+        : { categories: nombres, max: 100, labels: { formatter: (v: number) => v + '%' } },
       yaxis: { labels: { style: { fontSize: '11px' } } },
-      tooltip: { y: { formatter: (v: number) => v + '%' } },
+      tooltip: { y: { formatter: (v: number) => (esEstado ? v + ' asignaciones' : v + '%') } },
     })
     grafico.render()
     this.graficos.push(grafico)

@@ -16,8 +16,9 @@ export class DashboardService {
     return this.http.get(`${this.apiUrl}/dashboard/resumen/`, { params });
   }
 
-  obtenerAvance(filtros: Record<string, string> = {}): Observable<any[]> {
+  obtenerAvance(filtros: Record<string, string> = {}, agrupar = ''): Observable<any[]> {
     const params = { ...filtros };
+    if (agrupar) params['agrupar'] = agrupar;
     return this.http.get<any[]>(`${this.apiUrl}/dashboard/avance/`, { params });
   }
 

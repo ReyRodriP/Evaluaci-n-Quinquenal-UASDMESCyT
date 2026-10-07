@@ -6,8 +6,8 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from evidence.models import Evidencia
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
+from evidence.models import Evidencia
 from organization.models import Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
 
 User = get_user_model()
@@ -295,3 +295,84 @@ class DashboardAvanceTests(TestCase):
         response = self.client.get("/api/dashboard/avance/")
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
+
+    def _crear_escenario_avance(self):
+        tipo, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Departamento")
+        self.unidad = UnidadOrganizacional.objects.create(
+            nombre="Depto Matematicas",
+            tipo=tipo,
+            departamento_legacy=self.departamento,
+        )
+        self.unidad_b = UnidadOrganizacional.objects.create(
+            nombre="Depto Física",
+            tipo=tipo,
+        )
+        self.periodo = Periodo.objects.create(
+            nombre="Periodo 2025",
+            fecha_inicio=timezone.localdate() - timedelta(days=1),
+            fecha_fin=timezone.localdate() + timedelta(days=30),
+        )
+        self.criterio_a = Criterio.objects.create(nombre="Criterio A", periodo=self.periodo)
+        self.criterio_b = Criterio.objects.create(nombre="Criterio B", periodo=self.periodo)
+        self.indicador_a = Indicador.objects.create(nombre="Indicador A", criterio=self.criterio_a)
+        self.indicador_b = Indicador.objects.create(nombre="Indicador B", criterio=self.criterio_b)
+        Asignacion.objects.create(
+            indicador=self.indicador_a,
+            unidad_responsable=self.unidad,
+            periodo=self.periodo,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        Asignacion.objects.create(
+            indicador=self.indicador_a,
+            unidad_responsable=self.unidad_b,
+            periodo=self.periodo,
+            estado=EstadoAsignacion.PENDIENTE,
+        )
+        Asignacion.objects.create(
+            indicador=self.indicador_b,
+            unidad_responsable=self.unidad,
+            periodo=self.periodo,
+            estado=EstadoAsignacion.PENDIENTE,
+        )
+
+    def test_avance_rechaza_agrupacion_invalida(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/dashboard/avance/", {"agrupar": "facultad"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_avance_agrupa_por_criterio(self):
+        self._crear_escenario_avance()
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/dashboard/avance/", {"agrupar": "criterio"})
+        self.assertEqual(response.status_code, 200)
+        rows = {row["nombre"]: row for row in response.data}
+        self.assertEqual(set(rows), {"Criterio A", "Criterio B"})
+        self.assertEqual(rows["Criterio A"]["asignaciones"], 2)
+        self.assertEqual(rows["Criterio A"]["aprobadas"], 1)
+        self.assertEqual(rows["Criterio A"]["porcentaje"], 50)
+        self.assertEqual(rows["Criterio B"]["asignaciones"], 1)
+        self.assertEqual(rows["Criterio B"]["porcentaje"], 0)
+
+    def test_avance_agrupa_por_unidad(self):
+        self._crear_escenario_avance()
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/dashboard/avance/", {"agrupar": "unidad"})
+        self.assertEqual(response.status_code, 200)
+        rows = {row["nombre"]: row for row in response.data}
+        self.assertEqual(set(rows), {"Depto Matematicas", "Depto Física"})
+        self.assertEqual(rows["Depto Matematicas"]["asignaciones"], 2)
+        self.assertEqual(rows["Depto Matematicas"]["aprobadas"], 1)
+        self.assertEqual(rows["Depto Física"]["asignaciones"], 1)
+        self.assertEqual(rows["Depto Física"]["aprobadas"], 0)
+
+    def test_avance_agrupa_por_estado(self):
+        self._crear_escenario_avance()
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/dashboard/avance/", {"agrupar": "estado"})
+        self.assertEqual(response.status_code, 200)
+        rows = {row["nombre"]: row for row in response.data}
+        self.assertEqual(rows["Aprobado"]["asignaciones"], 1)
+        self.assertEqual(rows["Pendiente"]["asignaciones"], 2)
+        self.assertEqual(rows["Aprobado"]["porcentaje"], 33.3)
+        self.assertEqual(rows["Pendiente"]["porcentaje"], 66.7)
+        self.assertEqual(sum(row["asignaciones"] for row in response.data), 3)

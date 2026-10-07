@@ -3,7 +3,7 @@
 @brief Vistas de la app de dashboard.
 @details Define las vistas para el panel de control (dashboard)
 del sistema de evaluación quinquenal, incluyendo resumen general,
-detalles por departamento, avance por facultad y filtrado por período.
+detalles por departamento, avance agrupado y filtrado por período.
 """
 
 from django.core.cache import cache
@@ -17,17 +17,17 @@ from rest_framework.response import Response
 
 from accounts.permissions import (
     _grupos_usuario,
+    _unidades_del_ambito,
     departamentos_permitidos,
     filtrar_por_rol,
     periodos_autorizados,
     unidades_organizacionales_permitidas,
-    _unidades_del_ambito,
 )
-from evaluation.models import Asignacion, EstadoAsignacion, Indicador, Periodo
+from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
 from evaluation.services import finalizar_periodos_vencidos
 from evidence.models import Evidencia as EvidenciaVersionada
 from evidencias.models import Evidencia as EvidenciaLegada
-from organization.models import Departamento, Facultad, TipoUnidadOrganizacional, UnidadOrganizacional
+from organization.models import Departamento, Facultad, UnidadOrganizacional
 
 CACHE_TTL = 60
 
@@ -37,7 +37,7 @@ def _cache_key(user, name, extra=""):
 
 
 def _filtros_cache(request):
-    keys = ("unidad", "tipo", "criterio", "indicador", "estado", "departamento")
+    keys = ("unidad", "tipo", "criterio", "indicador", "estado", "departamento", "agrupar")
     return "|".join(f"{key}={request.query_params.get(key, '')}" for key in keys)
 
 
@@ -224,14 +224,20 @@ def departamento_dashboard(request, pk):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def avance(request):
-    """@brief Retorna el porcentaje de avance por facultad.
-    @details Calcula el porcentaje de asignaciones completadas
-    sobre el total de asignaciones obligatorias para cada facultad.
+    """@brief Retorna el porcentaje de avance agrupado.
+    @details Calcula el porcentaje de asignaciones aprobadas sobre el total
+    de asignaciones para cada grupo. El parámetro ``agrupar`` admite
+    ``criterio``, ``unidad`` o ``estado``; omitiéndolo se conserva la
+    agrupación histórica por facultad.
     @param request Request HTTP autenticada.
-    @return Response con lista de facultades y su porcentaje de avance.
+    @return Response con lista de grupos y su porcentaje de avance.
     """
+    agrupar = request.query_params.get("agrupar", "")
+    if agrupar not in {"", "criterio", "unidad", "estado"}:
+        return Response({"error": "El parámetro 'agrupar' no es válido."}, status=400)
+
     periodo = _periodo_solicitado(request)
-    extra_cache = f"{periodo.pk if periodo else 'sin-periodo'}|{_filtros_cache(request)}"
+    extra_cache = f"{periodo.pk if periodo else 'sin-periodo'}|agrupar={agrupar}|{_filtros_cache(request)}"
     key = _cache_key(request.user, "avance", extra_cache)
     cached = cache.get(key)
     if cached is not None:
@@ -239,27 +245,61 @@ def avance(request):
 
     deptos_ids = departamentos_permitidos(request)
     asignaciones_base = _asignaciones_dashboard(request, periodo)
-
-    facultades_qs = Facultad.objects.filter(activo=True)
-    if deptos_ids is not None:
-        facultades_qs = facultades_qs.filter(departamentos__pk__in=deptos_ids).distinct()
-
     resultado = []
-    for facultad in facultades_qs.prefetch_related("departamentos"):
-        deptos = facultad.departamentos.filter(activo=True)
-        if deptos_ids is not None:
-            deptos = deptos.filter(pk__in=deptos_ids)
-        metricas = _metricas_asignaciones(
-            asignaciones_base.filter(unidad_responsable__departamento_legacy__in=deptos)
-        )
 
-        resultado.append(
-            {
-                "facultad": facultad.nombre,
-                "porcentaje": metricas["cumplimiento_porcentaje"],
-                **metricas,
-            }
+    if agrupar == "criterio":
+        criterios_ids = asignaciones_base.values_list("indicador__criterio_id", flat=True).distinct()
+        criterios = Criterio.objects.filter(pk__in=criterios_ids).order_by("pk")
+        for criterio in criterios:
+            metricas = _metricas_asignaciones(asignaciones_base.filter(indicador__criterio=criterio))
+            resultado.append(
+                {"nombre": criterio.nombre, "porcentaje": metricas["cumplimiento_porcentaje"], **metricas}
+            )
+    elif agrupar == "unidad":
+        unidades_ids = asignaciones_base.values_list("unidad_responsable_id", flat=True).distinct()
+        unidades = UnidadOrganizacional.objects.filter(pk__in=unidades_ids).order_by("pk")
+        for unidad in unidades:
+            metricas = _metricas_asignaciones(asignaciones_base.filter(unidad_responsable=unidad))
+            resultado.append(
+                {"nombre": unidad.nombre, "porcentaje": metricas["cumplimiento_porcentaje"], **metricas}
+            )
+    elif agrupar == "estado":
+        total = asignaciones_base.count()
+        conteo = (
+            asignaciones_base.values("estado")
+            .annotate(cantidad=Count("pk"))
+            .order_by("estado")
         )
+        por_estado = {fila["estado"]: fila["cantidad"] for fila in conteo}
+        for value, label in EstadoAsignacion.choices:
+            cantidad = por_estado.get(value, 0)
+            resultado.append(
+                {
+                    "estado": value,
+                    "nombre": label,
+                    "asignaciones": cantidad,
+                    "porcentaje": round(cantidad * 100 / total, 1) if total else 0,
+                }
+            )
+    else:
+        facultades_qs = Facultad.objects.filter(activo=True)
+        if deptos_ids is not None:
+            facultades_qs = facultades_qs.filter(departamentos__pk__in=deptos_ids).distinct()
+
+        for facultad in facultades_qs.prefetch_related("departamentos"):
+            deptos = facultad.departamentos.filter(activo=True)
+            if deptos_ids is not None:
+                deptos = deptos.filter(pk__in=deptos_ids)
+            metricas = _metricas_asignaciones(
+                asignaciones_base.filter(unidad_responsable__departamento_legacy__in=deptos)
+            )
+            resultado.append(
+                {
+                    "facultad": facultad.nombre,
+                    "porcentaje": metricas["cumplimiento_porcentaje"],
+                    **metricas,
+                }
+            )
 
     cache.set(key, resultado, CACHE_TTL)
     return Response(resultado)

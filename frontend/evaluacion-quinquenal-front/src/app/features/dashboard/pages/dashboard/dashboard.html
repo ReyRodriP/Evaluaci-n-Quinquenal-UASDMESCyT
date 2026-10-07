@@ -4,8 +4,8 @@
       <h2 class="page-title">Dashboard</h2>
       <p>{{ rolDashboard }}</p>
     </div>
-    <label class="period-selector">
-      Período
+    <label class="context-field">
+      <span>Período</span>
       <select [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)" aria-label="Período del dashboard">
         <option *ngIf="!periodoSeleccionadoId" value="">Sin período activo</option>
         <option *ngFor="let periodo of periodos" [value]="periodo.id">
@@ -17,40 +17,52 @@
 
   <div class="dashboard-filters" aria-label="Filtros del dashboard">
     <label>
-      Unidad organizacional
-      <select [ngModel]="unidadSeleccionadaId" (ngModelChange)="unidadSeleccionadaId = $event; onFiltrosChange()">
+      Unidad
+      <select [ngModel]="unidadSeleccionadaId" (ngModelChange)="unidadSeleccionadaId = $event" aria-label="Unidad">
         <option value="">Todas las unidades permitidas</option>
         <option *ngFor="let unidad of unidades" [value]="unidad.id">
           {{ unitPath(unidad) }}
         </option>
       </select>
     </label>
-    <label>
-      Tipo de unidad
-      <select [ngModel]="tipoSeleccionadoId" (ngModelChange)="tipoSeleccionadoId = $event; onFiltrosChange()">
-        <option value="">Todos los tipos</option>
-        <option *ngFor="let tipo of tiposUnidad" [value]="tipo.id">{{ tipo.nombre }}</option>
-      </select>
-    </label>
+    <div class="filters-actions">
+      <button type="button" class="btn-more" (click)="mostrarFiltrosExtras = !mostrarFiltrosExtras" [class.active]="mostrarFiltrosExtras">
+        <i class="bx" [class.bx-chevron-up]="mostrarFiltrosExtras" [class.bx-chevron-down]="!mostrarFiltrosExtras"></i>
+        {{ mostrarFiltrosExtras ? 'Menos filtros' : 'Más filtros' }}
+      </button>
+      <button type="button" class="btn-apply" [disabled]="!filtrosModificados" (click)="aplicarFiltros()">Aplicar</button>
+      <button type="button" class="btn-clean" *ngIf="tieneFiltrosAplicados || filtrosModificados" (click)="limpiarFiltros()">Limpiar</button>
+      <button type="button" class="btn-cancel" *ngIf="mostrarFiltrosExtras && filtrosModificados" (click)="cancelarFiltros()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="filters-more" *ngIf="mostrarFiltrosExtras">
     <label>
       Criterio
-      <select [ngModel]="criterioSeleccionadoId" (ngModelChange)="onCriterioChange($event)">
+      <select [ngModel]="criterioSeleccionadoId" (ngModelChange)="onCriterioChange($event)" aria-label="Criterio">
         <option value="">Todos los criterios</option>
         <option *ngFor="let criterio of criteriosPeriodo" [value]="criterio.id">{{ criterio.nombre }}</option>
       </select>
     </label>
     <label>
       Indicador
-      <select [ngModel]="indicadorSeleccionadoId" (ngModelChange)="indicadorSeleccionadoId = $event; onFiltrosChange()">
+      <select [ngModel]="indicadorSeleccionadoId" (ngModelChange)="indicadorSeleccionadoId = $event" aria-label="Indicador">
         <option value="">Todos los indicadores</option>
         <option *ngFor="let indicador of indicadoresPeriodo" [value]="indicador.id">{{ indicador.nombre }}</option>
       </select>
     </label>
     <label>
       Estado
-      <select [ngModel]="estadoSeleccionado" (ngModelChange)="estadoSeleccionado = $event; onFiltrosChange()">
+      <select [ngModel]="estadoSeleccionado" (ngModelChange)="estadoSeleccionado = $event" aria-label="Estado">
         <option value="">Todos los estados</option>
         <option *ngFor="let estado of estadosAsignacion" [value]="estado.value">{{ estado.label }}</option>
+      </select>
+    </label>
+    <label>
+      Tipo de unidad
+      <select [ngModel]="tipoSeleccionadoId" (ngModelChange)="tipoSeleccionadoId = $event" aria-label="Tipo de unidad">
+        <option value="">Todos los tipos</option>
+        <option *ngFor="let tipo of tiposUnidad" [value]="tipo.id">{{ tipo.nombre }}</option>
       </select>
     </label>
   </div>
@@ -58,6 +70,7 @@
   <div *ngIf="loading" class="state-msg">Cargando información del dashboard...</div>
 
   <ng-container *ngIf="!loading">
+    <span class="section-divider">CONTEXTO</span>
     <section class="period-summary" *ngIf="resumen.periodo as periodo">
       <div>
         <span class="summary-label">Período consultado</span>
@@ -72,21 +85,111 @@
       </div>
     </section>
 
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-task"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.asignaciones || 0 }}</span>
+          <span class="kpi-label">Total asignaciones</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon cyan"><i class="bx bx-file"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.evidencias || 0 }}</span>
+          <span class="kpi-label">Con evidencia</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon indigo"><i class="bx bx-pie-chart-alt"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.cobertura_porcentaje || 0 }}%</span>
+          <span class="kpi-label">Cobertura</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon teal"><i class="bx bx-check-circle"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.aprobadas || 0 }}</span>
+          <span class="kpi-label">Aprobadas</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-copy-check"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.cumplimiento_porcentaje || 0 }}%</span>
+          <span class="kpi-label">Cumplimiento aprobado</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bx bx-file-x"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ resumen.sin_evidencia || 0 }}</span>
+          <span class="kpi-label">Sin evidencia</span>
+        </div>
+      </div>
+    </div>
+
+    <span class="section-divider">SITUACIÓN ACTUAL</span>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Estado de asignaciones</h3>
+        <div id="chart-estado"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <h3>Avance</h3>
+          <div class="segmented" role="tablist" aria-label="Agrupación del avance">
+            <button
+              type="button"
+              *ngFor="let g of agrupamientos"
+              role="tab"
+              [class.active]="agrupamientoAvance === g.value"
+              [attr.aria-selected]="agrupamientoAvance === g.value"
+              (click)="cambiarAgrupamiento(g.value)"
+            >{{ g.label }}</button>
+          </div>
+        </div>
+        <div id="chart-avance"></div>
+      </div>
+    </div>
+
+    <span class="section-divider" *ngIf="hayAlertas || pendientes.length">ACCIONES</span>
+    <section class="alerts-panel" *ngIf="hayAlertas">
+      <header class="alerts-header">
+        <h3>Alertas</h3>
+      </header>
+      <div class="alerts-list">
+        <a class="alert-chip alert-observadas" routerLink="/asignaciones" [queryParams]="{periodo: resumen.periodo?.id}">
+          <i class="bx bx-message-detail"></i>
+          <span><strong>{{ resumen.observadas || 0 }}</strong> Observadas</span>
+        </a>
+        <a class="alert-chip alert-sin-evidencia" routerLink="/asignaciones" [queryParams]="{periodo: resumen.periodo?.id}">
+          <i class="bx bx-file-blank"></i>
+          <span><strong>{{ resumen.sin_evidencia || 0 }}</strong> Sin evidencia</span>
+        </a>
+        <a class="alert-chip alert-pendientes" routerLink="/asignaciones" [queryParams]="{periodo: resumen.periodo?.id}">
+          <i class="bx bx-time"></i>
+          <span><strong>{{ resumen.pendientes || 0 }}</strong> Pendientes</span>
+        </a>
+      </div>
+    </section>
+
     <section class="pending-panel" *ngIf="pendientes.length">
       <header class="pending-header">
         <div>
           <span class="section-label">SEGUIMIENTO</span>
-          <h3>{{ esRevisorInstitucional ? 'Pendientes de revisión' : 'Mis pendientes' }}</h3>
+          <h3>{{ tituloPendientes }}</h3>
         </div>
         <span class="pending-count">{{ pendientes.length }}</span>
       </header>
       <div class="pending-list">
-        <article class="pending-row" *ngFor="let item of pendientes">
+        <article class="pending-row" *ngFor="let item of pendientes.slice(0, 5)">
           <div class="pending-main">
             <strong>{{ item.indicador }}</strong>
             <span>{{ item.criterio }} · {{ item.unidad }}</span>
           </div>
-          <span class="pending-state">{{ item.estado_display }}</span>
+          <span class="pending-state" [class]="claseEstado(item.estado)">{{ item.estado_display }}</span>
           <a *ngIf="item.evidencia_id; else asignacionLink"
             [routerLink]="['/evidencias', item.evidencia_id, 'detalle']"
             [queryParams]="{periodo: item.periodo_id}">Revisar</a>
@@ -95,111 +198,9 @@
           </ng-template>
         </article>
       </div>
+      <a *ngIf="pendientes.length > 5" class="pending-ver-todos" routerLink="/asignaciones" [queryParams]="{periodo: resumen.periodo?.id}">
+        Ver todos los pendientes <i class="bx bx-chevron-right"></i>
+      </a>
     </section>
-
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-icon blue"><i class="bx bx-building"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.unidades || 0 }}</span>
-          <span class="kpi-label">Unidades responsables</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon indigo"><i class="bx bx-bar-chart"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.indicadores || 0 }}</span>
-          <span class="kpi-label">Indicadores</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon green"><i class="bx bx-task"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.asignaciones || 0 }}</span>
-          <span class="kpi-label">Asignaciones</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon cyan"><i class="bx bx-file"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.evidencias || 0 }}</span>
-          <span class="kpi-label">Con evidencia · {{ resumen.cobertura_porcentaje || 0 }}% cobertura</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon amber"><i class="bx bx-file-blank"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.sin_evidencia || 0 }}</span>
-          <span class="kpi-label">Sin evidencia</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon amber"><i class="bx bx-clock-dashed-half"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.pendientes || 0 }}</span>
-          <span class="kpi-label">Pendientes</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon teal"><i class="bx bx-check-double"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.cumplimiento_porcentaje || 0 }}%</span>
-          <span class="kpi-label">Cumplimiento aprobado</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon green"><i class="bx bx-check-circle"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.aprobadas || 0 }}</span>
-          <span class="kpi-label">Aprobadas</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon red"><i class="bx bx-x-circle"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.rechazadas || 0 }}</span>
-          <span class="kpi-label">Rechazadas</span>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon purple"><i class="bx bx-message-detail"></i></div>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ resumen.observadas || 0 }}</span>
-          <span class="kpi-label">Observadas</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Row -->
-    <div class="charts-grid">
-      <div class="chart-card">
-        <h3>Estado de asignaciones</h3>
-        <div id="chart-pastel"></div>
-      </div>
-      <div class="chart-card">
-        <h3>Avance por facultad</h3>
-        <div id="chart-avance"></div>
-      </div>
-    </div>
-
-    <!-- Quick links -->
-    <div class="quick-links">
-      <a routerLink="/asignaciones" class="quick-link-card">
-        <i class="bx bx-task"></i>
-        <span>Gestionar asignaciones</span>
-      </a>
-      <a routerLink="/evidencias" class="quick-link-card">
-        <i class="bx bx-file"></i>
-        <span>Subir evidencias</span>
-      </a>
-      <a routerLink="/notificaciones" class="quick-link-card">
-        <i class="bx bx-bell"></i>
-        <span>Ver notificaciones</span>
-      </a>
-      <a routerLink="/periodos" class="quick-link-card">
-        <i class="bx bx-calendar"></i>
-        <span>Gestionar períodos</span>
-      </a>
-    </div>
   </ng-container>
 </div>
