@@ -121,7 +121,7 @@ class CriterioViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Criterio.objects.all().order_by("nombre")
         if "Evaluador Externo" in _grupos_usuario(self.request.user):
-            queryset = filtrar_por_rol(queryset, self.request, dept_field="unidad_responsable")
+            queryset = filtrar_por_rol(queryset, self.request, dept_field="asignaciones__unidad_responsable")
         return queryset.distinct()
 
     def perform_destroy(self, instance):
@@ -149,7 +149,7 @@ class IndicadorViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Indicador.objects.all().order_by("nombre")
         if "Evaluador Externo" in _grupos_usuario(self.request.user):
-            queryset = filtrar_por_rol(queryset, self.request, dept_field="unidad_responsable")
+            queryset = filtrar_por_rol(queryset, self.request, dept_field="asignaciones__unidad_responsable")
         return queryset.distinct()
 
     def perform_destroy(self, instance):

@@ -9,6 +9,7 @@ from rest_framework import serializers
 from accounts.permissions import es_evaluador_externo
 
 from .models import Evidencia, Observacion, VersionEvidencia
+from .validators import validate_evidence_file
 
 
 class ObservacionSerializer(serializers.ModelSerializer):
@@ -60,6 +61,10 @@ class VersionEvidenciaSerializer(serializers.ModelSerializer):
             "observaciones",
         ]
 
+    def validate_archivo(self, value):
+        validate_evidence_file(value)
+        return value
+
     def get_observaciones(self, obj):
         request = self.context.get("request")
         if request is not None and es_evaluador_externo(request):
@@ -91,8 +96,10 @@ class EditarVersionSerializer(serializers.Serializer):
     @details Serializer no basado en modelo para permitir la actualización
     parcial del archivo y comentario de una versión."""
 
-    archivo = serializers.FileField(required=False, allow_null=True)
-    comentario = serializers.CharField(required=False, allow_blank=True)
+    def validate_archivo(self, value):
+        if value is not None:
+            validate_evidence_file(value)
+        return value
 
     def update(self, instance, validated_data):
         """@brief Actualiza los campos de una versión existente

@@ -130,7 +130,9 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
         permitidas = unidades_organizacionales_permitidas(request)
         if permitidas is None:
             return queryset
-        return queryset.filter(**{f"{dept_field}_id__in": permitidas})
+        if "__" in dept_field:
+            return queryset.filter(**{dept_field + "_id__in": permitidas}).distinct()
+        return queryset.filter(**{f"{dept_field}_id__in": permitidas}).distinct()
 
     departamentos = departamentos_permitidos(request)
     if departamentos is None:

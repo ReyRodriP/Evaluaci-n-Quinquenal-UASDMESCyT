@@ -302,13 +302,18 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
 
         if evidencia.estado == "cancelada":
             evidencia.estado = "activa"
+            if not evidencia.subido_por and request.user:
+                evidencia.subido_por = request.user
             evidencia.save()
+        elif not evidencia.subido_por and request.user:
+            evidencia.subido_por = request.user
+            evidencia.save(update_fields=["subido_por"])
 
         ultima_version = evidencia.versiones.aggregate(max_version=Max("version"))["max_version"] or 0
         nueva_version_num = ultima_version + 1
 
         version = VersionEvidencia.objects.create(
-            evidencia=evidencia, archivo=archivo, version=nueva_version_num, comentario=comentario
+            evidencia=evidencia, archivo=archivo, version=nueva_version_num, comentario=comentario, subido_por=request.user
         )
 
         asignacion = evidencia.asignacion

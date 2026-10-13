@@ -37,6 +37,8 @@ class Evidencia(models.Model):
 
     asignacion = models.OneToOneField(Asignacion, on_delete=models.CASCADE, related_name="evidencia")
 
+    subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="evidencias_subidas_evidence")
+
     def __str__(self):
         return self.titulo
 
@@ -57,6 +59,7 @@ class VersionEvidencia(models.Model):
     comentario = models.TextField(blank=True, null=True)
 
     fecha_subida = models.DateTimeField(auto_now_add=True)
+    subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="versiones_subidas_evidence")
 
     def __str__(self):
         return f"{self.evidencia.titulo} - v{self.version}"
