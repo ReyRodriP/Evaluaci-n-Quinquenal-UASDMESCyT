@@ -45,7 +45,7 @@ Método del parser:
 | Criterio | **77** | 77 | 0 | 77 | 0 |
 | Estándar | **211** (209 códigos únicos) | 210 | +1 | 212 | −1 |
 | Indicador | **923** (921 con viñeta + 2 celdas sin viñeta) | 909 | +14 | 915 | +8 |
-| Evidencia | **1097** (viñetas crudas; 9 sin texto) | 915 | +182 | 1082 | +15 |
+| Evidencia | **1097** (viñetas crudas; 9 con línea vacía → 7 registros vacíos) | 915 | +182 | 1082 | +15 |
 
 - Dimensión, componente y criterio coinciden **exactamente** con ambas referencias.
 - Estándares: la fuente imprime 211 filas de estándar; dos códigos aparecen impresos dos veces en
@@ -101,12 +101,15 @@ Los rótulos `Archivo físico:` / `Archivo digital:` de la columna 4 aparecen si
 - el remanente `co:` se registró como incidencia `evidencia_inicio_invalido`; **no** se inventó
   una evidencia para él.
 
-### 3.5 Viñetas sin texto (11)
+### 3.5 Viñetas sin texto (11 incidencias → 9 registros vacíos)
 
-9 viñetas de evidencia (págs. 52, 53, 82, 116, 164, 175, 180×2, 188) y 2 de indicador
-(págs. 180, 189) traen el guion/viñeta pero ninguna celda de texto. Se conservaron como registros
-con texto vacío y observación "viñeta sin texto en la fuente (celda vacia)"; las de indicador
-quedan `pendiente_revision` (las evidencias ya lo son por §4).
+El parser registró 11 viñetas cuya línea de texto vino vacía: 9 de evidencia (págs. 52, 53, 82,
+116, 164, 175, 180×2, 188) y 2 de indicador (págs. 180, 189). De las 9 de evidencia, 7
+conservaron el texto vacío (págs. 52, 82, 116, 164, 180×2, 188) y 2 recibieron solo un residual
+de continuación — `evi:1.2.1.3#6` = "el" (pág. 53) y `evi:7.2.1.2#4` = "a" (pág. 175) —, por lo
+que tienen texto pero deben verificarse. Los 9 registros con texto vacío (7 evidencias + 2
+indicadores) llevan la observación "viñeta sin texto en la fuente (celda vacia)"; todos están en
+`pendiente_revision` (las evidencias ya lo están por §4).
 
 ### 3.6 Incidencias del parser (16 en total)
 

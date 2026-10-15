@@ -1,0 +1,1838 @@
+{
+  "meta": {
+    "tipo": "dataset_piloto_subconjunto",
+    "aprobado_institucionalmente": false,
+    "version_marco": "EQ-SIDACES-2019-Res27-2019",
+    "fuente_pdf": "Estándares Marco EQ-SIDACES (Versión Final).pdf",
+    "norma": "Resolucion 27-2019 del CONESCyT (27/09/2019)",
+    "dimension_incluida": "dim:VI",
+    "dataset_origen": "data/catalogo/eq_sidaces_normalized.json",
+    "dataset_origen_sha256": "99a3c360be87adf6c048b177b9da16e1cc703522749c2f501f040ecc2f804d42",
+    "script_generador": "scripts/preparar_piloto_eq_sidaces.py",
+    "reglas_seleccion": [
+      "registros de la dimensión indicada",
+      "estado == confirmado",
+      "cadena completa de ancestros confirmados dentro del subconjunto",
+      "evidencias indicativas excluidas (asociación indicador sin resolver: D8)"
+    ],
+    "conteos_piloto": {
+      "componente": 2,
+      "criterio": 6,
+      "dimension": 1,
+      "estandar": 16,
+      "indicador": 50
+    },
+    "conteos_piloto_total": 75,
+    "exclusiones": {
+      "por_motivo_dimensión": {
+        "ascendencia_pendiente": 2,
+        "pendiente": 3,
+        "politica_evidencia": 83
+      },
+      "fuera_dimension_total": 2189,
+      "detalle_excluidos_dimension": [
+        {
+          "clave": "ind:6.1.1.1#5",
+          "motivo": "pendiente"
+        },
+        {
+          "clave": "evi:6.1.1.1#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#6",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#7",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#8",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.1#9",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.2#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.2#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.2#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.2#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#6",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.1.3#7",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#6",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#7",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#8",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#9",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#10",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#11",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#12",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.2.1#13",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#6",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#7",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#8",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.1#9",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.2#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.2#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.2#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.2#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.2#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.2#6",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.3#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.3#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.3#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.4#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.4#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.4#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.3.4#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.4.1#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "ind:6.1.4.2#2",
+          "motivo": "pendiente"
+        },
+        {
+          "clave": "evi:6.1.4.2#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.4.2#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.4.2#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "std:6.1.5.1",
+          "motivo": "pendiente"
+        },
+        {
+          "clave": "ind:6.1.5.1#1",
+          "motivo": "ascendencia_pendiente"
+        },
+        {
+          "clave": "ind:6.1.5.1#2",
+          "motivo": "ascendencia_pendiente"
+        },
+        {
+          "clave": "evi:6.1.5.1#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.1#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.1#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.1#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.1#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.2#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.2#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.2#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.2#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.2#5",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.3#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.3#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.3#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.1.5.3#4",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.1#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.1#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.2#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.2#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.3#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.3#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.3#3",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.4#1",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.4#2",
+          "motivo": "politica_evidencia"
+        },
+        {
+          "clave": "evi:6.2.1.4#3",
+          "motivo": "politica_evidencia"
+        }
+      ]
+    },
+    "notas": [
+      "Subconjunto reproducible para pruebas técnicas; no representa el marco completo",
+      "Los campos de cada registro se copian sin modificar del dataset de origen",
+      "Codigos de indicadores/evidencias del origen son sintéticos, no oficiales"
+    ]
+  },
+  "registros": [
+    {
+      "clave": "dim:VI",
+      "nivel": "dimension",
+      "codigo": "VI",
+      "texto_original": "PERSONAL ACADÉMICO",
+      "padre": null,
+      "orden": 6,
+      "nivel_jerarquico": 1,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "comp:6.1",
+      "nivel": "componente",
+      "codigo": "6.1",
+      "texto_original": "Sistema de carrera académica",
+      "padre": "dim:VI",
+      "orden": 1,
+      "nivel_jerarquico": 2,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "definicion": "Se refiere a la existencia y funcionamiento de una política institucional de carrera académica pertinente, con una clara orientación hacia el desarrollo cualitativo, consolidación y sostenibilidad de la IES. La carrera académica ha sido configurada en una estructura progresiva conforme a un protocolo y dispositivos instrumentales que operan efectivamente en la captación, selección, contratación, evaluación, clasificación y categorización, promoción y perfeccionamiento del personal académico acorde con los perfiles definidos por la institución."
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "comp:6.2",
+      "nivel": "componente",
+      "codigo": "6.2",
+      "texto_original": "Participación en la gestión institucional",
+      "padre": "dim:VI",
+      "orden": 2,
+      "nivel_jerarquico": 2,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "definicion": "Es la existencia de mecanismos funcionales, claros y vigentes que proporcionan condiciones idóneas que garantiza y estimulan la participación de los profesores en la selección, organización, dirección y oferta curricular de la institución. A partir de lo anterior, se establece el grado, modalidades e implicación del personal académico en la prestación de sus servicios a la institución."
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "cri:6.1.1",
+      "nivel": "criterio",
+      "codigo": "6.1.1",
+      "texto_original": "Implementación de un sistema de carrera académica La IES debe implementar un sistema de carrera académica superior que permita organizar su personal académico, en coherencia con su política de gestión institucional y lo dispuesto en la Ley de Educación Superior de la República Dominicana.",
+      "padre": "comp:6.1",
+      "orden": 1,
+      "nivel_jerarquico": 3,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "cri:6.1.2",
+      "nivel": "criterio",
+      "codigo": "6.1.2",
+      "texto_original": "Mecanismos y procedimientos de captación y contratación del personal académico La IES debe aplicar mecanismos y procedimientos efectivos para la captación, selección y contratación del personal académico, que respondan a la filosofía de la institución y las leyes vigentes en el país.",
+      "padre": "comp:6.1",
+      "orden": 2,
+      "nivel_jerarquico": 3,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "cri:6.1.3",
+      "nivel": "criterio",
+      "codigo": "6.1.3",
+      "texto_original": "Evaluación y perfeccionamiento del personal académico La institución debe implementar los mecanismos pertinentes y efectivos para evaluar y perfeccionar continuamente a su personal académico, garantizando su adecuación a la(s) función(es) sustantiva(s) en que se desempeña(n).",
+      "padre": "comp:6.1",
+      "orden": 3,
+      "nivel_jerarquico": 3,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "cri:6.1.4",
+      "nivel": "criterio",
+      "codigo": "6.1.4",
+      "texto_original": "Dedicación del cuerpo docente La IES debe asegurar la dedicación del cuerpo docente que permita cumplir apropiadamente con lo establecido en el marco legal nacional aplicable y la planificación estratégica.",
+      "padre": "comp:6.1",
+      "orden": 4,
+      "nivel_jerarquico": 3,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "cri:6.1.5",
+      "nivel": "criterio",
+      "codigo": "6.1.5",
+      "texto_original": "Adecuación del cuerpo docente La IES debe asegurar que el cuerpo docente tenga las titulaciones adecuadas al nivel en que enseñe nivel en q enseña, según el marc legal aplicable.",
+      "padre": "comp:6.1",
+      "orden": 5,
+      "nivel_jerarquico": 3,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "cri:6.2.1",
+      "nivel": "criterio",
+      "codigo": "6.2.1",
+      "texto_original": "Mecanismos de participación del personal académico La institución debe implementar los mecanismos para gestionar la participación del personal académico en el gobierno de la institución y la revisión y mejoramiento de los planes de estudio para garantizar su pertinencia, y respetando los principios en los que se rige el sistema de educación superior.",
+      "padre": "comp:6.2",
+      "orden": 1,
+      "nivel_jerarquico": 3,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.1.1",
+      "nivel": "estandar",
+      "codigo": "6.1.1.1",
+      "texto_original": "La IES implementa un sistema de carrera académica aplicable a las funciones sustantivas de la institución.",
+      "padre": "cri:6.1.1",
+      "orden": 1,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          152
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.1#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "El sistema de carrera académica universitaria está configurado de acuerdo con las normativas y leyes del país.",
+      "padre": "std:6.1.1.1",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.1#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "El sistema de carrera académica universitaria está estructurado en consonancia con la misión de la IES.",
+      "padre": "std:6.1.1.1",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.1#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "El sistema de ca rrera académica superior aplicado responde a los lineamientos institucionales para el aseguramiento de la calidad.",
+      "padre": "std:6.1.1.1",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.1#4",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "El sistema de carrera académica superior es conocido por todo el personal académico.",
+      "padre": "std:6.1.1.1",
+      "orden": 4,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.1.2",
+      "nivel": "estandar",
+      "codigo": "6.1.1.2",
+      "texto_original": "La jerarquización del personal académico está definida de forma clara, precisa y son conocidas por los actores interesados.",
+      "padre": "cri:6.1.1",
+      "orden": 2,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          152,
+          153
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.2#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La jerarquización de los académicos está definida y documentada.",
+      "padre": "std:6.1.1.2",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.2#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Estas jerarquías son conocidas y aplicadas entre el personal académico .",
+      "padre": "std:6.1.1.2",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.2#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Las jerarquías están diferenciadas por beneficios y remuneración.",
+      "padre": "std:6.1.1.2",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 152,
+        "pagina_documento": 140,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 152,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.1.3",
+      "nivel": "estandar",
+      "codigo": "6.1.1.3",
+      "texto_original": "La institución organiza a sus académicos por nivel. áreas del conocimiento y niveles de especialización.",
+      "padre": "cri:6.1.1",
+      "orden": 3,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          153
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.3#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Existen perfiles definidos para la asignación de los académicos en cada área del conocimiento y",
+      "padre": "std:6.1.1.3",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 153,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.3#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los niveles de especialización de la docencia, la investigación y vinculación con el medio están claramente definidos.",
+      "padre": "std:6.1.1.3",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 153,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.1.3#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "El personal académico se desempeña en el área y/o especialidad en su ámbito de competencia.",
+      "padre": "std:6.1.1.3",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 153,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.2.1",
+      "nivel": "estandar",
+      "codigo": "6.1.2.1",
+      "texto_original": "El total del personal académico de la IES es captado, seleccionado y contratado de acuerdo con las políticas, mecanismos y cargo. procedimientos definidos.",
+      "padre": "cri:6.1.2",
+      "orden": 1,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          153
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.2.1#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La IES dispone y aplica mecanismos y procedimientos documentados para la captación del personal académico idóneo.",
+      "padre": "std:6.1.2.1",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 153,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.2.1#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La institución aplica procedimientos para la selección del personal académico.",
+      "padre": "std:6.1.2.1",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 153,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.2.1#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La selección del personal académico implica un proceso de evaluación de sus competencias para el ejercicio de las funciones propias del",
+      "padre": "std:6.1.2.1",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 153,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.2.1#4",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La plantilla del personal académico contratado se corresponde con lo declarado en su planificación académica, en términos de cantidad, dedicación, formación profesional y trayectoria académica.",
+      "padre": "std:6.1.2.1",
+      "orden": 4,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 153,
+        "pagina_documento": 141,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.2.1#5",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Existen políticas y mecanismos de inducción para el personal académico de nuevo ingreso a la institución.",
+      "padre": "std:6.1.2.1",
+      "orden": 5,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.2.1#6",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "El personal contratado cumple con las normas establecidas por las leyes 139-01; 41-08; 87-01.",
+      "padre": "std:6.1.2.1",
+      "orden": 6,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.3.1",
+      "nivel": "estandar",
+      "codigo": "6.1.3.1",
+      "texto_original": "La IES evalúa el desempeño de su personal académico de forma objetiva, sistemática y planificada",
+      "padre": "cri:6.1.3",
+      "orden": 1,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          154
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La institución cuenta con mecanismos de evaluación del desempeño de su personal académico.",
+      "padre": "std:6.1.3.1",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los mecanismos de evaluación son coherentes con el plan de desarrollo de la carrera docente, la formación, capacitación y actualización del personal académico.",
+      "padre": "std:6.1.3.1",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La evaluación que se realiza periódicamente al personal académico está en coherencia con el Plan operativo anual y el plan de desarrollo institucional.",
+      "padre": "std:6.1.3.1",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#4",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los resultados de la evaluación académica posibilitan la toma de decisiones de las instancias correspondientes para la promoción y perfeccionamiento académico.",
+      "padre": "std:6.1.3.1",
+      "orden": 4,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 154,
+        "pagina_documento": 142,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 154,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#5",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La evaluación docente se aplica según la periodicidad definida.",
+      "padre": "std:6.1.3.1",
+      "orden": 5,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 155,
+        "pagina_documento": 143,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 155,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#6",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los resultados de las evaluaciones son compartidos con los docentes.",
+      "padre": "std:6.1.3.1",
+      "orden": 6,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 155,
+        "pagina_documento": 143,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 155,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.1#7",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los resultados de las evaluaciones de los docentes se utilizan para la toma de decisiones.",
+      "padre": "std:6.1.3.1",
+      "orden": 7,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 155,
+        "pagina_documento": 143,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 155,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.3.2",
+      "nivel": "estandar",
+      "codigo": "6.1.3.2",
+      "texto_original": "La institución implementa una política para el desarrollo del personal académico.",
+      "padre": "cri:6.1.3",
+      "orden": 2,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 156,
+        "pagina_documento": 144,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          156
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.2#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La política de desarrollo del personal académico está documentada y aprobada por las autoridades pertinentes.",
+      "padre": "std:6.1.3.2",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 156,
+        "pagina_documento": 144,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 156,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.2#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La política de desarrollo del personal académico está disponible para los actores institucionales.",
+      "padre": "std:6.1.3.2",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 156,
+        "pagina_documento": 144,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 156,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.2#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La política de desarrollo del personal académico es comunicada y entendida por el personal académico.",
+      "padre": "std:6.1.3.2",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 156,
+        "pagina_documento": 144,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 156,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.2#4",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La política de desarrollo del personal académico se aplica a partir de los resultados de las evaluaciones de los académicos de la institución.",
+      "padre": "std:6.1.3.2",
+      "orden": 4,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 156,
+        "pagina_documento": 144,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 156,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.2#5",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La política de desarrollo del personal académico favorece la actualización y capacitación de sus servidores.",
+      "padre": "std:6.1.3.2",
+      "orden": 5,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 156,
+        "pagina_documento": 144,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 156,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.3.3",
+      "nivel": "estandar",
+      "codigo": "6.1.3.3",
+      "texto_original": "Al menos el 50% del personal académico ha recibido actualización o capacitación académica en su área de responsabilidad en el último año.",
+      "padre": "cri:6.1.3",
+      "orden": 3,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 157,
+        "pagina_documento": 145,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          157
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.3#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La actualización o capacitación académica se realiza a partir de una planificación.",
+      "padre": "std:6.1.3.3",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 157,
+        "pagina_documento": 145,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 157,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.3#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Las estrategias formativas para el personal académico se reflejan en acciones concretas y efectivas para la actualización del cuerpo docente.",
+      "padre": "std:6.1.3.3",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 157,
+        "pagina_documento": 145,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 157,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.3.4",
+      "nivel": "estandar",
+      "codigo": "6.1.3.4",
+      "texto_original": "Al menos el 75% del personal académico ha recibido formación en técnicas o métodos de enseñanza- aprendizaje o nuevas tecnologías (TIC) aplicables a su área de responsabilidad en los últimos tres años.",
+      "padre": "cri:6.1.3",
+      "orden": 4,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 157,
+        "pagina_documento": 145,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          157
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.4#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La formación se realiza a partir de un plan aprobado para el desarrollo de los académicos.",
+      "padre": "std:6.1.3.4",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 157,
+        "pagina_documento": 145,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 157,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.3.4#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La formación recibida es aplicable a su área de responsabilidad.",
+      "padre": "std:6.1.3.4",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 157,
+        "pagina_documento": 145,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 157,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.4.1",
+      "nivel": "estandar",
+      "codigo": "6.1.4.1",
+      "texto_original": "La carga del personal académico no será mayor de 44 horas por semana.",
+      "padre": "cri:6.1.4",
+      "orden": 1,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          158
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.4.1#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La carga del personal académico se rige por lo establecido en el Código de trabajo de la República Dominicana.",
+      "padre": "std:6.1.4.1",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 158,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.4.1#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La distribución de la carga académica está establecida de forma documental por la IES aceptada por el académico.",
+      "padre": "std:6.1.4.1",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 158,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.4.2",
+      "nivel": "estandar",
+      "codigo": "6.1.4.2",
+      "texto_original": "Al menos el 30% del personal académico (docente, de investigación y vinculación con el medio) de la institu tienen dedicación a tiempo completo.",
+      "padre": "cri:6.1.4",
+      "orden": 2,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          158
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.4.2#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La institución tiene definidas las condiciones que debe cumplir un académico de tiempo completo.",
+      "padre": "std:6.1.4.2",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 158,
+        "pagina_documento": 146,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 158,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.5.2",
+      "nivel": "estandar",
+      "codigo": "6.1.5.2",
+      "texto_original": "Al menos el 20% del personal docente de programas de maestría tiene grado de doctor (PhD).",
+      "padre": "cri:6.1.5",
+      "orden": 2,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 159,
+        "pagina_documento": 147,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          159
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.5.2#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los títulos de doctor son emitidos por instituciones reconocidas por el MESCyT.",
+      "padre": "std:6.1.5.2",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 159,
+        "pagina_documento": 147,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 159,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.5.2#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La institución conserva evidencia de los títulos que avalan el nivel académico requerido.",
+      "padre": "std:6.1.5.2",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 159,
+        "pagina_documento": 147,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 159,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.1.5.3",
+      "nivel": "estandar",
+      "codigo": "6.1.5.3",
+      "texto_original": "Todos los miembros del personal docente en programas de doctorado tienen grado de doctor (PhD).",
+      "padre": "cri:6.1.5",
+      "orden": 3,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 159,
+        "pagina_documento": 147,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          159
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.5.3#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los títulos de doctor son emitidos por instituciones reconocidas por el MESCyT.",
+      "padre": "std:6.1.5.3",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 159,
+        "pagina_documento": 147,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 159,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.1.5.3#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La institución conserva evidencia de los títulos que avalan el nivel académico requerido.",
+      "padre": "std:6.1.5.3",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 159,
+        "pagina_documento": 147,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 159,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.2.1.1",
+      "nivel": "estandar",
+      "codigo": "6.2.1.1",
+      "texto_original": "El personal académico participa en la revisión y actualización de los programas de estudio.",
+      "padre": "cri:6.2.1",
+      "orden": 1,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          160
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.1#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los roles de los académicos en la revisión de los programas están previamente definidos",
+      "padre": "std:6.2.1.1",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 160,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.1#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Existen mecanismos para seleccionar a los representantes del cuerpo de académicos que participan de la revisión y actualización de los programas de estudio.",
+      "padre": "std:6.2.1.1",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 160,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.1#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Se conserva evidencia de la participación de los académicos en la actualización de los programas de estudio.",
+      "padre": "std:6.2.1.1",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 160,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.2.1.2",
+      "nivel": "estandar",
+      "codigo": "6.2.1.2",
+      "texto_original": "El personal académico participa en los órganos de gobierno de la institución.",
+      "padre": "cri:6.2.1",
+      "orden": 2,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          160
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.2#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La cantidad de representantes de los que participan en los órganos de gobierno está definida.",
+      "padre": "std:6.2.1.2",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 160,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.2#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La elección de representantes es realizada por los académicos de la institución.",
+      "padre": "std:6.2.1.2",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 160,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.2#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Los roles que desempeñan los representantes de los académicos participantes en los órganos de gobierno están definidos.",
+      "padre": "std:6.2.1.2",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 160,
+        "pagina_documento": 148,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 160,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.2.1.3",
+      "nivel": "estandar",
+      "codigo": "6.2.1.3",
+      "texto_original": "La institución cuenta con mecanismos efectivos para la creación de grupos u organizaciones de académicos que favorezcan el desarrollo de sus funciones sustantivas.",
+      "padre": "cri:6.2.1",
+      "orden": 3,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          161
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.3#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Existen criterios para la creación de grupos académicos.",
+      "padre": "std:6.2.1.3",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 161,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.3#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Están establecidos los mecanismos de participación de los grupos de académicos.",
+      "padre": "std:6.2.1.3",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 161,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.3#3",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Se aplican los criterios establecidos para la participación de los grupos.",
+      "padre": "std:6.2.1.3",
+      "orden": 3,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 161,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "std:6.2.1.4",
+      "nivel": "estandar",
+      "codigo": "6.2.1.4",
+      "texto_original": "Como mínimo, el 20% de los docentes participa en actividades de investigación o vinculación con el medio.",
+      "padre": "cri:6.2.1",
+      "orden": 4,
+      "nivel_jerarquico": 4,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "paginas": [
+          161
+        ],
+        "limites_columnas": "contenido"
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.4#1",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "La IES tiene definido las condiciones de participación de los docentes en actividades de investigación y/o vinculación con el medio.",
+      "padre": "std:6.2.1.4",
+      "orden": 1,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 161,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    },
+    {
+      "clave": "ind:6.2.1.4#2",
+      "nivel": "indicador",
+      "codigo": "",
+      "texto_original": "Se conserva registro de la participación de los docentes en las actividades de investigación o vinculación con el medio.",
+      "padre": "std:6.2.1.4",
+      "orden": 2,
+      "nivel_jerarquico": 5,
+      "version_marco": "EQ-SIDACES-2019-Res27-2019",
+      "origen": {
+        "pdf_pagina": 161,
+        "pagina_documento": 149,
+        "seccion": "Matriz de estandares",
+        "pagina_ultima": 161,
+        "con_vineta": true
+      },
+      "estado": "confirmado",
+      "observaciones": []
+    }
+  ]
+}
