@@ -12,6 +12,7 @@ export interface MenuItem {
 export class PermisosService {
   readonly menuItems: MenuItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'bx-home', grupos: null },
+    { path: '/catalogo', label: 'Catálogo EQ', icon: 'bx-book', grupos: null },
     { path: '/usuarios', label: 'Usuarios', icon: 'bx-user', grupos: ['Administrador General', 'Coordinador Quinquenal'] },
     { path: '/roles', label: 'Roles', icon: 'bx-shield-quarter', grupos: ['Administrador General', 'Coordinador Quinquenal'] },
     { path: '/organizacion', label: 'Organización', icon: 'bx-sitemap', grupos: ['Administrador General', 'Coordinador Quinquenal'] },

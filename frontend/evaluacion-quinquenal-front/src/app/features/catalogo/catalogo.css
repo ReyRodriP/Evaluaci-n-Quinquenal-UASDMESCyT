@@ -1,0 +1,192 @@
+.catalogo-container {
+  padding: 1.5rem;
+  max-width: 960px;
+}
+
+.catalogo-header h1 {
+  margin: 0 0 0.5rem;
+  color: var(--text-title-color, #2d56c8);
+  font-size: 1.4rem;
+}
+
+.aviso-provisional {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #f0c36d;
+  background: #fdf6e3;
+  border-radius: 6px;
+  color: #7a5b00;
+  font-size: 0.9rem;
+}
+
+.aviso-version {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #f0c36d;
+  background: var(--background-hover, #f7f9fa);
+  font-size: 0.85rem;
+  color: var(--text-color, #707070);
+}
+
+.migas {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.miga {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-selected-color, #355cc0);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.miga:hover {
+  text-decoration: underline;
+}
+
+.miga-actual {
+  color: var(--text-color, #707070);
+}
+
+.miga-sep {
+  color: var(--border-color, #e6e9ed);
+}
+
+.estado {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-color, #707070);
+}
+
+.estado-error p {
+  margin: 0 0 0.75rem;
+  color: #b00020;
+}
+
+.btn-reintentar {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border-color, #e6e9ed);
+  background: var(--button-bg, #f1f5f9);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-reintentar:hover {
+  background: var(--button-hover-bg, #dbeafe);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.btn-exportar {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--text-title-color, #2d56c8);
+  background: var(--text-title-color, #2d56c8);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.btn-exportar:hover:not(:disabled) {
+  background: var(--text-selected-color, #355cc0);
+}
+
+.btn-exportar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-export {
+  color: #b00020;
+  font-size: 0.85rem;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tarjeta {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 6px;
+  background: var(--table-bg, #fff);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tarjeta:hover {
+  background: var(--background-hover, #f7f9fa);
+}
+
+.tarjeta-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.codigo {
+  font-weight: 600;
+  color: var(--text-title-color, #2d56c8);
+  font-family: monospace;
+}
+
+.insignia {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, #e6e9ed);
+  color: var(--text-color, #707070);
+}
+
+.insignia-ok {
+  border-color: #7cb342;
+  color: #33691e;
+  background: #f1f8e9;
+}
+
+.insignia-inactiva {
+  border-color: #bdbdbd;
+  color: #616161;
+}
+
+.insignia-sintetico {
+  border-color: #f0c36d;
+  color: #7a5b00;
+  background: #fdf6e3;
+}
+
+.texto {
+  margin: 0;
+  color: var(--text-color, #707070);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.ir {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-selected-color, #355cc0);
+}

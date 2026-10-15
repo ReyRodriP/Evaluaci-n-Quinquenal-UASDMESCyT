@@ -75,7 +75,7 @@ class CriterioMarco(models.Model):
     componente = models.ForeignKey(Componente, on_delete=models.CASCADE, related_name="criterios_marco")
     codigo = models.CharField(max_length=30)
     codigo_completo = models.CharField(max_length=40)
-    nombre = models.CharField(max_length=255)
+    nombre = models.TextField()
     definicion = models.TextField(blank=True)
     orden = models.PositiveIntegerField(default=0)
 

@@ -1,0 +1,85 @@
+<div class="catalogo-container">
+  <div class="catalogo-header">
+    <h1>Explorador del catálogo EQ-SIDACES</h1>
+    <p class="aviso-provisional">
+      Catálogo <strong>provisional</strong> en revisión. Los datos provienen de la
+      extracción automatizada del marco EQ-SIDACES y <strong>no constituyen un catálogo
+      aprobado institucionalmente</strong>.
+    </p>
+  </div>
+
+  <nav class="migas" aria-label="Navegación jerárquica">
+    <button type="button" class="miga" (click)="volverAInicio()">Inicio</button>
+    @for (paso of pila; track $index) {
+      <span class="miga-sep">/</span>
+      <button type="button" class="miga" (click)="volverAindice($index)">
+        {{ paso.etiqueta }}
+      </button>
+    }
+    <span class="miga-sep">/</span>
+    <span class="miga-actual">{{ tituloNivel }}</span>
+  </nav>
+
+  @if (versionInactiva) {
+    <p class="aviso-version">
+      La versión seleccionada no está activada como marco vigente (solo puede haber una
+      versión activa). Se muestra únicamente con fines de consulta.
+    </p>
+  }
+
+  @if (pila.length > 0) {
+    <div class="acciones">
+      <button
+        type="button"
+        class="btn-exportar"
+        (click)="exportar()"
+        [disabled]="exportando || cargando"
+      >
+        {{ exportando ? 'Exportando…' : 'Exportar CSV' }}
+      </button>
+      @if (errorExport) {
+        <span class="error-export" role="alert">{{ errorExport }}</span>
+      }
+    </div>
+  }
+
+  @if (cargando) {
+    <div class="estado" role="status">Cargando…</div>
+  } @else if (error) {
+    <div class="estado estado-error" role="alert">
+      <p>{{ error }}</p>
+      <button type="button" class="btn-reintentar" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else if (items.length === 0) {
+    <div class="estado">No hay registros en este nivel.</div>
+  } @else {
+    <ul class="lista">
+      @for (item of items; track item.id) {
+        <li>
+          <button type="button" class="tarjeta" (click)="seleccionar(item)">
+            <div class="tarjeta-fila">
+              @if (codigoDe(item)) {
+                <span class="codigo">{{ codigoDe(item) }}</span>
+              }
+              @if (item.estado_revision === 'confirmado') {
+                <span class="insignia insignia-ok">Confirmado</span>
+              }
+              @if (item.codigo_sintetico) {
+                <span class="insignia insignia-sintetico">Código sintético (no oficial)</span>
+              }
+              @if (nivelActual === 'versiones') {
+                <span class="insignia" [class.insignia-ok]="item.activo" [class.insignia-inactiva]="!item.activo">
+                  {{ item.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              }
+            </div>
+            <p class="texto">{{ textoDe(item) }}</p>
+            @if (nivelActual !== 'indicadores' && nivelActual !== 'versiones') {
+              <span class="ir">Ver siguiente nivel →</span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

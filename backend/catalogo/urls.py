@@ -3,6 +3,7 @@
 @details Montadas en /api/catalogo/ desde evaluacionQuinquenal/urls.py.
 """
 
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -10,6 +11,7 @@ from .views import (
     CriterioViewSet,
     DimensionViewSet,
     EstandarViewSet,
+    ExportarArbolCSV,
     IndicadorViewSet,
     VersionMarcoEvaluacionViewSet,
 )
@@ -23,4 +25,4 @@ router.register(r"criterios", CriterioViewSet)
 router.register(r"estandares", EstandarViewSet)
 router.register(r"indicadores", IndicadorViewSet)
 
-urlpatterns = router.urls
+urlpatterns = [path("exportar/", ExportarArbolCSV.as_view())] + router.urls

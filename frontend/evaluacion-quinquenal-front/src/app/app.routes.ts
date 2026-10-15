@@ -22,6 +22,7 @@ import { EvidenciaDetalle } from './features/evidencias/evidencia-detalle/eviden
 import { AuthGuard } from './core/guards/auth.guard';
 import { PermisoGuard } from './core/guards/permiso.guard';
 import { Perfil } from './features/perfil/perfil';
+import { Catalogo } from './features/catalogo/catalogo';
 
 export const routes: Routes = [
     {
@@ -68,6 +69,10 @@ export const routes: Routes = [
             {
                 path: 'dashboard',
                 component: Dashboard
+            },
+            {
+                path: 'catalogo',
+                component: Catalogo
             },
             {
                 path: 'usuarios',

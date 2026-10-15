@@ -2,6 +2,9 @@
 @brief Pruebas de los endpoints de solo lectura del catalogo EQ-SIDACES.
 """
 
+import csv
+import io
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from rest_framework import status
@@ -15,6 +18,7 @@ from catalogo.models import (
     IndicadorMarco,
     VersionMarcoEvaluacion,
 )
+from catalogo.views import CABECERA_CSV
 
 User = get_user_model()
 
@@ -24,7 +28,7 @@ RUTAS = ("versiones", "dimensiones", "componentes", "criterios", "estandares", "
 @override_settings(
     PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"],
 )
-class CatalogoApiTests(TestCase):
+class BaseCatalogoApi(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.version = VersionMarcoEvaluacion.objects.create(
@@ -76,6 +80,8 @@ class CatalogoApiTests(TestCase):
         )
         self.client.force_authenticate(user=self.usuario)
 
+
+class CatalogoApiTests(BaseCatalogoApi):
     def test_requiere_autenticacion(self):
         anonimo = APIClient()
         for ruta in RUTAS:
@@ -224,3 +230,131 @@ class CatalogoApiTests(TestCase):
         self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
         self.assertFalse(respuesta.json()["activo"])
         self.assertEqual(VersionMarcoEvaluacion.objects.filter(activo=True).count(), 0)
+
+    def test_lista_vacia_para_version_sin_dimensiones(self):
+        otra = VersionMarcoEvaluacion.objects.create(
+            nombre="Version vacia", slug="version-vacia"
+        )
+        respuesta = self.client.get("/api/catalogo/dimensiones/", {"version": otra.slug})
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        datos = respuesta.json()
+        self.assertEqual(datos["count"], 0)
+        self.assertEqual(datos["results"], [])
+
+    def test_recuperacion_tras_error_de_filtro(self):
+        mala = self.client.get("/api/catalogo/dimensiones/", {"version": "no-existe"})
+        self.assertEqual(mala.status_code, status.HTTP_400_BAD_REQUEST)
+        buena = self.client.get(
+            "/api/catalogo/dimensiones/", {"version": self.version.slug}
+        )
+        self.assertEqual(buena.status_code, status.HTTP_200_OK)
+        self.assertEqual(buena.json()["count"], 1)
+
+
+class CatalogoExportarTests(BaseCatalogoApi):
+    RUTA = "/api/catalogo/exportar/"
+
+    def _filas(self, respuesta):
+        texto = respuesta.content.decode("utf-8-sig")
+        return list(csv.reader(io.StringIO(texto)))
+
+    def test_requiere_autenticacion(self):
+        anonimo = APIClient()
+        respuesta = anonimo.get(self.RUTA, {"version": self.version.slug})
+        self.assertIn(
+            respuesta.status_code,
+            (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+        )
+
+    def test_exporta_arbol_completo_en_orden_jerarquico(self):
+        respuesta = self.client.get(self.RUTA, {"version": self.version.slug})
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        self.assertTrue(respuesta["Content-Type"].startswith("text/csv"))
+        self.assertTrue(respuesta.content.startswith(b"\xef\xbb\xbf"))
+        self.assertIn(
+            f'filename="arbol_eq_sidaces_{self.version.slug}.csv"',
+            respuesta["Content-Disposition"],
+        )
+        filas = self._filas(respuesta)
+        self.assertEqual(filas[0], list(CABECERA_CSV))
+        self.assertEqual(len(filas), 6)
+        self.assertEqual(
+            [fila[0] for fila in filas[1:]],
+            ["dimension", "componente", "criterio", "estandar", "indicador"],
+        )
+        for fila in filas[1:]:
+            self.assertEqual(fila[1], self.version.slug)
+            self.assertEqual(fila[9], "confirmado")
+        indicador = filas[-1]
+        self.assertEqual(indicador[2], "VI")
+        self.assertEqual(indicador[3], "6.1")
+        self.assertEqual(indicador[4], "6.1.1")
+        self.assertEqual(indicador[5], "6.1.1.1")
+        self.assertEqual(indicador[6], "6.1.1.1-IND-01")
+        self.assertEqual(indicador[8], "true")
+
+    def test_version_requerida_devuelve_400(self):
+        respuesta = self.client.get(self.RUTA)
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("version", respuesta.json())
+
+    def test_version_inexistente_devuelve_400(self):
+        respuesta = self.client.get(self.RUTA, {"version": "no-existe"})
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("version", respuesta.json())
+
+    def test_dimension_invalida_devuelve_400(self):
+        for valor in ("abc", "9999"):
+            with self.subTest(valor=valor):
+                respuesta = self.client.get(
+                    self.RUTA, {"version": self.version.slug, "dimension": valor}
+                )
+                self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("dimension", respuesta.json())
+
+    def test_filtro_dimension_restringe_la_rama(self):
+        otra = Dimension.objects.create(
+            version_marco=self.version, codigo="I", nombre="OTRA", orden=1
+        )
+        completa = self._filas(
+            self.client.get(self.RUTA, {"version": self.version.slug})
+        )
+        self.assertEqual(len(completa), 7)
+        rama = self._filas(
+            self.client.get(
+                self.RUTA, {"version": self.version.slug, "dimension": self.dim.pk}
+            )
+        )
+        self.assertEqual(len(rama), 6)
+        self.assertTrue(all(fila[2] == "VI" for fila in rama[1:]))
+        vacia = self._filas(
+            self.client.get(
+                self.RUTA, {"version": self.version.slug, "dimension": otra.pk}
+            )
+        )
+        self.assertEqual(len(vacia), 2)
+        self.assertEqual(vacia[1][0], "dimension")
+
+    def test_post_no_permitido(self):
+        respuesta = self.client.post(self.RUTA, {"version": self.version.slug}, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_get_no_modifica_datos(self):
+        modelos = (
+            VersionMarcoEvaluacion,
+            Dimension,
+            Componente,
+            CriterioMarco,
+            Estandar,
+            IndicadorMarco,
+        )
+        antes = [modelo.objects.count() for modelo in modelos]
+        self.client.get(self.RUTA, {"version": self.version.slug})
+        despues = [modelo.objects.count() for modelo in modelos]
+        self.assertEqual(antes, despues)
+
+    def test_recuperacion_tras_error_de_filtro(self):
+        mala = self.client.get(self.RUTA, {"version": "no-existe"})
+        self.assertEqual(mala.status_code, status.HTTP_400_BAD_REQUEST)
+        buena = self.client.get(self.RUTA, {"version": self.version.slug})
+        self.assertEqual(buena.status_code, status.HTTP_200_OK)
