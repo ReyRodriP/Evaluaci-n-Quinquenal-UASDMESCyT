@@ -386,3 +386,66 @@ class ValidacionCentralTests(BaseApiVinculacion):
     def test_helper_reutilizable_directo(self):
         with self.assertRaises(Exception):
             validar_destino_en_version(self.version_a.pk, estandar=self.std_b)
+
+
+class IndicadorMultiUnidadTests(BaseApiVinculacion):
+    """Un indicador con asignaciones en distintas unidades solo da contexto autorizado.
+
+    La decisión de acceso se toma sobre la asignación (unidad + período + estado
+    según el rol), nunca sobre el indicador aislado.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.criterio_multi = Criterio.objects.create(nombre="Criterio Multi", periodo=cls.periodo)
+        cls.indicador_multi = Indicador.objects.create(nombre="Indicador Multi", criterio=cls.criterio_multi)
+        Asignacion.objects.create(
+            indicador=cls.indicador_multi,
+            unidad_responsable=cls.unidad_a,
+            periodo=cls.periodo,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        Asignacion.objects.create(
+            indicador=cls.indicador_multi,
+            unidad_responsable=cls.unidad_b,
+            periodo=cls.periodo,
+            estado=EstadoAsignacion.PENDIENTE,
+        )
+        cls.corr_multi = Correspondencia.crear_propuesta(
+            actor=cls.admin,
+            version_marco=cls.version_a,
+            criterio_op=None,
+            indicador_op=cls.indicador_multi,
+            estandar=cls.std_a2,
+        )
+
+    def test_contexto_multi_para_unidad_propia(self):
+        respuesta = self.cliente(self.tecnico).get(
+            f"/api/vinculacion/contexto/indicador/{self.indicador_multi.pk}/"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(respuesta.data["correspondencias"]), 1)
+
+    def test_contexto_multi_para_externo_aprobado_en_ambito(self):
+        respuesta = self.cliente(self.externo).get(
+            f"/api/vinculacion/contexto/indicador/{self.indicador_multi.pk}/"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+
+    def test_contexto_multi_unidad_b_y_oculto_en_unidad_a(self):
+        usuario_b = Usuario.objects.create_user(username="tec_b_api", email="tecb@x.org", password="x")
+        usuario_b.groups.add(Group.objects.get(name="Responsable Departamental"))
+        usuario_b.user_permissions.add(self.permiso_view)
+        PerfilUsuario.objects.create(usuario=usuario_b, unidad_organizacional=self.unidad_b)
+        client = self.cliente(usuario_b)
+        contexto = client.get(f"/api/vinculacion/contexto/indicador/{self.indicador_multi.pk}/")
+        self.assertEqual(contexto.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(contexto.data["correspondencias"]), 1)
+        # El resto (orígenes con asignaciones solo en la unidad A) queda oculto;
+        # corr_b sí es visible para unidad B (su origen tiene asignación allí).
+        lista = client.get(URL)
+        ids = {fila["id"] for fila in self.resultados(lista)}
+        self.assertEqual(ids, {self.corr_b.pk, self.corr_multi.pk})
+        oculto = client.get(f"/api/vinculacion/contexto/indicador/{self.indicador_a.pk}/")
+        self.assertEqual(oculto.status_code, status.HTTP_404_NOT_FOUND)
