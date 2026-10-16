@@ -100,7 +100,7 @@ Verificado: 75 filas creadas; segunda ejecución = 0 nuevos / 75 existentes (ide
 jerarquía íntegra; `activo = false`; tablas operativas vacías en esa BD. Recuperación:
 `DROP DATABASE evaluacion_quinquenal_piloto`.
 
-## 5. Resultados reales de pruebas (15/10/2026)
+## 5. Resultados reales de pruebas (15/10/2026; re-verificados en el commit `6a3dd7f`)
 
 | Suite | Resultado | Comando |
 |---|---|---|
@@ -126,36 +126,37 @@ jerarquía íntegra; `activo = false`; tablas operativas vacías en esa BD. Recu
 
 ## 7. Decisiones institucionales pendientes
 
-Mantenimiento de la matriz D1–D13 (`docs/decisiones_eq_sidaces.md`): duplicados de
-estándar (D1–D3), indicadores sin viñeta (D4), textos contaminados (D5), correcciones
-puntuales (D6/D7), asociación evidencia↔indicador (D8), permisos de visualización (D9),
-vinculación futura con `evaluation.Indicador` (D10), palabras partidas (D11), definiciones
-de dimensión (D12), alcance de la importación completa (D13). Ninguna resuelta aún; ninguna
-es necesaria para continuar con el siguiente incremento funcional.
+Mantenimiento de la matriz D1–D13 (`docs/decisiones_eq_sidaces.md`): conteo oficial de
+estándares (D1), estándares duplicados (D2/D3), indicadores sin viñeta (D4), texto
+contaminado (D5), colas reensambladas (D6), registros vacíos/residuales (D7), asociación
+evidencia↔indicador (D8), códigos sintéticos no oficiales (D9), importación con
+discrepancias de conteo `--ack-discrepancias` (D10), palabras partidas (D11), definiciones
+de dimensión (D12) y activación de la versión del marco (D13). Todas siguen **pendientes**;
+ninguna fue resuelta ni modificada por esta guía. (Corrección del 15/10/2026: la versión
+anterior describía erróneamente D9 como «permisos de visualización», D10 como «vinculación
+futura con evaluation.Indicador» y D13 como «alcance de la importación completa»; esas
+etiquetas no existen en la matriz.)
 
-## 8. Revisión de Git (sin commitear a 15/10/2026)
+## 8. Estado en Git (verificado el 15/10/2026)
 
-- **Modificados:** `backend/accounts/urls.py` (ancla `^me$` — corrige captura de
-  `/api/catalogo/dimensiones/`), `backend/catalogo/models.py` (nombre → TextField),
-  `backend/catalogo/views.py` y `urls.py` (endpoint `exportar/`),
-  `backend/catalogo/tests/test_api.py` (base compartida + 9 tests de exportación),
-  `app.routes.ts` (+ruta), `permisos.service.ts` (+menú),
-  `catalogo.service.ts`/`.spec.ts` (+`exportarCsv`), `features/catalogo/*`
-  (+botón «Exportar CSV» y specs).
-- **Nuevos:** migración `0002_alter_criteriomarco_nombre.py`, `scripts/crear_bd_piloto.py`
-  (creación idempotente de la BD piloto), `scripts/preparar_piloto_eq_sidaces.py`,
-  `data/catalogo/eq_sidaces_piloto.json`, `docs/catalogo_piloto_guia.md`.
-  **Borrado:** `tests/test_diag.py` (diagnóstico temporal).
-- **Sensibles:** `.env` ignorado por gitignore ✓; los JSON/CSV de `data/catalogo/`
-  contienen texto extraído del PDF oficial (marco público institucional) — revisar antes
-  de publicar el repositorio.
+Todo el contenido de esta guía está commiteado en la rama `Rey` (commit `6a3dd7f`,
+subido a `origin/Rey`; árbol de trabajo limpio): modelos, migraciones `0001/0002`,
+importador, dataset piloto, API (incl. `/api/catalogo/exportar/`), pantalla Angular,
+scripts (`preparar_piloto_eq_sidaces.py`, `crear_bd_piloto.py`) y esta documentación.
+La eliminación de `tests/test_diag.py` (diagnóstico temporal) también quedó versionada.
 
-## 9. Siguiente incremento recomendado
+- **Sensibles / a revisar:** los JSON/CSV de `data/catalogo/` contienen texto extraído
+  del PDF oficial (marco público institucional) — revisar antes de publicar el repositorio.
+  **El `.env` de la raíz está trackeado desde el commit `ae4aebc` (16/09/2026, pre-piloto,
+  también presente en `main`), pese a figurar en `.gitignore`; `backend/.env` no está
+  trackeado.** Riesgo documentado: requiere una decisión de seguridad específica (dejar de
+  rastrearlo y rotar credenciales); no se ha tocado en ninguna fase del piloto.
 
-**Vinculación visual del catálogo con el flujo operativo** (no nueva investigación):
-permitir que `Asignaciones`/`Evidencias` muestren, en modo solo lectura, el estándar e
-indicador del marco asociados al criterio operativo seleccionado — ya con catálogo
-consultable, API probada, pantalla base y exportación CSV del árbol. Requiere decisión
-previa mínima: cómo mapear `evaluation.Criterio/Indicador` (operacionales) con
-`catalogo.CriterioMarco/IndicadorMarco` (sin tocar modelos: tabla de correspondencia
-explícita).
+## 9. Siguiente incremento (en diseño)
+
+**Vinculación del catálogo con el flujo operativo**, a cargo de una futura app independiente
+`vinculacion` (dirección aprobada el 15/10/2026, aún sin implementar): permitir que
+`Asignaciones`/`Evidencias` muestren, en modo solo lectura, el nodo del marco asociado al
+criterio o indicador operativo. El diseño de la correspondencia (cardinalidad, versionado,
+estados, permisos) se documentará por separado antes de crear modelos; no implica cambios
+en `catalogo` ni en los módulos operativos.

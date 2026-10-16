@@ -18,8 +18,10 @@ validación de archivo (sin BD)
 ... --apply          (solo BD de pruebas / importación controlada futura)
 ```
 
-Estados: en esta fase **solo `--check` contra la BD real**. `--apply` está reservado para pruebas
-y para la importación controlada posterior a la revisión institucional.
+Estados: `--check` y `--dry-run` se ejecutaron contra la BD de desarrollo sin persistir nada.
+`--apply` se ejecutó **una sola vez, contra la BD dedicada `evaluacion_quinquenal_piloto`**
+(piloto aprobado: 75 registros; ver `docs/catalogo_piloto_guia.md` §4). No se ejecutó
+`--apply` contra la BD de desarrollo ni contra ninguna base operativa.
 
 ## 2. Salidas del extractor
 
@@ -70,15 +72,19 @@ manage.py import_eq_sidaces --file <json|csv> --marco-version <etiqueta> (--chec
   (jerarquía válida, omisión de pendientes/hijos de pendiente, códigos sintéticos,
   discrepancias con/sin `--ack`, idempotencia, fallos de validación, CSV, exactamente un modo).
 - `backend/catalogo/tests/test_catalogo.py` — 5 tests de modelos (no modificar).
-- Resultado: `test catalogo` → **24 OK**; suite regresión completa
+- `backend/catalogo/tests/test_api.py` — 25 tests (consulta + exportación CSV).
+- Resultado verificado el 15/10/2026 en el commit `6a3dd7f`: `test catalogo` → **49 OK**;
+  suite regresión completa
   (`accounts auditoria dashboard evaluation evidence evidencias health notificaciones organization
-  reportes search catalogo`) → **211 OK**. `makemigrations catalogo --check --dry-run` → sin cambios.
+  reportes search catalogo`) → **236 OK**. `makemigrations --check --dry-run` → sin cambios.
 - Contra el dataset real (solo `--check`, no toca BD): 2352 registros, **0 errores**;
   reporta las discrepancias 211/923/1097 vs 210/909/915.
 
 ## 5. Restricciones respetadas
 
-- No se importó nada a PostgreSQL; no se ejecutó `--apply` contra la BD real.
+- La única importación persistida (`--apply`) fue contra la BD dedicada del piloto
+  `evaluacion_quinquenal_piloto`; la BD de desarrollo conserva su mini-muestra de 6
+  registros y las tablas operativas no se modificaron.
 - Modelos operativos intactos; `IndicadorMarco` sin conexión con `evaluation.Indicador`/`Asignacion`.
 - App heredada `evidencias` conservada; contratos API Angular sin cambios; datos existentes intactos.
 - Códigos ambiguos, textos vacíos y discrepancias de conteo: marcados/documentados, nunca
@@ -89,5 +95,5 @@ manage.py import_eq_sidaces --file <json|csv> --marco-version <etiqueta> (--chec
 1. Revisión institucional de `eq_sidaces_pending_review.json` (1128 registros).
 2. Reconciliación manual de conteos y de los 3 estándares con prefijo fuera de contexto.
 3. Criterio de asociación evidencia→indicador (hoy todas pendientes, asociadas al estándar).
-4. Decisión sobre `version.activo` y sobre qué hacer con indicadores sin código oficial.
+4. Decisión sobre `version.activo` (D13) y sobre los indicadores sin código oficial (D9).
 5. Extraer definiciones de dimensión (páginas de separación, pendientes).
