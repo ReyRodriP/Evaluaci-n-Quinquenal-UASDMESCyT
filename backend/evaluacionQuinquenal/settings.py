@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "reportes",
     "drf_spectacular",
     "catalogo",
+    "vinculacion",
 ]
 
 
