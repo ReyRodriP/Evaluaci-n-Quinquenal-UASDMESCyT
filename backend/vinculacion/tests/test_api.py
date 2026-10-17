@@ -650,12 +650,12 @@ class RevisorConsultaTests(BaseApiVinculacion):
 
 
 class LecturaViewCorrespondenciaTests(BaseApiVinculacion):
-    """Documenta el comportamiento actual de GET con y sin view_correspondencia.
+    """La lectura exige view_correspondencia para todos los roles.
 
-    No se cambia el comportamiento en esta fase: para roles que no son
-    Evaluador Externo, GET exige view_correspondencia; para el Evaluador
-    Externo, CustomModelPermissions permite métodos seguros sin el permiso de
-    vista (bypass heredado del proyecto), conservando el alcance por ámbito.
+    view_correspondencia es exigido en lectura para todos los roles, incluido
+    el Evaluador Externo (la exención heredada de CustomModelPermissions no
+    aplica en vinculacion). El alcance por unidad, período y ámbito se aplica
+    después y por separado del permiso de vista.
     """
 
     @classmethod
@@ -675,21 +675,28 @@ class LecturaViewCorrespondenciaTests(BaseApiVinculacion):
         )
 
     def test_no_externo_sin_view_get_403(self):
-        for url in (URL, f"{URL}{self.corr_a.pk}/"):
+        for url in (
+            URL,
+            f"{URL}{self.corr_a.pk}/",
+            f"/api/vinculacion/contexto/indicador/{self.indicador_a.pk}/",
+        ):
             with self.subTest(url=url):
                 respuesta = self.cliente(self.consulta_sin_view).get(url)
                 self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_externo_sin_view_lista_200(self):
-        """Bypass heredado: externo lee sin view_correspondencia; el ámbito sigue aplicando."""
+    def test_externo_sin_view_lista_403(self):
         respuesta = self.cliente(self.externo_sin_view).get(URL)
-        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
-        ids = {fila["id"] for fila in self.resultados(respuesta)}
-        self.assertEqual(ids, {self.corr_a.pk})
+        self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_externo_sin_view_detalle_en_ambito_200(self):
+    def test_externo_sin_view_detalle_403(self):
         respuesta = self.cliente(self.externo_sin_view).get(f"{URL}{self.corr_a.pk}/")
-        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_externo_sin_view_contexto_403(self):
+        respuesta = self.cliente(self.externo_sin_view).get(
+            f"/api/vinculacion/contexto/indicador/{self.indicador_a.pk}/"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_externo_sin_view_escritura_403(self):
         respuesta = self.cliente(self.externo_sin_view).post(
