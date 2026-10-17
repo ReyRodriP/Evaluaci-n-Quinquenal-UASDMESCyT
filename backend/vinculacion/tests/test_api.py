@@ -7,6 +7,7 @@ métodos de dominio en las rutas de escritura y ausencia de asignación de
 permisos a grupos.
 """
 
+from types import SimpleNamespace
 from unittest import mock
 
 from django.contrib.auth.models import Group, Permission
@@ -23,6 +24,7 @@ from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador,
 from organization.models import AmbitoEvaluacion, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
 from vinculacion.models import Correspondencia, EstadoCorrespondencia
 from vinculacion.validaciones import validar_destino_en_version
+from vinculacion.views import _alcance_correspondencias, _origen_accesible
 
 from .test_models import _crear_cadena_marco
 
@@ -449,3 +451,248 @@ class IndicadorMultiUnidadTests(BaseApiVinculacion):
         self.assertEqual(ids, {self.corr_b.pk, self.corr_multi.pk})
         oculto = client.get(f"/api/vinculacion/contexto/indicador/{self.indicador_a.pk}/")
         self.assertEqual(oculto.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class GrupoAdministrativoSinPermisosTests(BaseApiVinculacion):
+    """Pertenece a Administrador General pero sin permisos de modelo.
+
+    La puerta de grupo (ROLES_SIN_RESTRICCION) no otorga acceso por sí sola:
+    sin add/change_correspondencia las escrituras quedan en 403 y sin
+    view_correspondencia la lectura también.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.admin_sin_perm = Usuario.objects.create_user(
+            username="admin_noperm_api", email="adminnp@x.org", password="x"
+        )
+        cls.admin_sin_perm.groups.add(Group.objects.get(name="Administrador General"))
+        # Sin user_permissions: el grupo no aporta permisos de modelo.
+
+    def test_crear_propuesta_403(self):
+        respuesta = self.cliente(self.admin_sin_perm).post(
+            URL, self.payload_creacion(estandar=self.std_a2.pk), format="json"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_transiciones_403(self):
+        client = self.cliente(self.admin_sin_perm)
+        casos = [("confirmar", {}), ("rechazar", {"comentario": "x"}), ("desconfirmar", {"comentario": "x"})]
+        for accion, cuerpo in casos:
+            with self.subTest(accion=accion):
+                respuesta = client.post(f"{URL}{self.corr_a.pk}/{accion}/", cuerpo, format="json")
+                self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_listar_403_sin_view(self):
+        respuesta = self.cliente(self.admin_sin_perm).get(URL)
+        self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class AccionFueraDeAlcanceTests(BaseApiVinculacion):
+    """Acciones individuales y alcance por unidad.
+
+    Límite documentado: la política actual solo da escritura a roles de
+    alcance ilimitado (superuser, Administrador General, Coordinador
+    Quinquenal); un usuario de escritura con alcance restringido no puede
+    existir sin cambiar la política, por lo que la ruta de acciones no se
+    fabrica vía API. Se comprueba que el 403 del permiso precede al 404 y se
+    prueba la función de alcance unitariamente.
+    """
+
+    def test_escritor_restringido_no_alcanza_accion_403(self):
+        """Responsable Departamental (alcance unidad A) sobre corr_b: 403 de permiso."""
+        client = self.cliente(self.tecnico)
+        casos = [("confirmar", {}), ("rechazar", {"comentario": "x"}), ("desconfirmar", {"comentario": "x"})]
+        for accion, cuerpo in casos:
+            with self.subTest(accion=accion):
+                respuesta = client.post(f"{URL}{self.corr_b.pk}/{accion}/", cuerpo, format="json")
+                self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_alcance_unitario_excluye_origen_ajeno(self):
+        peticion = SimpleNamespace(user=self.tecnico)
+        qs = _alcance_correspondencias(Correspondencia.objects.all(), peticion)
+        self.assertEqual({c.pk for c in qs}, {self.corr_a.pk})
+
+    def test_origen_accesible_unitario(self):
+        peticion = SimpleNamespace(user=self.tecnico)
+        self.assertTrue(_origen_accesible(peticion, criterio_op=self.criterio_a))
+        self.assertFalse(_origen_accesible(peticion, criterio_op=self.criterio_b))
+        self.assertTrue(_origen_accesible(peticion, indicador_op=self.indicador_a))
+        self.assertFalse(_origen_accesible(peticion, indicador_op=self.indicador_b))
+
+
+class ExternoAccionesTests(BaseApiVinculacion):
+    """El Evaluador Externo no ejecuta acciones de escritura vía API.
+
+    Bloqueo en la capa de permisos (métodos seguros) incluso con solicitudes
+    directas a /confirmar/, /rechazar/ y /desconfirmar/, y ocultación de
+    objetos fuera de su ámbito.
+    """
+
+    def test_acciones_en_ambito_403(self):
+        client = self.cliente(self.externo)
+        casos = [("confirmar", {}), ("rechazar", {"comentario": "x"}), ("desconfirmar", {"comentario": "x"})]
+        for accion, cuerpo in casos:
+            with self.subTest(accion=accion):
+                respuesta = client.post(f"{URL}{self.corr_a.pk}/{accion}/", cuerpo, format="json")
+                self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_acciones_fuera_de_ambito_403(self):
+        """El 403 de permisos precede al 404 de alcance en acciones."""
+        client = self.cliente(self.externo)
+        casos = [("confirmar", {}), ("rechazar", {"comentario": "x"}), ("desconfirmar", {"comentario": "x"})]
+        for accion, cuerpo in casos:
+            with self.subTest(accion=accion):
+                respuesta = client.post(f"{URL}{self.corr_b.pk}/{accion}/", cuerpo, format="json")
+                self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_detalle_en_ambito_200(self):
+        respuesta = self.cliente(self.externo).get(f"{URL}{self.corr_a.pk}/")
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+
+    def test_detalle_fuera_de_ambito_404(self):
+        respuesta = self.cliente(self.externo).get(f"{URL}{self.corr_b.pk}/")
+        self.assertEqual(respuesta.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_contexto_fuera_de_ambito_404(self):
+        respuesta = self.cliente(self.externo).get(
+            f"/api/vinculacion/contexto/indicador/{self.indicador_b.pk}/"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class RevisorConsultaTests(BaseApiVinculacion):
+    """Revisor Institucional y Consulta: alcance de facultad y sin escritura.
+
+    Ambos roles comparten la implementación de unidades_organizacionales_permitidas
+    (subárbol de la facultad de su perfil); no se observan diferencias entre ellos.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        tipo_fac, _ = TipoUnidadOrganizacional.objects.get_or_create(nombre="Facultad")
+        cls.facultad = UnidadOrganizacional.objects.create(nombre="Facultad D11", tipo=tipo_fac)
+        cls.depto_facultad = UnidadOrganizacional.objects.create(
+            nombre="Depto D11", tipo=cls.tipo, unidad_padre=cls.facultad
+        )
+        cls.facultad_ajena = UnidadOrganizacional.objects.create(nombre="Facultad Ajena D11", tipo=tipo_fac)
+        cls.depto_ajeno = UnidadOrganizacional.objects.create(
+            nombre="Depto Ajeno D11", tipo=cls.tipo, unidad_padre=cls.facultad_ajena
+        )
+
+        cls.revisor = Usuario.objects.create_user(username="revisor_api", email="revisor@x.org", password="x")
+        cls.revisor.groups.add(Group.objects.create(name="Revisor Institucional"))
+        cls.revisor.user_permissions.add(cls.permiso_view)
+        PerfilUsuario.objects.create(usuario=cls.revisor, unidad_organizacional=cls.depto_facultad)
+
+        cls.consulta = Usuario.objects.create_user(username="consulta_api", email="consulta@x.org", password="x")
+        cls.consulta.groups.add(Group.objects.create(name="Consulta"))
+        cls.consulta.user_permissions.add(cls.permiso_view)
+        PerfilUsuario.objects.create(usuario=cls.consulta, unidad_organizacional=cls.depto_facultad)
+
+        cls.criterio_d = Criterio.objects.create(nombre="Criterio D11", periodo=cls.periodo)
+        cls.indicador_d = Indicador.objects.create(nombre="Indicador D11", criterio=cls.criterio_d)
+        Asignacion.objects.create(
+            indicador=cls.indicador_d,
+            unidad_responsable=cls.depto_facultad,
+            periodo=cls.periodo,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        cls.corr_d = Correspondencia.crear_propuesta(
+            actor=cls.admin, version_marco=cls.version_a, criterio_op=cls.criterio_d, estandar=cls.std_a
+        )
+
+        cls.criterio_ajeno = Criterio.objects.create(nombre="Criterio Ajeno D11", periodo=cls.periodo)
+        cls.indicador_ajeno = Indicador.objects.create(nombre="Indicador Ajeno D11", criterio=cls.criterio_ajeno)
+        Asignacion.objects.create(
+            indicador=cls.indicador_ajeno,
+            unidad_responsable=cls.depto_ajeno,
+            periodo=cls.periodo,
+            estado=EstadoAsignacion.APROBADO,
+        )
+        cls.corr_ajena = Correspondencia.crear_propuesta(
+            actor=cls.admin, version_marco=cls.version_a, criterio_op=cls.criterio_ajeno, estandar=cls.std_a2
+        )
+
+    def test_revisor_lista_solo_su_facultad(self):
+        respuesta = self.cliente(self.revisor).get(URL)
+        ids = {fila["id"] for fila in self.resultados(respuesta)}
+        self.assertEqual(ids, {self.corr_d.pk})
+
+    def test_consulta_mismo_alcance(self):
+        respuesta = self.cliente(self.consulta).get(URL)
+        ids = {fila["id"] for fila in self.resultados(respuesta)}
+        self.assertEqual(ids, {self.corr_d.pk})
+
+    def test_detalla_fuera_de_facultad_404(self):
+        for usuario in (self.revisor, self.consulta):
+            with self.subTest(usuario=usuario.username):
+                respuesta = self.cliente(usuario).get(f"{URL}{self.corr_ajena.pk}/")
+                self.assertEqual(respuesta.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_contexto_dentro_y_fuera(self):
+        client = self.cliente(self.revisor)
+        dentro = client.get(f"/api/vinculacion/contexto/indicador/{self.indicador_d.pk}/")
+        self.assertEqual(dentro.status_code, status.HTTP_200_OK)
+        fuera = client.get(f"/api/vinculacion/contexto/indicador/{self.indicador_ajeno.pk}/")
+        self.assertEqual(fuera.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_escritura_403(self):
+        for usuario in (self.revisor, self.consulta):
+            with self.subTest(usuario=usuario.username):
+                client = self.cliente(usuario)
+                creacion = client.post(URL, self.payload_creacion(), format="json")
+                self.assertEqual(creacion.status_code, status.HTTP_403_FORBIDDEN)
+                transicion = client.post(f"{URL}{self.corr_d.pk}/confirmar/", {}, format="json")
+                self.assertEqual(transicion.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class LecturaViewCorrespondenciaTests(BaseApiVinculacion):
+    """Documenta el comportamiento actual de GET con y sin view_correspondencia.
+
+    No se cambia el comportamiento en esta fase: para roles que no son
+    Evaluador Externo, GET exige view_correspondencia; para el Evaluador
+    Externo, CustomModelPermissions permite métodos seguros sin el permiso de
+    vista (bypass heredado del proyecto), conservando el alcance por ámbito.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.consulta_sin_view = Usuario.objects.create_user(
+            username="consulta_sinview_api", email="csv@x.org", password="x"
+        )
+        cls.consulta_sin_view.groups.add(Group.objects.get_or_create(name="Consulta")[0])
+
+        cls.externo_sin_view = Usuario.objects.create_user(
+            username="externo_sinview_api", email="esv@x.org", password="x"
+        )
+        cls.externo_sin_view.groups.add(Group.objects.get(name="Evaluador Externo"))
+        AmbitoEvaluacion.objects.create(
+            usuario=cls.externo_sin_view, unidad_organizacional=cls.unidad_a, periodo=cls.periodo, activo=True
+        )
+
+    def test_no_externo_sin_view_get_403(self):
+        for url in (URL, f"{URL}{self.corr_a.pk}/"):
+            with self.subTest(url=url):
+                respuesta = self.cliente(self.consulta_sin_view).get(url)
+                self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_externo_sin_view_lista_200(self):
+        """Bypass heredado: externo lee sin view_correspondencia; el ámbito sigue aplicando."""
+        respuesta = self.cliente(self.externo_sin_view).get(URL)
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        ids = {fila["id"] for fila in self.resultados(respuesta)}
+        self.assertEqual(ids, {self.corr_a.pk})
+
+    def test_externo_sin_view_detalle_en_ambito_200(self):
+        respuesta = self.cliente(self.externo_sin_view).get(f"{URL}{self.corr_a.pk}/")
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+
+    def test_externo_sin_view_escritura_403(self):
+        respuesta = self.cliente(self.externo_sin_view).post(
+            URL, self.payload_creacion(estandar=self.std_a2.pk), format="json"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
