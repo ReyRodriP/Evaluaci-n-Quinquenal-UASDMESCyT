@@ -60,6 +60,10 @@ export class CatalogoService {
     );
   }
 
+  obtenerIndicadorMarco(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/catalogo/indicadores/${id}/`);
+  }
+
   exportarCsv(versionSlug: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/catalogo/exportar/`, {
       params: { version: versionSlug },

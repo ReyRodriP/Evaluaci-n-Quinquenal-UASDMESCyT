@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { RespuestaPaginada } from '../models/vinculacion.model';
 
 @Injectable({
   providedIn: 'root',
@@ -67,6 +68,10 @@ export class EvaluacionService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/indicadores/`));
   }
 
+  listarIndicadoresPagina(page = 1): Observable<RespuestaPaginada<any>> {
+    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/indicadores/`, { params: { page: String(page) } });
+  }
+
   obtenerIndicador(id: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/indicadores/${id}/`);
   }
@@ -92,6 +97,16 @@ export class EvaluacionService {
     const params: Record<string, string> = {};
     if (periodoId) params['periodo'] = String(periodoId);
     return this.toList(this.http.get<any>(`${this.apiUrl}/asignaciones/`, { params }));
+  }
+
+  listarAsignacionesPagina(periodoId?: number | string | null, page = 1): Observable<RespuestaPaginada<any>> {
+    const params: Record<string, string> = { page: String(page) };
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/asignaciones/`, { params });
+  }
+
+  obtenerAsignacion(id: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/asignaciones/${id}/`);
   }
 
   crearAsignacion(payload: any): Observable<any> {

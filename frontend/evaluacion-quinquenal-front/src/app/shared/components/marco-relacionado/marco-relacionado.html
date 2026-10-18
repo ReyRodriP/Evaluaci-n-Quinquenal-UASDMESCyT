@@ -1,0 +1,62 @@
+<section class="marco-relacionado" aria-label="Marco de evaluación relacionado" *ngIf="indicadorId">
+  <div class="marco-header">
+    <h3>Marco de evaluación relacionado</h3>
+    <a
+      *ngIf="puedeGestionar"
+      class="marco-gestionar"
+      [routerLink]="['/indicadores', indicadorId, 'detalle']">
+      Consultar o proponer correspondencias
+    </a>
+  </div>
+
+  <p class="marco-origen">
+    <span><strong>Indicador operativo:</strong> {{ nombreOperativo }}</span>
+    <span *ngIf="criterioOperativo"><strong>Criterio operativo:</strong> {{ criterioOperativo }}</span>
+  </p>
+
+  <div *ngIf="cargando" class="marco-estado" role="status">Cargando contexto EQ-SIDACES…</div>
+
+  <div *ngIf="!cargando && errorCarga" class="marco-estado marco-error" role="alert">
+    <p>{{ errorCarga }}</p>
+    <button *ngIf="puedeReintentar" type="button" (click)="cargar()">Reintentar</button>
+  </div>
+
+  <div *ngIf="!cargando && !errorCarga" class="marco-cuerpo">
+    <p *ngIf="sinAlcance" class="marco-estado marco-vacio">
+      No hay contexto EQ-SIDACES disponible para este indicador.
+    </p>
+
+    <ng-container *ngIf="!sinAlcance">
+      <ng-container *ngIf="confirmadas.length; else sinConfirmada">
+        <article
+          class="marco-vinculo"
+          *ngFor="let corr of confirmadas"
+          [attr.data-estado]="corr.estado">
+          <div class="marco-vinculo-cabecera">
+            <span class="marco-badge marco-badge-confirmada">Correspondencia confirmada</span>
+            <span class="marco-version">Marco: {{ corr.version_marco.nombre }}</span>
+          </div>
+          <p class="marco-destino" *ngIf="corr.destino">
+            <strong>{{ etiquetaNivel(corr.destino.nivel) }}:</strong> {{ corr.destino.texto }}
+            <span *ngIf="naturalezaDe(corr.destino) as naturaleza" class="marco-naturaleza">
+              · {{ naturaleza }}
+            </span>
+          </p>
+          <p class="marco-meta" *ngIf="corr.fecha_confirmacion">
+            Confirmada {{ corr.fecha_confirmacion | date: 'dd/MM/yyyy' }}
+            <span *ngIf="corr.confirmado_por"> por {{ corr.confirmado_por }}</span>
+          </p>
+        </article>
+      </ng-container>
+
+      <ng-template #sinConfirmada>
+        <p class="marco-estado marco-vacio">
+          Sin correspondencia confirmada.
+          <span *ngIf="propuestasPendientes > 0" class="marco-propuestas">
+            {{ propuestasPendientes }} propuesta(s) pendiente(s) de validación (no vigente(s)).
+          </span>
+        </p>
+      </ng-template>
+    </ng-container>
+  </div>
+</section>

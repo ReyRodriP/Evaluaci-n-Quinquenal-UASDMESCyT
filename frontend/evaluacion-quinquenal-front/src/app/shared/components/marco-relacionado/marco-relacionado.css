@@ -1,0 +1,142 @@
+.marco-relacionado {
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.marco-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.marco-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-title-color, #2d56c8);
+}
+
+.marco-gestionar {
+  color: var(--primary-color, #0091ff);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.marco-gestionar:hover {
+  text-decoration: underline;
+}
+
+.marco-origen {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.marco-estado {
+  font-size: 0.875rem;
+  color: var(--text-color, #707070);
+  background: #f8fafc;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+}
+
+.marco-error {
+  background: #fff5f5;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+
+.marco-error button {
+  margin-top: 0.5rem;
+  background: var(--primary-color, #0091ff);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.marco-error p {
+  margin: 0;
+}
+
+.marco-vacio {
+  color: var(--text-color, #707070);
+}
+
+.marco-propuestas {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #997404;
+}
+
+.marco-vinculo {
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-left: 4px solid #198754;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.6rem;
+  background: #fbfffd;
+}
+
+.marco-vinculo-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.marco-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.marco-badge-confirmada {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.marco-version {
+  font-size: 0.8rem;
+  color: var(--text-color, #707070);
+}
+
+.marco-destino {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.marco-naturaleza {
+  font-size: 0.8rem;
+  color: var(--text-color, #707070);
+}
+
+.marco-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-color, #707070);
+}
+
+@media (max-width: 720px) {
+  .marco-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

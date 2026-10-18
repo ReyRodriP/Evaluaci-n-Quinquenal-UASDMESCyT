@@ -1,7 +1,7 @@
 ﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
@@ -14,7 +14,7 @@ import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-asignaciones',
-  imports: [CommonModule, FormsModule, CrudTable, SearchBar, Pagination, Modal],
+  imports: [CommonModule, FormsModule, CrudTable, SearchBar, Pagination, Modal, RouterLink],
   templateUrl: './asignaciones.html',
   styleUrl: './asignaciones.css',
 })

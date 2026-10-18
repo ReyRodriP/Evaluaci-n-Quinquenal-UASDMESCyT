@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { RespuestaPaginada } from '../models/vinculacion.model';
 
 @Injectable({
   providedIn: 'root',
@@ -21,6 +22,12 @@ export class EvidenciasService {
     const params: Record<string, string> = {};
     if (periodoId) params['periodo'] = String(periodoId);
     return this.toList(this.http.get<any>(`${this.apiUrl}/evidencias/`, { params }));
+  }
+
+  listarEvidenciasPagina(periodoId?: number | string | null, page = 1): Observable<RespuestaPaginada<any>> {
+    const params: Record<string, string> = { page: String(page) };
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/evidencias/`, { params });
   }
 
   descargarMasiva(evidenciaIds: number[]): Observable<Blob> {

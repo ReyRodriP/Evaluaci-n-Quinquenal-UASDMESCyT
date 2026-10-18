@@ -15,7 +15,9 @@ import { Indicadores } from './features/indicadores/indicadores';
 import { IndicadorDetalle } from './features/indicadores/indicador-detalle/indicador-detalle';
 import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
+import { AsignacionDetalle } from './features/asignaciones/asignacion-detalle/asignacion-detalle';
 import { Evidencias } from './features/evidencias/evidencias';
+import { Seguimiento } from './features/seguimiento/seguimiento';
 import { Auditorias } from './features/auditorias/auditorias';
 import { Reportes } from './features/reportes/reportes';
 import { Notificaciones } from './features/notificaciones/notificaciones';
@@ -109,12 +111,20 @@ export const routes: Routes = [
                 component: Asignaciones
             },
             {
+                path: 'asignaciones/:id/detalle',
+                component: AsignacionDetalle
+            },
+            {
                 path: 'evidencias',
                 component: Evidencias
             },
             {
                 path: 'evidencias/:id/detalle',
                 component: EvidenciaDetalle
+            },
+            {
+                path: 'seguimiento',
+                component: Seguimiento
             },
             {
                 path: 'roles',

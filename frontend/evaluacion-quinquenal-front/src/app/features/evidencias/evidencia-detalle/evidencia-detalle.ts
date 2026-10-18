@@ -6,10 +6,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { EvidenciasService } from '../../../core/services/evidencias.service';
 import { EvaluacionService } from '../../../core/services/evaluacion.service';
+import { MarcoRelacionado } from '../../../shared/components/marco-relacionado/marco-relacionado';
 
 @Component({
   selector: 'app-evidencia-detalle',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, MarcoRelacionado],
   templateUrl: './evidencia-detalle.html',
   styleUrl: './evidencia-detalle.css',
 })

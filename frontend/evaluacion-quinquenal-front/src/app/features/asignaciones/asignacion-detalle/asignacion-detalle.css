@@ -1,0 +1,122 @@
+:host {
+  display: block;
+  padding: 1.5rem 2rem 3rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.detalle-header h2 {
+  margin: 0.35rem 0 1.25rem;
+  color: var(--text-title-color, #2d56c8);
+  font-size: 1.4rem;
+}
+
+.btn-volver {
+  color: var(--primary-color, #0091ff);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.btn-volver:hover {
+  text-decoration: underline;
+}
+
+.estado-carga,
+.estado-error {
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+}
+
+.estado-carga {
+  background: #f8fafc;
+  border: 1px solid var(--border-color, #e6e9ed);
+  color: var(--text-color, #707070);
+}
+
+.estado-error {
+  background: #fff5f5;
+  border: 1px solid #f5c2c7;
+  color: #842029;
+}
+
+.estado-error p {
+  margin: 0;
+}
+
+.estado-error button {
+  margin-top: 0.5rem;
+  background: var(--primary-color, #0091ff);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.asignacion-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.asignacion-cabecera h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #1e293b;
+}
+
+.estado-badge {
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #eef2f7;
+  color: #334155;
+}
+
+.estado-badge[data-estado='aprobado'] {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.estado-badge[data-estado='rechazado'] {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.estado-badge[data-estado='en_progreso'] {
+  background: #cff4fc;
+  color: #055160;
+}
+
+.estado-badge[data-estado='observada'] {
+  background: #fff3cd;
+  color: #997404;
+}
+
+.asignacion-datos p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+@media (max-width: 720px) {
+  :host {
+    padding: 1rem;
+  }
+}

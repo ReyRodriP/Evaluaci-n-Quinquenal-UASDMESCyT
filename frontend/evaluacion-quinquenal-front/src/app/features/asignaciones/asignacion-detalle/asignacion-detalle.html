@@ -1,0 +1,37 @@
+<section class="asignacion-detalle">
+  <header class="detalle-header">
+    <div>
+      <a routerLink="/asignaciones" [queryParams]="periodoConsulta" class="btn-volver">Volver a asignaciones</a>
+      <h2>Asignación</h2>
+    </div>
+  </header>
+
+  <div *ngIf="cargando" class="estado-carga" role="status">Cargando asignación…</div>
+
+  <div *ngIf="errorCarga && !cargando" class="estado-error" role="alert">
+    <p>{{ errorCarga }}</p>
+    <button type="button" (click)="cargar()">Reintentar</button>
+  </div>
+
+  <ng-container *ngIf="asignacion && !cargando">
+    <div class="card asignacion-card">
+      <div class="asignacion-cabecera">
+        <h3>{{ asignacion.indicador_nombre }}</h3>
+        <span class="estado-badge" [attr.data-estado]="asignacion.estado">
+          {{ asignacion.estado_display || asignacion.estado }}
+        </span>
+      </div>
+      <div class="asignacion-datos">
+        <p><strong>Unidad responsable:</strong> {{ asignacion.unidad_responsable_nombre }}</p>
+        <p><strong>Período:</strong> {{ asignacion.periodo_nombre }}</p>
+        <p *ngIf="asignacion.departamento_nombre"><strong>Departamento:</strong> {{ asignacion.departamento_nombre }}</p>
+      </div>
+    </div>
+
+    <app-marco-relacionado
+      *ngIf="asignacion.indicador"
+      [indicadorId]="asignacion.indicador"
+      [indicadorNombre]="asignacion.indicador_nombre">
+    </app-marco-relacionado>
+  </ng-container>
+</section>

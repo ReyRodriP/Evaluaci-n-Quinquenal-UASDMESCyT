@@ -12,7 +12,18 @@
         <span *ngIf="periodoSeleccionadoId && !periodoSeleccionadoEsActivo">Solo consulta histórica</span>
       </div>
     </app-search-bar>
-    <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
+    <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" [plantillasCelda]="{ 'Indicadores': plantillaIndicadores }" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)">
+      <ng-template #plantillaIndicadores let-row>
+        <div class="indicadores-list">
+          <a
+            *ngFor="let asignacion of row.asignaciones; let i = index"
+            class="indicador-link"
+            [routerLink]="['/asignaciones', asignacion.id, 'detalle']">
+            {{ row.indicadores[i]?.nombre || 'Indicador' }}
+          </a>
+        </div>
+      </ng-template>
+    </app-crud-table>
     <app-pagination [total]="datosFiltrados.length" [pageSize]="pageSize" [currentPage]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
 
     <app-modal

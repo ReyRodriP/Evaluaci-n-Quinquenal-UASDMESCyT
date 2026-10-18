@@ -46,3 +46,20 @@
 		padding-left: 1px;
 	}
 }
+
+.indicadores-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.indicador-link {
+  color: #0091ff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.indicador-link:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,221 @@
+<section class="seguimiento-page">
+  <header class="seguimiento-header">
+    <div class="seguimiento-title">
+      <h2 class="page-title">Seguimiento de evaluación</h2>
+      <p>Evidencias y correspondencias de las asignaciones del período</p>
+    </div>
+    <label class="context-field">
+      <span>Período</span>
+      <select [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)" aria-label="Período del seguimiento">
+        <option *ngIf="!periodoSeleccionadoId" value="">Sin período seleccionado</option>
+        <option *ngFor="let periodo of periodos" [value]="valorPeriodo(periodo)">
+          {{ periodo.nombre }} — {{ periodo.activo ? 'Activo' : 'Finalizado' }}
+        </option>
+      </select>
+    </label>
+  </header>
+
+  <div *ngIf="errorPeriodos" class="state-msg state-error" role="alert">
+    <i class="bx bx-error-circle" aria-hidden="true"></i>
+    <p>No se pudieron cargar los períodos.</p>
+    <button type="button" class="btn-reintentar" (click)="reintentar()">Reintentar</button>
+  </div>
+
+  <div *ngIf="cargando" class="state-msg" role="status">Cargando información del seguimiento...</div>
+
+  <div *ngIf="!cargando && !errorPeriodos && errorCarga" class="state-msg state-error" role="alert">
+    <i class="bx bx-error-circle" aria-hidden="true"></i>
+    <p>{{ errorCarga }}</p>
+    <button type="button" class="btn-reintentar" (click)="reintentar()">Reintentar</button>
+  </div>
+
+  <ng-container *ngIf="!cargando && !errorPeriodos && !errorCarga">
+    <div class="seguimiento-filters" aria-label="Filtros de seguimiento">
+      <label>
+        Unidad responsable
+        <select [ngModel]="filtros.unidad" (ngModelChange)="cambiarFiltro('unidad', $event)" aria-label="Unidad responsable">
+          <option value="">Todas las unidades</option>
+          <option *ngFor="let opcion of opcionesUnidades" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+        </select>
+      </label>
+      <label>
+        Estado de la asignación
+        <select [ngModel]="filtros.estado" (ngModelChange)="cambiarFiltro('estado', $event)" aria-label="Estado de la asignación">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let opcion of opcionesEstados" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+        </select>
+      </label>
+      <label>
+        Estado de revisión
+        <select [ngModel]="filtros.revision" (ngModelChange)="cambiarFiltro('revision', $event)" aria-label="Estado de revisión">
+          <option value="">Todos los estados de revisión</option>
+          <option *ngFor="let opcion of opcionesRevision" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+        </select>
+      </label>
+      <label>
+        Estado de la correspondencia
+        <select [ngModel]="filtros.correspondencia" (ngModelChange)="cambiarFiltro('correspondencia', $event)"
+          aria-label="Estado de la correspondencia" [disabled]="!correspondenciasDisponibles">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let opcion of opcionesCorrespondencia" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+        </select>
+      </label>
+      <div class="filters-actions">
+        <button type="button" class="btn-clean" (click)="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    </div>
+
+    <div class="avisos" aria-live="polite">
+      <div class="aviso aviso-warn" *ngFor="let aviso of avisosTruncado" role="status">
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        <span>{{ aviso }}</span>
+      </div>
+      <div class="aviso aviso-warn" *ngIf="avisoCorrespondenciaTruncada" role="status">
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        <span>El estado de correspondencias supera el límite de consulta; algunos indicadores pueden mostrarse sin correspondencia confirmada.</span>
+      </div>
+      <div class="aviso aviso-error" *ngIf="!correspondenciasDisponibles" role="alert">
+        <i class="bx bx-error-circle" aria-hidden="true"></i>
+        <span>No se pudo consultar el estado de correspondencias (permisos o error del servicio). Las métricas y el filtro de correspondencia no están disponibles.</span>
+        <button type="button" class="btn-reintentar" (click)="reintentarCorrespondencias()" [disabled]="reintentandoCorrespondencias">
+          {{ reintentandoCorrespondencias ? 'Reintentando...' : 'Reintentar' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bx bx-task" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.total }}</span>
+          <span class="kpi-label">Total asignaciones</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon cyan"><i class="bx bx-file" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.conEvidencia }}</span>
+          <span class="kpi-label">Con evidencia</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bx bx-file-x" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.sinEvidencia }}</span>
+          <span class="kpi-label">Sin evidencia</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon indigo"><i class="bx bx-time" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.pendientesRevision }}</span>
+          <span class="kpi-label">Pendientes de revisión</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon purple"><i class="bx bx-message-detail" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.observadas }}</span>
+          <span class="kpi-label">Observadas</span>
+        </div>
+      </div>
+      <div class="kpi-card" *ngIf="correspondenciasDisponibles">
+        <div class="kpi-icon green"><i class="bx bx-link" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.conConfirmada ?? 0 }}</span>
+          <span class="kpi-label">Con correspondencia confirmada</span>
+        </div>
+      </div>
+      <div class="kpi-card" *ngIf="correspondenciasDisponibles">
+        <div class="kpi-icon red"><i class="bx bx-unlink" aria-hidden="true"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.sinConfirmada ?? 0 }}</span>
+          <span class="kpi-label">Sin correspondencia confirmada</span>
+        </div>
+      </div>
+    </div>
+
+    <details class="metricas-definiciones">
+      <summary>Definición de las métricas</summary>
+      <ul>
+        <li><strong>Total asignaciones</strong>: asignaciones visibles para el período y el ámbito del usuario, después de aplicar los filtros.</li>
+        <li><strong>Con evidencia</strong>: asignaciones con un registro de evidencia asociado (una sola por asignación, sin importar el número de versiones).</li>
+        <li><strong>Sin evidencia</strong>: total menos las asignaciones con evidencia.</li>
+        <li><strong>Pendientes de revisión</strong>: asignaciones con evidencia activa cuyo estado es «En progreso» (enviadas y esperando revisión).</li>
+        <li><strong>Observadas</strong>: asignaciones con evidencia activa cuyo estado es «Observada».</li>
+        <li *ngIf="correspondenciasDisponibles"><strong>Con correspondencia confirmada</strong>: asignaciones cuyo indicador tiene al menos una correspondencia confirmada con el catálogo (las propuestas no cuentan).</li>
+        <li *ngIf="correspondenciasDisponibles"><strong>Sin correspondencia confirmada</strong>: total menos las asignaciones con correspondencia confirmada.</li>
+      </ul>
+    </details>
+
+    <div class="table-wrapper" *ngIf="filasFiltradas.length; else estadosVacios">
+      <table>
+        <caption class="sr-only">Seguimiento de evidencias y correspondencias por asignación</caption>
+        <thead>
+          <tr>
+            <th scope="col">Período</th>
+            <th scope="col">Unidad responsable</th>
+            <th scope="col">Criterio operativo</th>
+            <th scope="col">Indicador operativo</th>
+            <th scope="col">Estado de la asignación</th>
+            <th scope="col">Existencia de evidencia</th>
+            <th scope="col">Estado de revisión de la evidencia</th>
+            <th scope="col">Estado de la correspondencia</th>
+            <th scope="col">Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let fila of filasPaginadas">
+            <td>{{ fila.periodoNombre }}</td>
+            <td>{{ fila.unidadNombre }}</td>
+            <td>{{ fila.criterioNombre }}</td>
+            <td>{{ fila.indicadorNombre }}</td>
+            <td><span class="badge" [ngClass]="'estado-' + fila.estado">{{ fila.estadoDisplay }}</span></td>
+            <td>
+              <span class="badge" [ngClass]="fila.evidenciaId ? 'ev-si' : 'ev-no'">
+                {{ fila.evidenciaId ? 'Sí' : 'No' }}
+              </span>
+            </td>
+            <td><span class="badge" [ngClass]="'rev-' + fila.claveRevision">{{ fila.estadoRevision }}</span></td>
+            <td>
+              <span class="badge" [ngClass]="'corr-' + fila.correspondenciaEstado">
+                {{ etiquetaCorrespondencia(fila.correspondenciaEstado) }}
+              </span>
+            </td>
+            <td class="enlaces">
+              <a [routerLink]="['/asignaciones', fila.asignacionId, 'detalle']">Asignación</a>
+              <a *ngIf="fila.evidenciaId" [routerLink]="['/evidencias', fila.evidenciaId, 'detalle']"
+                [queryParams]="{ periodo: periodoSeleccionadoId }">Evidencia</a>
+              <a [routerLink]="['/indicadores', fila.indicadorId, 'detalle']">Correspondencias</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #estadosVacios>
+      <div class="state-msg">
+        <ng-container *ngIf="!periodoSeleccionadoId">No hay un período seleccionado para consultar el seguimiento.</ng-container>
+        <ng-container *ngIf="periodoSeleccionadoId && !filas.length">No hay asignaciones registradas para el período seleccionado.</ng-container>
+        <ng-container *ngIf="periodoSeleccionadoId && filas.length && !filasFiltradas.length">No hay registros que coincidan con los filtros seleccionados.</ng-container>
+      </div>
+    </ng-template>
+
+    <div class="paginacion-barra" *ngIf="filasFiltradas.length">
+      <label class="page-size-field">
+        Registros por página
+        <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)" aria-label="Registros por página">
+          <option [value]="10">10</option>
+          <option [value]="25">25</option>
+          <option [value]="50">50</option>
+        </select>
+      </label>
+      <app-pagination
+        [total]="filasFiltradas.length"
+        [pageSize]="pageSize"
+        [currentPage]="currentPage"
+        (pageChange)="onPageChange($event)">
+      </app-pagination>
+    </div>
+  </ng-container>
+</section>
