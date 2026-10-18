@@ -703,3 +703,208 @@ class LecturaViewCorrespondenciaTests(BaseApiVinculacion):
             URL, self.payload_creacion(estandar=self.std_a2.pk), format="json"
         )
         self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class CreacionAuditoriaApiTests(BaseApiVinculacion):
+    """A. Creación por API: conteo exacto y evento de auditoría exacto."""
+
+    def test_crear_registra_exactamente_una_auditoria(self):
+        correlaciones_previas = Correspondencia.objects.count()
+        auditorias_previas = Auditoria.objects.count()
+        respuesta = self.cliente(self.admin).post(
+            URL, self.payload_creacion(estandar=self.std_a2.pk, comentario="Vínculo inicial"), format="json"
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Correspondencia.objects.count(), correlaciones_previas + 1)
+        self.assertEqual(Auditoria.objects.count(), auditorias_previas + 1)
+        entrada = Auditoria.objects.get(modelo="Correspondencia", registro_id=respuesta.data["id"])
+        self.assertEqual(entrada.accion, "crear correspondencia")
+        self.assertEqual(entrada.usuario_id, self.admin.pk)
+        self.assertIn("Vínculo inicial", entrada.descripcion)
+
+    def test_crear_procedencia_derivada_y_comentario(self):
+        respuesta = self.cliente(self.admin).post(
+            URL,
+            self.payload_creacion(
+                estandar=self.std_a2.pk, procedencia="derivada", comentario="Sugerido por nombres parecidos"
+            ),
+            format="json",
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(respuesta.data["procedencia"], "derivada")
+        self.assertEqual(respuesta.data["comentario"], "Sugerido por nombres parecidos")
+        self.assertEqual(respuesta.data["estado"], EstadoCorrespondencia.PROPUESTA)
+        entrada = Auditoria.objects.get(
+            modelo="Correspondencia", registro_id=respuesta.data["id"], accion="crear correspondencia"
+        )
+        self.assertIn("Sugerido por nombres parecidos", entrada.descripcion)
+
+
+class FallosAtomicidadApiTests(BaseApiVinculacion):
+    """B. Fallos: 400 controlados, rollback real y cero auditoría de negocio."""
+
+    def test_fallo_auditoria_revoca_la_correspondencia(self):
+        """Si registrar_auditoria falla tras guardar, la fila se revierte (rollback real)."""
+        correlaciones_previas = Correspondencia.objects.count()
+        auditorias_previas = Auditoria.objects.count()
+        with mock.patch(
+            "vinculacion.models.registrar_auditoria", side_effect=IntegrityError("fallo simulado de disco")
+        ):
+            respuesta = self.cliente(self.admin).post(
+                URL, self.payload_creacion(estandar=self.std_a2.pk), format="json"
+            )
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detalle", respuesta.data)
+        self.assertEqual(Correspondencia.objects.count(), correlaciones_previas)
+        self.assertEqual(Auditoria.objects.count(), auditorias_previas)
+
+    def test_conflicto_bd_real_respuesta_controlada(self):
+        """Restricción única parcial REAL de PostgreSQL vía API (solo se omite full_clean)."""
+        correlaciones_previas = Correspondencia.objects.count()
+        auditorias_previas = Auditoria.objects.count()
+        with mock.patch.object(Correspondencia, "full_clean", return_value=None):
+            respuesta = self.cliente(self.admin).post(URL, self.payload_creacion(), format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detalle", respuesta.data)
+        texto = respuesta.content.decode(errors="replace")
+        self.assertNotIn("Traceback", texto)
+        self.assertNotIn("psycopg", texto.lower())
+        self.assertNotIn("duplicate key", texto.lower())
+        self.assertEqual(Correspondencia.objects.count(), correlaciones_previas)
+        self.assertEqual(Auditoria.objects.count(), auditorias_previas)
+
+
+class TransicionesInvalidasApiTests(BaseApiVinculacion):
+    """C. Transiciones inválidas aún no cubiertas por API, sin efectos ni auditoría."""
+
+    def test_confirmar_ya_confirmada_400_sin_efectos(self):
+        client = self.cliente(self.admin)
+        self.assertEqual(
+            client.post(f"{URL}{self.corr_a.pk}/confirmar/", {}, format="json").status_code,
+            status.HTTP_200_OK,
+        )
+        corr = self.obtener_corr_a()
+        fecha_previa = corr.fecha_confirmacion
+        auditorias_previas = Auditoria.objects.filter(
+            modelo="Correspondencia", registro_id=self.corr_a.pk
+        ).count()
+        segunda = client.post(f"{URL}{self.corr_a.pk}/confirmar/", {}, format="json")
+        self.assertEqual(segunda.status_code, status.HTTP_400_BAD_REQUEST)
+        corr = self.obtener_corr_a()
+        self.assertEqual(corr.estado, EstadoCorrespondencia.CONFIRMADA)
+        self.assertEqual(corr.fecha_confirmacion, fecha_previa)
+        self.assertEqual(
+            Auditoria.objects.filter(modelo="Correspondencia", registro_id=self.corr_a.pk).count(),
+            auditorias_previas,
+        )
+
+    def test_desconfirmar_desde_propuesta_400(self):
+        client = self.cliente(self.admin)
+        auditorias_previas = Auditoria.objects.filter(
+            modelo="Correspondencia", registro_id=self.corr_a.pk
+        ).count()
+        respuesta = client.post(f"{URL}{self.corr_a.pk}/desconfirmar/", {"comentario": "x"}, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.obtener_corr_a().estado, EstadoCorrespondencia.PROPUESTA)
+        self.assertEqual(
+            Auditoria.objects.filter(modelo="Correspondencia", registro_id=self.corr_a.pk).count(),
+            auditorias_previas,
+        )
+
+    def test_desconfirmar_desde_rechazada_400(self):
+        client = self.cliente(self.admin)
+        self.obtener_corr_a().rechazar(self.admin, "No aplica")
+        auditorias_previas = Auditoria.objects.filter(
+            modelo="Correspondencia", registro_id=self.corr_a.pk
+        ).count()
+        respuesta = client.post(f"{URL}{self.corr_a.pk}/desconfirmar/", {"comentario": "x"}, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.obtener_corr_a().estado, EstadoCorrespondencia.RECHAZADA)
+        self.assertEqual(
+            Auditoria.objects.filter(modelo="Correspondencia", registro_id=self.corr_a.pk).count(),
+            auditorias_previas,
+        )
+
+
+class SuperusuarioApiTests(BaseApiVinculacion):
+    """D. Superusuario sin grupos ni permisos explícitos: permisos y dominio."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.root = Usuario.objects.create_superuser(
+            username="root_api", email="root@x.org", password="x"
+        )
+
+    def test_lectura_y_escritura_sin_grupos_ni_permisos(self):
+        client = self.cliente(self.root)
+        self.assertFalse(self.root.groups.exists())
+        self.assertFalse(self.root.user_permissions.exists())
+        self.assertEqual(client.get(URL).status_code, status.HTTP_200_OK)
+        self.assertEqual(client.get(f"{URL}{self.corr_b.pk}/").status_code, status.HTTP_200_OK)
+        creacion = client.post(URL, self.payload_creacion(estandar=self.std_a2.pk), format="json")
+        self.assertEqual(creacion.status_code, status.HTTP_201_CREATED)
+        confirmacion = client.post(f"{URL}{self.corr_a.pk}/confirmar/", {}, format="json")
+        self.assertEqual(confirmacion.status_code, status.HTTP_200_OK)
+
+    def test_validaciones_dominio_aplican_al_superuser(self):
+        client = self.cliente(self.root)
+        auditorias_previas = Auditoria.objects.filter(
+            modelo="Correspondencia", registro_id=self.corr_a.pk
+        ).count()
+        respuesta = client.post(f"{URL}{self.corr_a.pk}/rechazar/", {}, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        corr = self.obtener_corr_a()
+        self.assertEqual(corr.estado, EstadoCorrespondencia.PROPUESTA)
+        self.assertEqual(
+            Auditoria.objects.filter(modelo="Correspondencia", registro_id=self.corr_a.pk).count(),
+            auditorias_previas,
+        )
+
+
+class PaginacionApiTests(BaseApiVinculacion):
+    """E. Paginación global PAGE_SIZE=50: estructura, integridad de páginas y orden."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        for i in range(51):
+            criterio = Criterio.objects.create(nombre=f"Criterio Pag {i}", periodo=cls.periodo)
+            Correspondencia.crear_propuesta(
+                actor=cls.admin, version_marco=cls.version_a, criterio_op=criterio, estandar=cls.std_a
+            )
+        # Total: 51 nuevas + corr_a + corr_b = 53
+
+    def test_estructura_y_conteos_de_paginas(self):
+        client = self.cliente(self.admin)
+        pagina_1 = client.get(URL)
+        self.assertEqual(pagina_1.status_code, status.HTTP_200_OK)
+        for clave in ("count", "next", "previous", "results"):
+            self.assertIn(clave, pagina_1.data)
+        self.assertEqual(pagina_1.data["count"], 53)
+        self.assertEqual(len(pagina_1.data["results"]), 50)
+        self.assertIsNotNone(pagina_1.data["next"])
+        self.assertIsNone(pagina_1.data["previous"])
+        pagina_2 = client.get(f"{URL}?page=2")
+        self.assertEqual(len(pagina_2.data["results"]), 3)
+        self.assertIsNone(pagina_2.data["next"])
+        self.assertIsNotNone(pagina_2.data["previous"])
+
+    def test_paginas_sin_duplicados_ni_omitidos(self):
+        client = self.cliente(self.admin)
+        ids_1 = {fila["id"] for fila in self.resultados(client.get(URL))}
+        ids_2 = {fila["id"] for fila in self.resultados(client.get(f"{URL}?page=2"))}
+        self.assertFalse(ids_1 & ids_2)
+        todos = set(Correspondencia.objects.values_list("id", flat=True))
+        self.assertEqual(ids_1 | ids_2, todos)
+
+    def test_orden_estable_y_completo(self):
+        client = self.cliente(self.admin)
+        esperado = list(
+            Correspondencia.objects.order_by("-fecha_creacion", "-id").values_list("id", flat=True)
+        )
+        observado = [fila["id"] for fila in self.resultados(client.get(URL))]
+        observado += [fila["id"] for fila in self.resultados(client.get(f"{URL}?page=2"))]
+        self.assertEqual(observado, esperado)
+        repetido = [fila["id"] for fila in self.resultados(client.get(URL))]
+        self.assertEqual(repetido, observado[:50])
