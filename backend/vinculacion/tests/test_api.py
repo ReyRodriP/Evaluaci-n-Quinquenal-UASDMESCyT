@@ -18,6 +18,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from accounts.models import Usuario
+from accounts.role_permissions import get_role_permissions_diff, sync_group_permissions
 from auditoria.models import Auditoria
 from catalogo.models import Componente, CriterioMarco, Dimension, Estandar, IndicadorMarco, VersionMarcoEvaluacion
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
@@ -131,10 +132,31 @@ class PermisosBaseTests(BaseApiVinculacion):
         respuesta = self.cliente(self.sin_permiso).get(URL)
         self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_grupos_sin_permisos_de_vinculacion(self):
-        codenames = ["view_correspondencia", "add_correspondencia", "change_correspondencia", "delete_correspondencia"]
-        asignados = Group.objects.filter(permissions__codename__in=codenames)
-        self.assertEqual(asignados.count(), 0)
+    def test_matriz_vinculacion_por_grupo(self):
+        codenames = [
+            "view_correspondencia",
+            "add_correspondencia",
+            "change_correspondencia",
+            "delete_correspondencia",
+        ]
+        for nombre in ("Administrador General", "Coordinador Quinquenal"):
+            with self.subTest(grupo=nombre):
+                grupo = Group.objects.get(name=nombre)
+                self.assertEqual(
+                    set(grupo.permissions.filter(codename__in=codenames).values_list("codename", flat=True)),
+                    set(codenames),
+                )
+        for nombre in ("Responsable Departamental", "Revisor Institucional", "Consulta"):
+            with self.subTest(grupo=nombre):
+                grupo, _ = Group.objects.get_or_create(name=nombre)
+                if not grupo.permissions.exists():
+                    sync_group_permissions(grupo)
+                self.assertEqual(
+                    set(grupo.permissions.filter(codename__in=codenames).values_list("codename", flat=True)),
+                    {"view_correspondencia"},
+                )
+        externo = Group.objects.get(name="Evaluador Externo")
+        self.assertEqual(externo.permissions.filter(codename__in=codenames).count(), 0)
 
     def test_escritura_tecnico_403(self):
         respuesta = self.cliente(self.tecnico).post(URL, self.payload_creacion(estandar=self.std_a2.pk), format="json")
@@ -458,7 +480,8 @@ class GrupoAdministrativoSinPermisosTests(BaseApiVinculacion):
 
     La puerta de grupo (ROLES_SIN_RESTRICCION) no otorga acceso por sí sola:
     sin add/change_correspondencia las escrituras quedan en 403 y sin
-    view_correspondencia la lectura también.
+    view_correspondencia la lectura también. Se omite la sincronización del
+    rol para fabricar el estado (la matriz sí los asigna por pertenencia).
     """
 
     @classmethod
@@ -467,8 +490,15 @@ class GrupoAdministrativoSinPermisosTests(BaseApiVinculacion):
         cls.admin_sin_perm = Usuario.objects.create_user(
             username="admin_noperm_api", email="adminnp@x.org", password="x"
         )
-        cls.admin_sin_perm.groups.add(Group.objects.get(name="Administrador General"))
-        # Sin user_permissions: el grupo no aporta permisos de modelo.
+        grupo = Group.objects.get(name="Administrador General")
+        from accounts.role_permissions import _re_syncing
+
+        _re_syncing.add(grupo.pk)
+        try:
+            grupo.permissions.clear()
+            cls.admin_sin_perm.groups.add(grupo)
+        finally:
+            _re_syncing.discard(grupo.pk)
 
     def test_crear_propuesta_403(self):
         respuesta = self.cliente(self.admin_sin_perm).post(
@@ -652,10 +682,12 @@ class RevisorConsultaTests(BaseApiVinculacion):
 class LecturaViewCorrespondenciaTests(BaseApiVinculacion):
     """La lectura exige view_correspondencia para todos los roles.
 
-    view_correspondencia es exigido en lectura para todos los roles, incluido
-    el Evaluador Externo (la exención heredada de CustomModelPermissions no
-    aplica en vinculacion). El alcance por unidad, período y ámbito se aplica
-    después y por separado del permiso de vista.
+    view_correspondencia es exigido en lectura para todos los roles. Los roles
+    de solo lectura (Responsable Departamental, Revisor Institucional, Consulta)
+    lo reciben por la matriz de ROLE_PERMISSIONS; el Evaluador Externo requiere
+    un grant explícito (la exención heredada de CustomModelPermissions no aplica
+    en vinculacion). El alcance por unidad, período y ámbito se aplica después y
+    por separado del permiso de vista.
     """
 
     @classmethod
@@ -674,15 +706,21 @@ class LecturaViewCorrespondenciaTests(BaseApiVinculacion):
             usuario=cls.externo_sin_view, unidad_organizacional=cls.unidad_a, periodo=cls.periodo, activo=True
         )
 
-    def test_no_externo_sin_view_get_403(self):
-        for url in (
-            URL,
-            f"{URL}{self.corr_a.pk}/",
-            f"/api/vinculacion/contexto/indicador/{self.indicador_a.pk}/",
-        ):
-            with self.subTest(url=url):
-                respuesta = self.cliente(self.consulta_sin_view).get(url)
-                self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN)
+    def test_consulta_sin_permiso_personal_usa_view_de_grupo(self):
+        client = self.cliente(self.consulta_sin_view)
+        lista = client.get(URL)
+        self.assertEqual(lista.status_code, status.HTTP_200_OK)
+        self.assertEqual(lista.data["count"], 0)
+        self.assertEqual(client.get(f"{URL}{self.corr_a.pk}/").status_code, status.HTTP_404_NOT_FOUND)
+        contexto = client.get(f"/api/vinculacion/contexto/indicador/{self.indicador_a.pk}/")
+        self.assertEqual(contexto.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_consulta_con_grupo_sigue_sin_escritura(self):
+        client = self.cliente(self.consulta_sin_view)
+        creacion = client.post(URL, self.payload_creacion(), format="json")
+        self.assertEqual(creacion.status_code, status.HTTP_403_FORBIDDEN)
+        transicion = client.post(f"{URL}{self.corr_a.pk}/confirmar/", {}, format="json")
+        self.assertEqual(transicion.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_externo_sin_view_lista_403(self):
         respuesta = self.cliente(self.externo_sin_view).get(URL)
@@ -908,3 +946,35 @@ class PaginacionApiTests(BaseApiVinculacion):
         self.assertEqual(observado, esperado)
         repetido = [fila["id"] for fila in self.resultados(client.get(URL))]
         self.assertEqual(repetido, observado[:50])
+
+
+class SincronizacionMatrizVinculacionTests(TestCase):
+    """La matriz ROLE_PERMISSIONS es la única fuente de permisos de los grupos."""
+
+    VINCULACION = {"view_correspondencia", "add_correspondencia", "change_correspondencia", "delete_correspondencia"}
+
+    def test_sync_asigna_vinculacion_segun_rol(self):
+        esperados = {
+            "Administrador General": self.VINCULACION,
+            "Coordinador Quinquenal": self.VINCULACION,
+            "Responsable Departamental": {"view_correspondencia"},
+            "Revisor Institucional": {"view_correspondencia"},
+            "Consulta": {"view_correspondencia"},
+            "Evaluador Externo": set(),
+        }
+        for nombre, esperado in esperados.items():
+            with self.subTest(grupo=nombre):
+                grupo, _ = Group.objects.get_or_create(name=nombre)
+                sync_group_permissions(grupo)
+                obtenidos = set(
+                    grupo.permissions.filter(content_type__app_label="vinculacion").values_list(
+                        "codename", flat=True
+                    )
+                )
+                self.assertEqual(obtenidos, esperado)
+
+    def test_diff_consulta_sin_faltantes_de_vinculacion(self):
+        grupo, _ = Group.objects.get_or_create(name="Consulta")
+        sync_group_permissions(grupo)
+        _, faltantes = get_role_permissions_diff(grupo)
+        self.assertEqual([p for p in faltantes if p.content_type.app_label == "vinculacion"], [])

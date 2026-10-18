@@ -12,6 +12,7 @@ import { Espera } from './features/auth/pages/espera/espera';
 import { Organizacion } from './features/organizacion/organizacion';
 import { Periodos } from './features/periodos/periodos';
 import { Indicadores } from './features/indicadores/indicadores';
+import { IndicadorDetalle } from './features/indicadores/indicador-detalle/indicador-detalle';
 import { Criterios } from './features/criterios/criterios';
 import { Asignaciones } from './features/asignaciones/asignaciones';
 import { Evidencias } from './features/evidencias/evidencias';
@@ -98,6 +99,10 @@ export const routes: Routes = [
                 path: 'indicadores',
                 component: Indicadores,
                 canActivate: [PermisoGuard]
+            },
+            {
+                path: 'indicadores/:id/detalle',
+                component: IndicadorDetalle
             },
             {
                 path: 'asignaciones',

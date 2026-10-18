@@ -67,6 +67,10 @@ export class EvaluacionService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/indicadores/`));
   }
 
+  obtenerIndicador(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/indicadores/${id}/`);
+  }
+
   crearIndicador(payload: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/indicadores/`, payload);
   }

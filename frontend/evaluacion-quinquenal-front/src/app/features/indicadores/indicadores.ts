@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
@@ -9,12 +10,12 @@ import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-indicadores',
-  imports: [CrudTable, SearchBar, Pagination, Modal],
+  imports: [CrudTable, SearchBar, Pagination, Modal, RouterLink],
   templateUrl: './indicadores.html',
   styleUrl: './indicadores.css',
 })
 export class Indicadores implements OnInit {
-  columnas: string[] = ['Nombre', 'Descripción', 'Criterio', 'Obligatorio', 'Estado'];
+  columnas: string[] = ['Nombre', 'Descripción', 'Criterio', 'Obligatorio', 'Estado', 'Vínculos'];
 
   datos: any[] = [];
   datosFiltrados: any[] = [];

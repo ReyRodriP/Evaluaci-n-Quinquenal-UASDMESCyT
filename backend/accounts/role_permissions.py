@@ -40,6 +40,9 @@ ROLE_PERMISSIONS = {
             "view_notificacion",
             "change_notificacion",
         ],
+        "vinculacion": [
+            "view_correspondencia",
+        ],
     },
     "Revisor Institucional": {
         "evaluation": [
@@ -74,6 +77,9 @@ ROLE_PERMISSIONS = {
         "auditoria": [
             "view_auditoria",
         ],
+        "vinculacion": [
+            "view_correspondencia",
+        ],
     },
     "Consulta": {
         "evaluation": [
@@ -100,6 +106,9 @@ ROLE_PERMISSIONS = {
         ],
         "notificaciones": [
             "view_notificacion",
+        ],
+        "vinculacion": [
+            "view_correspondencia",
         ],
     },
     "Evaluador Externo": {
@@ -141,6 +150,7 @@ OUR_APP_LABELS = [
     "evidencias",
     "notificaciones",
     "organization",
+    "vinculacion",
 ]
 
 

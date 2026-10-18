@@ -1,0 +1,10 @@
+.vinculos-link {
+  color: #0091ff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.vinculos-link:hover {
+  text-decoration: underline;
+}

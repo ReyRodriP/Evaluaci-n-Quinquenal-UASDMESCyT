@@ -1,0 +1,263 @@
+<section class="indicador-detalle">
+  <header class="detalle-header">
+    <div>
+      <h2>{{ indicador?.nombre || 'Indicador' }}</h2>
+      <p class="subtitulo">Criterio: {{ indicador?.criterio_nombre || '—' }}</p>
+    </div>
+    <a routerLink="/indicadores" class="btn-volver">Volver a indicadores</a>
+  </header>
+
+  <div *ngIf="cargando" class="estado-carga" role="status">Cargando correspondencias…</div>
+
+  <div *ngIf="errorCarga && !cargando" class="estado-error" role="alert">
+    <p>{{ errorCarga }}</p>
+    <button type="button" (click)="cargarTodo()">Reintentar</button>
+  </div>
+
+  <section *ngIf="!cargando && !errorCarga" class="correspondencias" aria-label="Correspondencias del indicador">
+    <div class="seccion-header">
+      <h3>Correspondencias EQ-SIDACES</h3>
+      <button
+        *ngIf="puedeCrear && !mostrandoFormCreacion"
+        type="button"
+        class="btn-primario"
+        (click)="abrirFormCreacion()">
+        Proponer correspondencia
+      </button>
+    </div>
+
+    <p class="aviso-dominio">
+      Las propuestas son vínculos pendientes de validación; solo las correspondencias en estado
+      <strong>Confirmada</strong> representan acuerdos vigentes.
+    </p>
+
+    <div *ngIf="!correspondencias.length && !mostrandoFormCreacion" class="estado-vacio">
+      <p>Este indicador aún no tiene correspondencias registradas.</p>
+      <p *ngIf="puedeCrear">Puede proponer un vínculo con el marco de evaluación EQ-SIDACES.</p>
+      <p *ngIf="!puedeCrear">No hay vínculos registrados y no tiene permisos para proponer correspondencias.</p>
+    </div>
+
+    <form *ngIf="mostrandoFormCreacion" class="form-creacion" (ngSubmit)="crear()" #formCreacion="ngForm">
+      <h4>Nueva propuesta de correspondencia</h4>
+      <p class="aviso-dominio">
+        La propuesta se registrará en estado <strong>Propuesta</strong> para este indicador operativo
+        ({{ indicador?.nombre || '—' }}) y deberá ser validada por un rol autorizado.
+      </p>
+
+      <div class="campo">
+        <label for="version-marco">Versión del marco</label>
+        <select
+          id="version-marco"
+          name="version_marco"
+          [(ngModel)]="versionSeleccionada"
+          (ngModelChange)="onVersionChange()"
+          required>
+          <option value="" disabled>Seleccione una versión</option>
+          <option *ngFor="let version of versiones" [value]="version.id">
+            {{ version.nombre }}{{ version.activo ? '' : ' (inactiva)' }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="nivel-destino">Nivel de destino en el marco</label>
+        <select id="nivel-destino" name="nivel_destino" [(ngModel)]="nivelDestino" (ngModelChange)="onNivelChange()">
+          <option value="dimension">Dimensión</option>
+          <option value="estandar">Estándar</option>
+          <option value="indicador_marco">Indicador del marco</option>
+        </select>
+      </div>
+
+      <div class="campo" *ngIf="nivelDestino === 'dimension'">
+        <label for="select-dimension">Dimensión</label>
+        <select id="select-dimension" name="dimension" [(ngModel)]="dimensionSeleccionada" required>
+          <option value="" disabled>Seleccione una dimensión</option>
+          <option *ngFor="let dimension of dimensiones" [value]="dimension.id">
+            {{ etiquetaDimension(dimension) }}
+          </option>
+        </select>
+      </div>
+
+      <ng-container *ngIf="nivelDestino !== 'dimension'">
+        <div class="campo">
+          <label for="select-dimension-rama">Dimensión</label>
+          <select
+            id="select-dimension-rama"
+            name="dimension_rama"
+            [(ngModel)]="dimensionSeleccionada"
+            (ngModelChange)="onDimensionChange()"
+            required>
+            <option value="" disabled>Seleccione una dimensión</option>
+            <option *ngFor="let dimension of dimensiones" [value]="dimension.id">
+              {{ etiquetaDimension(dimension) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="select-componente">Componente</label>
+          <select
+            id="select-componente"
+            name="componente"
+            [(ngModel)]="componenteSeleccionado"
+            (ngModelChange)="onComponenteChange()"
+            required>
+            <option value="" disabled>Seleccione un componente</option>
+            <option *ngFor="let componente of componentes" [value]="componente.id">
+              {{ etiquetaRama(componente) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="select-criterio-marco">Criterio del marco</label>
+          <select
+            id="select-criterio-marco"
+            name="criterio_marco"
+            [(ngModel)]="criterioSeleccionado"
+            (ngModelChange)="onCriterioChange()"
+            required>
+            <option value="" disabled>Seleccione un criterio</option>
+            <option *ngFor="let criterio of criteriosMarco" [value]="criterio.id">
+              {{ etiquetaRama(criterio) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="select-estandar">Estándar</label>
+          <select
+            id="select-estandar"
+            name="estandar"
+            [(ngModel)]="estandarSeleccionado"
+            (ngModelChange)="onEstandarChange()"
+            [required]="nivelDestino === 'estandar'">
+            <option value="" disabled>Seleccione un estándar</option>
+            <option *ngFor="let estandar of estandares" [value]="estandar.id">
+              {{ etiquetaEstandar(estandar) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="campo" *ngIf="nivelDestino === 'indicador_marco'">
+          <label for="select-indicador-marco">Indicador del marco</label>
+          <select id="select-indicador-marco" name="indicador_marco" [(ngModel)]="indicadorMarcoSeleccionado" required>
+            <option value="" disabled>Seleccione un indicador</option>
+            <option *ngFor="let indicador of indicadoresMarco" [value]="indicador.id">
+              {{ etiquetaIndicadorMarco(indicador) }}
+            </option>
+          </select>
+        </div>
+      </ng-container>
+
+      <div class="campo">
+        <label for="comentario-creacion">Comentario (opcional)</label>
+        <textarea
+          id="comentario-creacion"
+          name="comentario_creacion"
+          [(ngModel)]="comentarioCreacion"
+          rows="2"
+          placeholder="Justificación del vínculo propuesto"></textarea>
+      </div>
+
+      <p *ngIf="errorCreacion" class="mensaje-error" role="alert">{{ errorCreacion }}</p>
+
+      <div class="acciones-form">
+        <button type="submit" class="btn-primario" [disabled]="creando || !destinoListo">
+          {{ creando ? 'Guardando…' : 'Crear propuesta' }}
+        </button>
+        <button type="button" class="btn-secundario" (click)="cancelarFormCreacion()" [disabled]="creando">
+          Cancelar
+        </button>
+      </div>
+    </form>
+
+    <article
+      *ngFor="let corr of correspondencias"
+      class="tarjeta-correspondencia"
+      [attr.data-estado]="corr.estado">
+      <div class="tarjeta-cabecera">
+        <span class="badge" [ngClass]="claseEstado(corr.estado)">{{ etiquetaEstado(corr.estado) }}</span>
+        <span class="procedencia">{{ etiquetaProcedencia(corr.procedencia) }}</span>
+        <span class="version">Marco: {{ corr.version_marco.nombre }}</span>
+      </div>
+
+      <p class="destino" *ngIf="corr.destino">
+        <strong>{{ etiquetaNivel(corr.destino.nivel) }}:</strong> {{ corr.destino.texto }}
+      </p>
+
+      <p class="meta">
+        Creada por {{ corr.creado_por || '—' }} · {{ corr.fecha_creacion | date: 'dd/MM/yyyy HH:mm' }}
+      </p>
+      <p class="meta" *ngIf="corr.estado === 'confirmada'">
+        Confirmada por {{ corr.confirmado_por || '—' }} · {{ corr.fecha_confirmacion | date: 'dd/MM/yyyy HH:mm' }}
+      </p>
+      <p class="meta" *ngIf="corr.estado === 'rechazada'">
+        Rechazada por {{ corr.rechazado_por || '—' }} · {{ corr.fecha_rechazo | date: 'dd/MM/yyyy HH:mm' }}
+      </p>
+      <p class="comentario" *ngIf="corr.comentario">Comentario: {{ corr.comentario }}</p>
+
+      <p *ngIf="errorTransicion && !formTransicion" class="mensaje-error" role="alert">
+        {{ errorTransicion }}
+      </p>
+
+      <div class="acciones-tarjeta" *ngIf="puedeTransicionar">
+        <button
+          *ngIf="corr.estado === 'propuesta'"
+          type="button"
+          class="btn-primario"
+          (click)="confirmar(corr)"
+          [disabled]="enTransicionId != null">
+          {{ enTransicionId === corr.id ? 'Procesando…' : 'Confirmar' }}
+        </button>
+        <button
+          *ngIf="corr.estado === 'propuesta'"
+          type="button"
+          class="btn-secundario"
+          (click)="iniciarTransicion(corr, 'rechazar')"
+          [disabled]="enTransicionId != null">
+          Rechazar…
+        </button>
+        <button
+          *ngIf="corr.estado === 'confirmada'"
+          type="button"
+          class="btn-secundario"
+          (click)="iniciarTransicion(corr, 'desconfirmar')"
+          [disabled]="enTransicionId != null">
+          Desconfirmar…
+        </button>
+      </div>
+
+      <div *ngIf="formTransicion && formTransicion.id === corr.id" class="form-transicion">
+        <label for="comentario-transicion">
+          {{ formTransicion.accion === 'rechazar' ? 'Motivo del rechazo' : 'Motivo de la desconfirmación' }}
+          (obligatorio)
+        </label>
+        <textarea
+          id="comentario-transicion"
+          name="comentario_transicion"
+          [(ngModel)]="formTransicion.comentario"
+          rows="2"></textarea>
+        <p *ngIf="errorTransicion && enTransicionId == null" class="mensaje-error" role="alert">
+          {{ errorTransicion }}
+        </p>
+        <div class="acciones-form">
+          <button
+            type="button"
+            class="btn-primario"
+            (click)="ejecutarTransicion()"
+            [disabled]="enTransicionId != null || !formTransicion.comentario.trim()">
+            {{ enTransicionId != null ? 'Procesando…' : 'Confirmar operación' }}
+          </button>
+          <button
+            type="button"
+            class="btn-secundario"
+            (click)="cancelarTransicion()"
+            [disabled]="enTransicionId != null">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </article>
+  </section>
+</section>
