@@ -8,6 +8,8 @@ import { DashboardService } from '../../../../core/services/dashboard.service';
 import { EvaluacionService } from '../../../../core/services/evaluacion.service';
 import { OrganizacionService } from '../../../../core/services/organizacion.service';
 import { PermisosService } from '../../../../core/services/permisos.service';
+import { SeguimientoResumenService } from '../../../../core/services/seguimiento-resumen.service';
+import { ResultadoSeguimiento } from '../../../../core/models/seguimiento.model';
 import ApexCharts from 'apexcharts';
 
 @Component({
@@ -25,6 +27,9 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   criterios: any[] = []
   indicadores: any[] = []
   pendientes: any[] = []
+  resultadoSeguimiento: ResultadoSeguimiento | null = null
+  cargandoSeguimiento = false
+  errorSeguimiento = ''
   periodoSeleccionadoId = ''
   unidadSeleccionadaId = ''
   tipoSeleccionadoId = ''
@@ -59,6 +64,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     private evaluacionService: EvaluacionService,
     private organizacionService: OrganizacionService,
     private permisos: PermisosService,
+    private seguimientoResumen: SeguimientoResumenService,
     private route: ActivatedRoute,
     private router: Router,
     private toast: ToastrService
@@ -102,6 +108,32 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       next: (data) => this.pendientes = data,
       error: () => this.toast.error('No se pudieron cargar las acciones pendientes'),
     })
+  }
+
+  cargarResumenSeguimiento(): void {
+    if (!this.periodoSeleccionadoId) {
+      this.resultadoSeguimiento = null
+      this.cargandoSeguimiento = false
+      this.errorSeguimiento = ''
+      return
+    }
+    this.cargandoSeguimiento = true
+    this.errorSeguimiento = ''
+    this.seguimientoResumen.cargar(this.periodoSeleccionadoId).subscribe({
+      next: (resultado) => {
+        this.resultadoSeguimiento = resultado
+        this.cargandoSeguimiento = false
+      },
+      error: () => {
+        this.resultadoSeguimiento = null
+        this.errorSeguimiento = 'No se pudo cargar el resumen de seguimiento.'
+        this.cargandoSeguimiento = false
+      },
+    })
+  }
+
+  reintentarResumenSeguimiento(): void {
+    this.cargarResumenSeguimiento()
   }
 
   private cargarAvance(): void {
@@ -156,6 +188,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         }
         this.filtrosAplicados = { ...this.construirFiltros() }
         this.cargarDatos()
+        this.cargarResumenSeguimiento()
       },
       error: () => {
         this.toast.error('No se pudieron cargar los períodos')
@@ -169,6 +202,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     this.criterioSeleccionadoId = ''
     this.indicadorSeleccionadoId = ''
     this.aplicarFiltros()
+    this.cargarResumenSeguimiento()
   }
 
   onCriterioChange(criterioId: string): void {

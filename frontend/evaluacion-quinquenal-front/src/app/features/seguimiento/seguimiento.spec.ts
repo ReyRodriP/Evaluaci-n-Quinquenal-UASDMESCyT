@@ -6,7 +6,7 @@ import { of, throwError } from 'rxjs';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { EvidenciasService } from '../../core/services/evidencias.service';
 import { VinculacionService } from '../../core/services/vinculacion.service';
-import { Seguimiento } from './seguimiento';
+import { COLUMNAS_EXPORTACION, Seguimiento } from './seguimiento';
 
 const pagina = (results: any[], count = results.length) => ({
   count,
@@ -66,10 +66,24 @@ function baseData() {
       { id: 300, nombre: 'IND-03', criterio_nombre: 'Criterio C' },
       { id: 400, nombre: 'IND-04', criterio_nombre: 'Criterio D' },
     ] as any[],
-    confirmadas: [{ id: 1, estado: 'confirmada', indicador_op: 100 }] as any[],
+    confirmadas: [
+      {
+        id: 1, estado: 'confirmada', indicador_op: 100,
+        destino: { nivel: 'indicador_marco', id: 55, texto: '6.1.1.1-IND-01' },
+        version_marco: { id: 1, nombre: 'Marco 2026', slug: 'marco-2026', activo: true },
+      },
+    ] as any[],
     propuestas: [
-      { id: 2, estado: 'propuesta', indicador_op: 100 },
-      { id: 3, estado: 'propuesta', indicador_op: 300 },
+      {
+        id: 2, estado: 'propuesta', indicador_op: 100,
+        destino: { nivel: 'dimension', id: 3, texto: 'D1 Modelación' },
+        version_marco: { id: 1, nombre: 'Marco 2026', slug: 'marco-2026', activo: true },
+      },
+      {
+        id: 3, estado: 'propuesta', indicador_op: 300,
+        destino: { nivel: 'estandar', id: 9, texto: 'E1.2' },
+        version_marco: { id: 1, nombre: 'Marco 2026', slug: 'marco-2026', activo: true },
+      },
     ] as any[],
   };
 }
@@ -363,5 +377,118 @@ describe('Seguimiento', () => {
     expect(hrefs.some((href) => href.includes('/indicadores/300/detalle'))).toBeTrue();
     expect(hrefs.some((href) => href.includes('/evidencias/'))).toBeTrue();
     expect(hrefs.filter((href) => href.includes('/evidencias/')).length).toBe(3);
+  });
+
+  it('exporta solo los registros que coinciden con los filtros activos', () => {
+    component.cambiarFiltro('unidad', '7');
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const [contenido, nombre] = spy.calls.mostRecent().args as [string, string];
+    expect(contenido).toContain('Facultad de Ciencias');
+    expect(contenido).not.toContain('Instituto Tecnológico');
+    expect(contenido.replace('\uFEFF', '').split('\r\n').filter(Boolean).length).toBe(4);
+    expect(nombre).toContain('Seguimiento_Periodo_actual');
+    expect(nombre).not.toContain('limitado');
+    expect(nombre).toMatch(/\.csv$/);
+
+    fixture.detectChanges();
+    const boton = (fixture.nativeElement as HTMLElement).querySelector('.btn-export');
+    expect(boton?.textContent).toContain('3 registros');
+  });
+
+  it('exporta más de una página de resultados', () => {
+    data.asignaciones = Array.from({ length: 25 }, (_, indice) => ({
+      id: indice + 1,
+      indicador: 100,
+      indicador_nombre: `IND-${indice + 1}`,
+      unidad_responsable: 7,
+      unidad_responsable_nombre: 'Facultad de Ciencias',
+      periodo: 10,
+      periodo_nombre: 'Período actual',
+      estado: 'pendiente',
+      estado_display: 'Pendiente',
+    }));
+    data.evidencias = [];
+    recargar();
+    expect(component.filasPaginadas.length).toBe(10);
+
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+    const contenido = spy.calls.mostRecent().args[0] as string;
+    const lineas = contenido.replace('\uFEFF', '').split('\r\n').filter(Boolean);
+    expect(lineas.length).toBe(26);
+    expect(contenido).toContain('IND-25');
+  });
+
+  it('no exporta cuando el conjunto filtrado está vacío', () => {
+    component.cambiarFiltro('estado', 'rechazado');
+    fixture.detectChanges();
+    const boton = (fixture.nativeElement as HTMLElement).querySelector('.btn-export');
+    expect(boton).toBeNull();
+
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+    expect(spy).not.toHaveBeenCalled();
+    expect(component.exportando).toBeFalse();
+  });
+
+  it('escapa comas, comillas y saltos de línea en las celdas', () => {
+    data.asignaciones[0].unidad_responsable_nombre = 'Facultad "Norte",\nSur';
+    recargar();
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+    const contenido = spy.calls.mostRecent().args[0] as string;
+    expect(contenido).toContain('"Facultad ""Norte"",\nSur"');
+  });
+
+  it('neutraliza fórmulas de hoja de cálculo sin alterar los datos de la pantalla', () => {
+    data.asignaciones[0].indicador_nombre = '=1+1';
+    data.asignaciones[1].unidad_responsable_nombre = '@comando';
+    data.indicadores[0].criterio_nombre = '-Criterio';
+    recargar();
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+
+    const contenido = spy.calls.mostRecent().args[0] as string;
+    expect(contenido).toContain("'=1+1");
+    expect(contenido).toContain("'@comando");
+    expect(contenido).toContain("'-Criterio");
+    expect(component.filas[0].indicadorNombre).toBe('=1+1');
+  });
+
+  it('informa y marca el archivo cuando los datos están limitados', () => {
+    component.avisosTruncado = ['Asignaciones: se obtuvieron 20 de 30; las métricas reflejan solo esas filas.'];
+    fixture.detectChanges();
+
+    const aviso = (fixture.nativeElement as HTMLElement).querySelector('.export-aviso');
+    expect(aviso?.textContent).toContain('limitada');
+
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+    const nombre = spy.calls.mostRecent().args[1] as string;
+    expect(nombre).toContain('Seguimiento_Periodo_actual_limitado');
+    expect(nombre).toMatch(/\.csv$/);
+  });
+
+  it('mantiene consistentes las columnas exportadas con los datos visibles', () => {
+    const spy = spyOn(component, 'descargar');
+    component.exportarCsv();
+    const contenido = spy.calls.mostRecent().args[0] as string;
+    expect(contenido.startsWith('\uFEFF')).toBeTrue();
+
+    const lineas = contenido.replace('\uFEFF', '').split('\r\n').filter(Boolean);
+    expect(lineas[0]).toBe(COLUMNAS_EXPORTACION.join(','));
+    expect(lineas[1]).toContain('Sin evidencia');
+    expect(lineas[1]).toContain('Confirmada');
+    expect(lineas[1]).toContain('6.1.1.1-IND-01');
+    expect(lineas[1]).toContain('Marco 2026');
+    expect(lineas[3]).toContain('Pendiente de validación');
+    expect(lineas[3]).toContain('E1.2');
+    expect(lineas[1].split(',')[6]).toBe(component.filasFiltradas[0].estadoRevision);
+    expect(lineas[1].split(',')[7]).toBe(
+      component.etiquetaCorrespondencia(component.filasFiltradas[0].correspondenciaEstado)
+    );
   });
 });

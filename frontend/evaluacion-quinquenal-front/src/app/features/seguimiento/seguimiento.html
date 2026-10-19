@@ -65,6 +65,20 @@
       </div>
     </div>
 
+    <div class="export-bar" *ngIf="filasFiltradas.length">
+      <button type="button" class="btn-export" (click)="exportarCsv()" [disabled]="exportando">
+        <i class="bx bx-download" aria-hidden="true"></i>
+        {{ exportando ? 'Preparando archivo...' : 'Exportar resultados' }}
+        <span class="export-count">
+          ({{ filasFiltradas.length }} registro{{ filasFiltradas.length === 1 ? '' : 's' }})
+        </span>
+      </button>
+      <span class="export-aviso" *ngIf="esExportacionLimitada()" role="status">
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        Exportación limitada al subconjunto consultado: el archivo se descarga con el sufijo «limitado».
+      </span>
+    </div>
+
     <div class="avisos" aria-live="polite">
       <div class="aviso aviso-warn" *ngFor="let aviso of avisosTruncado" role="status">
         <i class="bx bx-info-circle" aria-hidden="true"></i>

@@ -598,6 +598,133 @@ body.dark .chip-completado   { background: #123333; color: #5eead4; }
   background: var(--background-selected);
 }
 
+/* ========== RESUMEN DE SEGUIMIENTO ========== */
+
+.seguimiento-resumen {
+  margin-bottom: 28px;
+}
+
+.resumen-segu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.resumen-segu-titulo h3 {
+  margin: 0;
+  color: var(--heading-color);
+  font-size: 1rem;
+}
+
+.resumen-segu-titulo p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: .8rem;
+  max-width: 70ch;
+}
+
+.resumen-segu-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: var(--sidebar-color);
+  font-size: .86rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: .2s;
+}
+
+.resumen-segu-enlace:hover {
+  background: var(--button-hover-bg);
+}
+
+.seguimiento-resumen .state-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+}
+
+.seguimiento-resumen .state-msg i {
+  font-size: 1.6rem;
+}
+
+.seguimiento-resumen .kpi-grid {
+  margin-bottom: 0;
+}
+
+.state-error {
+  color: #dc2626;
+}
+
+.btn-reintentar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 4px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--table-bg);
+  color: var(--text-color);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-reintentar:hover {
+  border-color: var(--text-secondary);
+}
+
+.resumen-segu-avisos {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: .85rem;
+}
+
+.aviso-warn {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.aviso-error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+body.dark .aviso-warn {
+  background: #3a2f14;
+  border-color: #7c5c14;
+  color: #fbd38d;
+}
+
+body.dark .aviso-error {
+  background: #3a2427;
+  border-color: #7f2b33;
+  color: #f1a6ab;
+}
+
 /* ========== RESPONSIVE ========== */
 
 @media (max-width: 1200px) {

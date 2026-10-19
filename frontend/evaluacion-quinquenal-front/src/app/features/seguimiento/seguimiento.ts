@@ -3,92 +3,37 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, catchError, forkJoin, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
-import { EvidenciasService } from '../../core/services/evidencias.service';
-import { VinculacionService } from '../../core/services/vinculacion.service';
+import { SeguimientoResumenService } from '../../core/services/seguimiento-resumen.service';
+import { RespuestaPaginada } from '../../core/models/vinculacion.model';
+import {
+  ETIQUETAS_CORRESPONDENCIA,
+  EstadoCorrespondenciaFila,
+  FilaSeguimiento,
+  Metricas,
+  ResultadoPaginas,
+  ResultadoSeguimiento,
+  calcularMetricas,
+} from '../../core/models/seguimiento.model';
 
-export const MAX_PAGINAS_LISTADO = 20;
-export const MAX_PAGINAS_CORRESPONDENCIAS = 10;
-
-export type ClaveRevision =
-  | 'sin_evidencia'
-  | 'cancelada'
-  | 'en_revision'
-  | 'observada'
-  | 'aprobada'
-  | 'rechazada'
-  | 'sin_enviar'
-  | 'completada';
-
-export type EstadoCorrespondenciaFila = 'confirmada' | 'pendiente' | 'sin' | 'desconocida';
-
-export interface FilaSeguimiento {
-  asignacionId: number;
-  periodoNombre: string;
-  unidadId: number | string;
-  unidadNombre: string;
-  indicadorId: number | string;
-  indicadorNombre: string;
-  criterioNombre: string;
-  estado: string;
-  estadoDisplay: string;
-  evidenciaId: number | null;
-  claveRevision: ClaveRevision;
-  estadoRevision: string;
-  correspondenciaEstado: EstadoCorrespondenciaFila;
-}
-
-export interface Metricas {
-  total: number;
-  conEvidencia: number;
-  sinEvidencia: number;
-  pendientesRevision: number;
-  observadas: number;
-  conConfirmada: number | null;
-  sinConfirmada: number | null;
-}
+export const COLUMNAS_EXPORTACION = [
+  'Período',
+  'Unidad responsable',
+  'Criterio operativo',
+  'Indicador operativo',
+  'Estado de asignación',
+  'Existencia de evidencia',
+  'Estado de revisión',
+  'Estado de correspondencia',
+  'Código del destino del marco',
+  'Versión del marco',
+];
 
 export interface OpcionFiltro {
   valor: string;
   etiqueta: string;
 }
-
-interface EnvolturaPaginada<T> {
-  count: number;
-  next: string | null;
-  results: T[];
-}
-
-export interface ResultadoPaginas<T> {
-  items: T[];
-  total: number;
-  truncado: boolean;
-}
-
-interface ResultadoCorrespondencias {
-  confirmadas: ResultadoPaginas<any>;
-  propuestas: ResultadoPaginas<any>;
-}
-
-const ETIQUETAS_REVISION: Record<ClaveRevision, string> = {
-  sin_evidencia: 'Sin evidencia',
-  cancelada: 'Evidencia cancelada',
-  en_revision: 'Pendiente de revisión',
-  observada: 'Observada',
-  aprobada: 'Aprobada internamente',
-  rechazada: 'Rechazada',
-  sin_enviar: 'Sin enviar a revisión',
-  completada: 'Completada',
-};
-
-const ETIQUETAS_CORRESPONDENCIA: Record<EstadoCorrespondenciaFila, string> = {
-  confirmada: 'Confirmada',
-  pendiente: 'Pendiente de validación',
-  sin: 'Sin correspondencia confirmada',
-  desconocida: 'No disponible',
-};
 
 @Component({
   selector: 'app-seguimiento',
@@ -102,6 +47,7 @@ export class Seguimiento implements OnInit {
   periodoSeleccionadoId = '';
 
   cargando = false;
+  exportando = false;
   errorPeriodos = false;
   errorCarga = '';
   errorCorrespondencias = false;
@@ -136,16 +82,9 @@ export class Seguimiento implements OnInit {
   currentPage = 1;
   pageSize = 10;
 
-  private asignacionesCargadas: any[] = [];
-  private evidenciasCargadas: any[] = [];
-  private indicadoresCargados: any[] = [];
-  private confirmados = new Set<number>();
-  private pendientes = new Set<number>();
-
   constructor(
     private evaluacionService: EvaluacionService,
-    private evidenciasService: EvidenciasService,
-    private vinculacionService: VinculacionService,
+    private resumenService: SeguimientoResumenService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -205,43 +144,9 @@ export class Seguimiento implements OnInit {
     this.cargando = true;
     this.errorCarga = '';
     this.avisosTruncado = [];
-    forkJoin({
-      asignaciones: this.obtenerPaginas(
-        (page) => this.evaluacionService.listarAsignacionesPagina(this.periodoSeleccionadoId, page),
-        MAX_PAGINAS_LISTADO
-      ),
-      evidencias: this.obtenerPaginas(
-        (page) => this.evidenciasService.listarEvidenciasPagina(this.periodoSeleccionadoId, page),
-        MAX_PAGINAS_LISTADO
-      ),
-      indicadores: this.obtenerPaginas(
-        (page) => this.evaluacionService.listarIndicadoresPagina(page),
-        MAX_PAGINAS_LISTADO
-      ),
-      correspondencias: this.cargarCorrespondencias(),
-    }).subscribe({
-      next: ({ asignaciones, evidencias, indicadores, correspondencias }) => {
-        this.asignacionesCargadas = asignaciones.items;
-        this.evidenciasCargadas = evidencias.items;
-        this.indicadoresCargados = indicadores.items;
-        if (asignaciones.truncado) {
-          this.avisosTruncado.push(
-            `Asignaciones: se obtuvieron ${asignaciones.items.length} de ${asignaciones.total}; las métricas reflejan solo esas filas.`
-          );
-        }
-        if (evidencias.truncado) {
-          this.avisosTruncado.push(
-            `Evidencias: se obtuvieron ${evidencias.items.length} de ${evidencias.total}; algunas asignaciones pueden mostrarse sin evidencia.`
-          );
-        }
-        if (indicadores.truncado) {
-          this.avisosTruncado.push(
-            `Indicadores: se obtuvieron ${indicadores.items.length} de ${indicadores.total}; el criterio operativo puede faltar en algunas filas.`
-          );
-        }
-        this.aplicarCorrespondencias(correspondencias);
-        this.construirFilas();
-        this.aplicarFiltros();
+    this.resumenService.cargar(this.periodoSeleccionadoId).subscribe({
+      next: (resultado) => {
+        this.aplicarResultado(resultado);
         this.cargando = false;
       },
       error: (err) => {
@@ -254,10 +159,8 @@ export class Seguimiento implements OnInit {
 
   reintentarCorrespondencias(): void {
     this.reintentandoCorrespondencias = true;
-    this.cargarCorrespondencias().subscribe((resultado) => {
-      this.aplicarCorrespondencias(resultado);
-      this.construirFilas();
-      this.aplicarFiltros();
+    this.resumenService.recargarCorrespondencias().subscribe((resultado) => {
+      if (resultado) this.aplicarResultado(resultado);
       this.reintentandoCorrespondencias = false;
     });
   }
@@ -284,26 +187,12 @@ export class Seguimiento implements OnInit {
   }
 
   obtenerPaginas<T>(
-    pagina$: (page: number) => Observable<EnvolturaPaginada<T>>,
+    pagina$: (page: number) => Observable<RespuestaPaginada<T>>,
     maxPaginas: number,
     page = 1,
     acumulado: T[] = []
   ): Observable<ResultadoPaginas<T>> {
-    return pagina$(page).pipe(
-      switchMap((envoltura) => {
-        const resultados = Array.isArray(envoltura?.results) ? envoltura.results : [];
-        const total =
-          typeof envoltura?.count === 'number' ? envoltura.count : acumulado.length + resultados.length;
-        const cupo = Math.max(0, total - acumulado.length);
-        const items = [...acumulado, ...resultados.slice(0, cupo)];
-        const haySiguiente = Boolean(envoltura?.next);
-        const completo = !haySiguiente || resultados.length === 0 || items.length >= total;
-        if (completo || page >= maxPaginas) {
-          return of({ items, total, truncado: total > items.length });
-        }
-        return this.obtenerPaginas(pagina$, maxPaginas, page + 1, items);
-      })
-    );
+    return this.resumenService.obtenerPaginas(pagina$, maxPaginas, page, acumulado);
   }
 
   aplicarFiltros(): void {
@@ -325,108 +214,20 @@ export class Seguimiento implements OnInit {
   }
 
   private calcularMetricas(): void {
-    const filas = this.filasFiltradas;
-    const total = filas.length;
-    const conEvidencia = filas.filter((fila) => fila.evidenciaId != null).length;
-    const pendientesRevision = filas.filter((fila) => fila.claveRevision === 'en_revision').length;
-    const observadas = filas.filter((fila) => fila.claveRevision === 'observada').length;
-    if (!this.correspondenciasDisponibles) {
-      this.metricas = {
-        total,
-        conEvidencia,
-        sinEvidencia: total - conEvidencia,
-        pendientesRevision,
-        observadas,
-        conConfirmada: null,
-        sinConfirmada: null,
-      };
-      return;
-    }
-    const conConfirmada = filas.filter((fila) => fila.correspondenciaEstado === 'confirmada').length;
-    this.metricas = {
-      total,
-      conEvidencia,
-      sinEvidencia: total - conEvidencia,
-      pendientesRevision,
-      observadas,
-      conConfirmada,
-      sinConfirmada: total - conConfirmada,
-    };
+    this.metricas = calcularMetricas(this.filasFiltradas, this.correspondenciasDisponibles);
   }
 
-  private cargarCorrespondencias(): Observable<ResultadoCorrespondencias | null> {
-    return forkJoin({
-      confirmadas: this.obtenerPaginas(
-        (page) => this.vinculacionService.listarCorrespondencias({ estado: 'confirmada', page }),
-        MAX_PAGINAS_CORRESPONDENCIAS
-      ),
-      propuestas: this.obtenerPaginas(
-        (page) => this.vinculacionService.listarCorrespondencias({ estado: 'propuesta', page }),
-        MAX_PAGINAS_CORRESPONDENCIAS
-      ),
-    }).pipe(catchError(() => of(null)));
+  private aplicarResultado(resultado: ResultadoSeguimiento): void {
+    this.filas = resultado.filas;
+    this.avisosTruncado = resultado.avisosTruncado;
+    this.avisoCorrespondenciaTruncada = resultado.avisoCorrespondenciaTruncada;
+    this.errorCorrespondencias = !resultado.correspondenciasDisponibles;
+    if (this.errorCorrespondencias) this.filtros.correspondencia = '';
+    this.construirOpciones();
+    this.aplicarFiltros();
   }
 
-  private aplicarCorrespondencias(resultado: ResultadoCorrespondencias | null): void {
-    if (!resultado) {
-      this.errorCorrespondencias = true;
-      this.avisoCorrespondenciaTruncada = false;
-      this.filtros.correspondencia = '';
-      this.confirmados = new Set<number>();
-      this.pendientes = new Set<number>();
-      return;
-    }
-    this.errorCorrespondencias = false;
-    this.avisoCorrespondenciaTruncada = resultado.confirmadas.truncado || resultado.propuestas.truncado;
-    const idsConfirmados = resultado.confirmadas.items
-      .map((item: any) => item.indicador_op)
-      .filter((id: any) => typeof id === 'number');
-    const idsPropuestos = resultado.propuestas.items
-      .map((item: any) => item.indicador_op)
-      .filter((id: any) => typeof id === 'number');
-    this.confirmados = new Set<number>(idsConfirmados);
-    this.pendientes = new Set<number>(idsPropuestos.filter((id: number) => !this.confirmados.has(id)));
-  }
-
-  private construirFilas(): void {
-    const evPorAsignacion = new Map<number, any>();
-    for (const evidencia of this.evidenciasCargadas) {
-      const asignacionId =
-        typeof evidencia.asignacion === 'number' ? evidencia.asignacion : evidencia.asignacion?.id;
-      if (asignacionId != null) evPorAsignacion.set(asignacionId, evidencia);
-    }
-    const criterioPorIndicador = new Map<number, string>();
-    for (const indicador of this.indicadoresCargados) {
-      criterioPorIndicador.set(indicador.id, indicador.criterio_nombre || '');
-    }
-
-    this.filas = this.asignacionesCargadas.map((asignacion: any) => {
-      const evidencia = evPorAsignacion.get(asignacion.id) ?? null;
-      const claveRevision = this.claveDeRevision(evidencia, asignacion.estado);
-      const indicadorId = asignacion.indicador;
-      let correspondenciaEstado: EstadoCorrespondenciaFila = 'desconocida';
-      if (this.correspondenciasDisponibles) {
-        if (this.confirmados.has(indicadorId)) correspondenciaEstado = 'confirmada';
-        else if (this.pendientes.has(indicadorId)) correspondenciaEstado = 'pendiente';
-        else correspondenciaEstado = 'sin';
-      }
-      return {
-        asignacionId: asignacion.id,
-        periodoNombre: asignacion.periodo_nombre || '',
-        unidadId: asignacion.unidad_responsable,
-        unidadNombre: asignacion.unidad_responsable_nombre || '',
-        indicadorId,
-        indicadorNombre: asignacion.indicador_nombre || '',
-        criterioNombre: criterioPorIndicador.get(indicadorId) || '—',
-        estado: asignacion.estado || '',
-        estadoDisplay: asignacion.estado_display || asignacion.estado || '',
-        evidenciaId: evidencia?.id_evidencia ?? null,
-        claveRevision,
-        estadoRevision: ETIQUETAS_REVISION[claveRevision],
-        correspondenciaEstado,
-      } as FilaSeguimiento;
-    });
-
+  private construirOpciones(): void {
     const unidades = new Map<string, string>();
     const estados = new Map<string, string>();
     const revisiones = new Map<string, string>();
@@ -446,25 +247,6 @@ export class Seguimiento implements OnInit {
       .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
   }
 
-  private claveDeRevision(evidencia: any, estadoAsignacion: string): ClaveRevision {
-    if (!evidencia) return 'sin_evidencia';
-    if (evidencia.estado === 'cancelada') return 'cancelada';
-    switch (estadoAsignacion) {
-      case 'en_progreso':
-        return 'en_revision';
-      case 'observada':
-        return 'observada';
-      case 'aprobado':
-        return 'aprobada';
-      case 'rechazado':
-        return 'rechazada';
-      case 'completado':
-        return 'completada';
-      default:
-        return 'sin_enviar';
-    }
-  }
-
   etiquetaCorrespondencia(estado: EstadoCorrespondenciaFila): string {
     return ETIQUETAS_CORRESPONDENCIA[estado];
   }
@@ -473,10 +255,82 @@ export class Seguimiento implements OnInit {
     return String(periodo?.id ?? '');
   }
 
+  esExportacionLimitada(): boolean {
+    return this.avisosTruncado.length > 0 || this.avisoCorrespondenciaTruncada;
+  }
+
+  exportarCsv(): void {
+    if (this.exportando || !this.filasFiltradas.length) return;
+    this.exportando = true;
+    try {
+      const filasCsv = [
+        COLUMNAS_EXPORTACION,
+        ...this.filasFiltradas.map((fila) => this.filaCsv(fila)),
+      ];
+      const contenido =
+        '\uFEFF' +
+        filasCsv.map((fila) => fila.map((celda) => this.escaparCelda(celda)).join(',')).join('\r\n') +
+        '\r\n';
+      this.descargar(contenido, this.nombreArchivo());
+    } finally {
+      this.exportando = false;
+    }
+  }
+
+  descargar(contenido: string, nombre: string): void {
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const ancla = document.createElement('a');
+    ancla.href = url;
+    ancla.download = nombre;
+    document.body.appendChild(ancla);
+    ancla.click();
+    ancla.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  escaparCelda(valor: string): string {
+    let texto = String(valor ?? '');
+    if (/^[=+\-@]/.test(texto)) texto = `'${texto}`;
+    if (/["\r\n]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
+    return texto;
+  }
+
+  nombreArchivo(): string {
+    const periodo = this.periodos.find((item: any) => String(item.id) === String(this.periodoSeleccionadoId));
+    const partes = ['Seguimiento'];
+    if (periodo?.nombre) partes.push(this.sanitizarNombre(String(periodo.nombre)));
+    if (this.esExportacionLimitada()) partes.push('limitado');
+    partes.push(new Date().toISOString().slice(0, 10));
+    return `${partes.join('_')}.csv`;
+  }
+
+  private filaCsv(fila: FilaSeguimiento): string[] {
+    return [
+      fila.periodoNombre,
+      fila.unidadNombre,
+      fila.criterioNombre,
+      fila.indicadorNombre,
+      fila.estadoDisplay,
+      fila.evidenciaId != null ? 'Sí' : 'No',
+      fila.estadoRevision,
+      this.etiquetaCorrespondencia(fila.correspondenciaEstado),
+      fila.codigoDestino,
+      fila.versionMarco,
+    ];
+  }
+
+  private sanitizarNombre(texto: string): string {
+    const limpio = texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 60);
+    return limpio || 'periodo';
+  }
+
   private limpiarTodo(): void {
-    this.asignacionesCargadas = [];
-    this.evidenciasCargadas = [];
-    this.indicadoresCargados = [];
     this.filas = [];
     this.avisosTruncado = [];
     this.avisoCorrespondenciaTruncada = false;

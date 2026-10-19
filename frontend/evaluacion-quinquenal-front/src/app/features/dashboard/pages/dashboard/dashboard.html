@@ -130,6 +130,82 @@
       </div>
     </div>
 
+    <span class="section-divider">RESUMEN DE SEGUIMIENTO</span>
+    <section class="seguimiento-resumen" aria-label="Resumen de seguimiento del período">
+      <div class="resumen-segu-head">
+        <div class="resumen-segu-titulo">
+          <h3>Evidencias y correspondencias del período</h3>
+          <p>
+            Métricas operativas con el ámbito de acceso del usuario; no aplican los filtros superiores.
+            El detalle, los filtros y la exportación están en Seguimiento.
+          </p>
+        </div>
+        <a class="resumen-segu-enlace" routerLink="/seguimiento" [queryParams]="{ periodo: periodoSeleccionadoId }">
+          Ver seguimiento completo <i class="bx bx-chevron-right" aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <div *ngIf="cargandoSeguimiento" class="state-msg" role="status">Cargando resumen de seguimiento...</div>
+
+      <div *ngIf="!cargandoSeguimiento && errorSeguimiento" class="state-msg state-error" role="alert">
+        <i class="bx bx-error-circle" aria-hidden="true"></i>
+        <p>{{ errorSeguimiento }}</p>
+        <button type="button" class="btn-reintentar" (click)="reintentarResumenSeguimiento()">Reintentar</button>
+      </div>
+
+      <div *ngIf="!cargandoSeguimiento && !errorSeguimiento && !resultadoSeguimiento" class="state-msg">
+        {{ periodoSeleccionadoId ? 'No hay datos de seguimiento para el período seleccionado.' : 'Seleccione un período para consultar el resumen de seguimiento.' }}
+      </div>
+
+      <ng-container *ngIf="resultadoSeguimiento as res">
+        <div class="resumen-segu-avisos" aria-live="polite">
+          <div class="aviso aviso-warn" *ngFor="let aviso of res.avisosTruncado" role="status">
+            <i class="bx bx-info-circle" aria-hidden="true"></i>
+            <span>{{ aviso }}</span>
+          </div>
+          <div class="aviso aviso-warn" *ngIf="res.avisoCorrespondenciaTruncada" role="status">
+            <i class="bx bx-info-circle" aria-hidden="true"></i>
+            <span>El estado de correspondencias supera el límite de consulta; algunos indicadores pueden mostrarse sin correspondencia confirmada.</span>
+          </div>
+          <div class="aviso aviso-error" *ngIf="!res.correspondenciasDisponibles" role="alert">
+            <i class="bx bx-error-circle" aria-hidden="true"></i>
+            <span>El contexto EQ-SIDACES no está disponible (permisos o error del servicio); se omiten las métricas de correspondencia.</span>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon indigo"><i class="bx bx-time" aria-hidden="true"></i></div>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ res.metricas.pendientesRevision }}</span>
+              <span class="kpi-label">Pendientes de revisión</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon purple"><i class="bx bx-message-detail" aria-hidden="true"></i></div>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ res.metricas.observadas }}</span>
+              <span class="kpi-label">Observadas</span>
+            </div>
+          </div>
+          <div class="kpi-card" *ngIf="res.correspondenciasDisponibles">
+            <div class="kpi-icon green"><i class="bx bx-link" aria-hidden="true"></i></div>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ res.metricas.conConfirmada ?? 0 }}</span>
+              <span class="kpi-label">Con correspondencia confirmada</span>
+            </div>
+          </div>
+          <div class="kpi-card" *ngIf="res.correspondenciasDisponibles">
+            <div class="kpi-icon red"><i class="bx bx-unlink" aria-hidden="true"></i></div>
+            <div class="kpi-body">
+              <span class="kpi-value">{{ res.metricas.sinConfirmada ?? 0 }}</span>
+              <span class="kpi-label">Sin correspondencia confirmada</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
     <span class="section-divider">SITUACIÓN ACTUAL</span>
     <div class="charts-grid">
       <div class="chart-card">

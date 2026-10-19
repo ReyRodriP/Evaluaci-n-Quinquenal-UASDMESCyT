@@ -154,6 +154,65 @@
   cursor: wait;
 }
 
+/* ========== EXPORTACIÓN ========== */
+
+.export-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-export:hover:not(:disabled) {
+  filter: brightness(.95);
+}
+
+.btn-export:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.export-count {
+  font-weight: 500;
+  font-size: .82rem;
+  opacity: .9;
+}
+
+.export-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+body.dark .export-aviso {
+  background: #3a2f14;
+  border-color: #7c5c14;
+  color: #fbd38d;
+}
+
 /* ========== AVISOS ========== */
 
 .avisos {
