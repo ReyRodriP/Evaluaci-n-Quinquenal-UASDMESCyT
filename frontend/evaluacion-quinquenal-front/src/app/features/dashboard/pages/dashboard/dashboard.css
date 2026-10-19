@@ -600,6 +600,23 @@ body.dark .chip-completado   { background: #123333; color: #5eead4; }
 
 /* ========== RESUMEN DE SEGUIMIENTO ========== */
 
+.kpi-enlace {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.kpi-enlace:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.kpi-enlace:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 .seguimiento-resumen {
   margin-bottom: 28px;
 }

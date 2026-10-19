@@ -461,12 +461,17 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
-        """@brief Actualiza una asignación, registrando cambios de estado.
+        """@brief Actualiza una asignación, validando y registrando cambios de estado.
         @param serializer Serializador con los datos validados.
         @return None
+        @raises ValidationError Si el cambio de estado no es una transición válida de la máquina de estados.
         """
         self._validar_unidad_permitida(serializer.validated_data)
-        old_estado = self.get_object().estado
+        instance = serializer.instance
+        old_estado = instance.estado
+        nuevo_estado = serializer.validated_data.get("estado", old_estado)
+        if nuevo_estado != old_estado and not self._validar_transicion(old_estado, nuevo_estado):
+            raise ValidationError({"error": "Transición no válida"})
         instance = serializer.save()
 
         if old_estado != instance.estado:

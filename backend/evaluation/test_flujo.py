@@ -98,3 +98,88 @@ class FlujoAsignacionTests(TestCase):
             asig = _asignacion(tag=accion)
             r = self.client.post(f"/api/asignaciones/{asig.pk}/{accion}/", {"comentario": "x"})
             self.assertLess(r.status_code, 500, f"{accion} no debe dar 5xx, dio {r.status_code}")
+
+
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.PBKDF2PasswordHasher"])
+class TransicionesUpdateTests(TestCase):
+    """PUT/PATCH deben respetar la misma máquina de estados que las acciones personalizadas."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = _superuser()
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + _token(self.user))
+        self.asig = _asignacion()
+
+    def test_patch_transicion_valida_funciona_y_registra_historial(self):
+        r = self.client.patch(f"/api/asignaciones/{self.asig.pk}/", {"estado": "observada"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.asig.refresh_from_db()
+        self.assertEqual(self.asig.estado, EstadoAsignacion.OBSERVADA)
+        self.assertTrue(
+            self.asig.historial_estados.filter(
+                estado_anterior=EstadoAsignacion.PENDIENTE,
+                estado_nuevo=EstadoAsignacion.OBSERVADA,
+            ).exists()
+        )
+
+    def test_patch_transicion_invalida_rechazada_sin_cambios(self):
+        r = self.client.patch(f"/api/asignaciones/{self.asig.pk}/", {"estado": "aprobado"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.data.get("error"), "Transición no válida")
+        self.asig.refresh_from_db()
+        self.assertEqual(self.asig.estado, EstadoAsignacion.PENDIENTE)
+        self.assertEqual(self.asig.historial_estados.count(), 0)
+
+    def test_put_no_puede_revertir_un_aprobado(self):
+        self.asig.estado = EstadoAsignacion.APROBADO
+        self.asig.save()
+        r = self.client.put(
+            f"/api/asignaciones/{self.asig.pk}/",
+            {
+                "indicador": self.asig.indicador_id,
+                "unidad_responsable": self.asig.unidad_responsable_id,
+                "periodo": self.asig.periodo_id,
+                "estado": "pendiente",
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.data.get("error"), "Transición no válida")
+        self.asig.refresh_from_db()
+        self.assertEqual(self.asig.estado, EstadoAsignacion.APROBADO)
+        self.assertEqual(self.asig.historial_estados.count(), 0)
+
+    def test_patch_con_mismo_estado_actualiza_otro_campo(self):
+        criterio = self.asig.indicador.criterio
+        otro_indicador = Indicador.objects.create(nombre="Indicador extra", criterio=criterio)
+        r = self.client.patch(
+            f"/api/asignaciones/{self.asig.pk}/",
+            {"estado": "pendiente", "indicador": otro_indicador.pk},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 200, r.data)
+        self.asig.refresh_from_db()
+        self.assertEqual(self.asig.indicador_id, otro_indicador.pk)
+        self.assertEqual(self.asig.estado, EstadoAsignacion.PENDIENTE)
+        self.assertEqual(self.asig.historial_estados.count(), 0)
+
+    def test_error_de_transicion_no_deja_cambios_parciales(self):
+        indicador_original = self.asig.indicador_id
+        criterio = self.asig.indicador.criterio
+        otro_indicador = Indicador.objects.create(nombre="Indicador parcial", criterio=criterio)
+        r = self.client.patch(
+            f"/api/asignaciones/{self.asig.pk}/",
+            {"estado": "aprobado", "indicador": otro_indicador.pk},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.asig.refresh_from_db()
+        self.assertEqual(self.asig.indicador_id, indicador_original)
+        self.assertEqual(self.asig.estado, EstadoAsignacion.PENDIENTE)
+
+    def test_accion_custom_aplicada_desde_estado_invalido_devuelve_400(self):
+        r = self.client.post(f"/api/asignaciones/{self.asig.pk}/aprobar/")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.data.get("error"), "Transición no válida")
+        self.asig.refresh_from_db()
+        self.assertEqual(self.asig.estado, EstadoAsignacion.PENDIENTE)

@@ -57,7 +57,7 @@ export class Asignaciones implements OnInit {
   get ocultarAcciones(): string[] {
     if (!this.periodoSeleccionadoEsActivo) return ['edit', 'toggle', 'remove'];
     if (this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion', 'evaluation.delete_asignacion'])) {
-      return [];
+      return ['toggle'];
     }
     return ['edit', 'toggle', 'remove'];
   }
@@ -409,25 +409,6 @@ export class Asignaciones implements OnInit {
       error: (err) => {
         console.error('Error eliminando asignación', err);
         this.toast.error('No se pudo eliminar la asignación');
-      }
-    });
-  }
-
-  onToggleEstado(item: any) {
-    if (!item.id) {
-      return;
-    }
-
-    const nuevoEstado = item.estadoRaw === 'aprobado' ? 'pendiente' : 'aprobado';
-
-    this.evaluacionService.patchAsignacion(item.id, { estado: nuevoEstado }).subscribe({
-      next: () => {
-        this.toast.success(`Asignación marcada como ${nuevoEstado}`);
-        this.loadAsignaciones();
-      },
-      error: (err) => {
-        console.error('Error cambiando estado de asignación', err);
-        this.toast.error('No se pudo cambiar el estado de la asignación');
       }
     });
   }

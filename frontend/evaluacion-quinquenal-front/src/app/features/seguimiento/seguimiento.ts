@@ -9,6 +9,8 @@ import { SeguimientoResumenService } from '../../core/services/seguimiento-resum
 import { RespuestaPaginada } from '../../core/models/vinculacion.model';
 import {
   ETIQUETAS_CORRESPONDENCIA,
+  ETIQUETAS_REVISION,
+  ClaveRevision,
   EstadoCorrespondenciaFila,
   FilaSeguimiento,
   Metricas,
@@ -113,7 +115,8 @@ export class Seguimiento implements OnInit {
         if (activo && !this.periodos.some((item: any) => Number(item.id) === Number(activo.id))) {
           this.periodos = [...this.periodos, activo];
         }
-        if (this.periodoSeleccionadoId !== periodoUrl) this.actualizarPeriodoUrl();
+        this.leerFiltrosDesdeUrl();
+        this.sincronizarUrl();
         this.cargarDatos();
       },
       error: () => {
@@ -124,7 +127,7 @@ export class Seguimiento implements OnInit {
 
   onPeriodoChange(periodoId: string): void {
     this.periodoSeleccionadoId = periodoId;
-    this.actualizarPeriodoUrl();
+    this.sincronizarUrl();
     this.cargarDatos();
   }
 
@@ -206,6 +209,7 @@ export class Seguimiento implements OnInit {
     this.currentPage = 1;
     this.calcularMetricas();
     this.actualizarPagina();
+    this.sincronizarUrl();
   }
 
   private actualizarPagina(): void {
@@ -239,6 +243,12 @@ export class Seguimiento implements OnInit {
     this.opcionesUnidades = this.aOpcionesOrdenadas(unidades);
     this.opcionesEstados = this.aOpcionesOrdenadas(estados);
     this.opcionesRevision = this.aOpcionesOrdenadas(revisiones);
+    if (this.filtros.revision && !this.opcionesRevision.some((opcion) => opcion.valor === this.filtros.revision)) {
+      this.opcionesRevision.push({
+        valor: this.filtros.revision,
+        etiqueta: ETIQUETAS_REVISION[this.filtros.revision as ClaveRevision] ?? this.filtros.revision,
+      });
+    }
   }
 
   private aOpcionesOrdenadas(mapa: Map<string, string>): OpcionFiltro[] {
@@ -339,10 +349,27 @@ export class Seguimiento implements OnInit {
     this.aplicarFiltros();
   }
 
-  private actualizarPeriodoUrl(): void {
+  private leerFiltrosDesdeUrl(): void {
+    const parametros = this.route.snapshot.queryParamMap;
+    const revision = parametros.get('revision') ?? '';
+    const correspondencia = parametros.get('correspondencia') ?? '';
+    const clavesRevision = Object.keys(ETIQUETAS_REVISION);
+    this.filtros.revision = clavesRevision.includes(revision) ? revision : '';
+    this.filtros.correspondencia = this.opcionesCorrespondencia.some(
+      (opcion) => opcion.valor === correspondencia
+    )
+      ? correspondencia
+      : '';
+  }
+
+  private sincronizarUrl(): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { periodo: this.periodoSeleccionadoId || null },
+      queryParams: {
+        periodo: this.periodoSeleccionadoId || null,
+        revision: this.filtros.revision || null,
+        correspondencia: this.filtros.correspondencia || null,
+      },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });

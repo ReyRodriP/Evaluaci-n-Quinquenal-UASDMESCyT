@@ -80,6 +80,15 @@ describe('Dashboard', () => {
   const seccionSeguimiento = () =>
     (fixture.nativeElement as HTMLElement).querySelector('.seguimiento-resumen');
 
+  const enlaceDeTarjeta = (etiqueta: string) => {
+    const enlaces = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('a.kpi-enlace')
+    );
+    return enlaces.find((enlace) => enlace.querySelector('.kpi-label')?.textContent?.trim() === etiqueta);
+  };
+
+  const hrefDe = (etiqueta: string) => enlaceDeTarjeta(etiqueta)?.getAttribute('href') ?? '';
+
   beforeEach(async () => {
     seguimientoService = jasmine.createSpyObj<SeguimientoResumenService>(
       'SeguimientoResumenService',
@@ -221,5 +230,68 @@ describe('Dashboard', () => {
 
     const enlace = seccionSeguimiento()?.querySelector<HTMLAnchorElement>('.resumen-segu-enlace');
     expect(enlace?.getAttribute('href')).toBe('/seguimiento?periodo=10');
+  });
+
+  it('enlaza «Sin evidencia» a Seguimiento con período y filtro de revisión', () => {
+    component.periodoSeleccionadoId = '10';
+    mostrar();
+
+    const href = hrefDe('Sin evidencia');
+    expect(href).toContain('/seguimiento');
+    expect(href).toContain('periodo=10');
+    expect(href).toContain('revision=sin_evidencia');
+  });
+
+  it('enlaza «Pendientes de revisión» con su filtro de revisión', () => {
+    component.periodoSeleccionadoId = '10';
+    component.resultadoSeguimiento = resultadoBase();
+    mostrar();
+
+    const href = hrefDe('Pendientes de revisión');
+    expect(href).toContain('periodo=10');
+    expect(href).toContain('revision=en_revision');
+  });
+
+  it('enlaza «Observadas» con el filtro de revisión observada', () => {
+    component.periodoSeleccionadoId = '10';
+    component.resultadoSeguimiento = resultadoBase();
+    mostrar();
+
+    const href = hrefDe('Observadas');
+    expect(href).toContain('periodo=10');
+    expect(href).toContain('revision=observada');
+  });
+
+  it('enlaza las métricas de correspondencia con sus filtros', () => {
+    component.periodoSeleccionadoId = '10';
+    component.resultadoSeguimiento = resultadoBase();
+    mostrar();
+
+    const hrefCon = hrefDe('Con correspondencia confirmada');
+    expect(hrefCon).toContain('periodo=10');
+    expect(hrefCon).toContain('correspondencia=confirmada');
+
+    const hrefSin = hrefDe('Sin correspondencia confirmada');
+    expect(hrefSin).toContain('periodo=10');
+    expect(hrefSin).toContain('correspondencia=sin');
+  });
+
+  it('conserva el período seleccionado en los accesos directos', () => {
+    component.periodoSeleccionadoId = '11';
+    component.resultadoSeguimiento = resultadoBase();
+    mostrar();
+
+    expect(hrefDe('Observadas')).toContain('periodo=11');
+    expect(hrefDe('Sin evidencia')).toContain('periodo=11');
+  });
+
+  it('las métricas sin filtro compatible no se convierten en enlaces', () => {
+    component.resumen = { asignaciones: 4, evidencias: 3, cobertura_porcentaje: 75 };
+    mostrar();
+
+    const etiquetas = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('a.kpi-enlace')
+    ).map((enlace) => enlace.querySelector('.kpi-label')?.textContent?.trim());
+    expect(etiquetas).toEqual(['Sin evidencia']);
   });
 });

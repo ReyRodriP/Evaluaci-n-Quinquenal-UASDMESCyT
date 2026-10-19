@@ -121,13 +121,15 @@
           <span class="kpi-label">Cumplimiento aprobado</span>
         </div>
       </div>
-      <div class="kpi-card">
+      <a class="kpi-card kpi-enlace" routerLink="/seguimiento"
+        [queryParams]="{ periodo: periodoSeleccionadoId || null, revision: 'sin_evidencia' }"
+        aria-label="Ver asignaciones sin evidencia en Seguimiento">
         <div class="kpi-icon amber"><i class="bx bx-file-x"></i></div>
         <div class="kpi-body">
           <span class="kpi-value">{{ resumen.sin_evidencia || 0 }}</span>
           <span class="kpi-label">Sin evidencia</span>
         </div>
-      </div>
+      </a>
     </div>
 
     <span class="section-divider">RESUMEN DE SEGUIMIENTO</span>
@@ -174,34 +176,42 @@
         </div>
 
         <div class="kpi-grid">
-          <div class="kpi-card">
+          <a class="kpi-card kpi-enlace" routerLink="/seguimiento"
+            [queryParams]="{ periodo: periodoSeleccionadoId || null, revision: 'en_revision' }"
+            aria-label="Ver pendientes de revisión en Seguimiento">
             <div class="kpi-icon indigo"><i class="bx bx-time" aria-hidden="true"></i></div>
             <div class="kpi-body">
               <span class="kpi-value">{{ res.metricas.pendientesRevision }}</span>
               <span class="kpi-label">Pendientes de revisión</span>
             </div>
-          </div>
-          <div class="kpi-card">
+          </a>
+          <a class="kpi-card kpi-enlace" routerLink="/seguimiento"
+            [queryParams]="{ periodo: periodoSeleccionadoId || null, revision: 'observada' }"
+            aria-label="Ver evidencias observadas en Seguimiento">
             <div class="kpi-icon purple"><i class="bx bx-message-detail" aria-hidden="true"></i></div>
             <div class="kpi-body">
               <span class="kpi-value">{{ res.metricas.observadas }}</span>
               <span class="kpi-label">Observadas</span>
             </div>
-          </div>
-          <div class="kpi-card" *ngIf="res.correspondenciasDisponibles">
+          </a>
+          <a class="kpi-card kpi-enlace" *ngIf="res.correspondenciasDisponibles" routerLink="/seguimiento"
+            [queryParams]="{ periodo: periodoSeleccionadoId || null, correspondencia: 'confirmada' }"
+            aria-label="Ver asignaciones con correspondencia confirmada en Seguimiento">
             <div class="kpi-icon green"><i class="bx bx-link" aria-hidden="true"></i></div>
             <div class="kpi-body">
               <span class="kpi-value">{{ res.metricas.conConfirmada ?? 0 }}</span>
               <span class="kpi-label">Con correspondencia confirmada</span>
             </div>
-          </div>
-          <div class="kpi-card" *ngIf="res.correspondenciasDisponibles">
+          </a>
+          <a class="kpi-card kpi-enlace" *ngIf="res.correspondenciasDisponibles" routerLink="/seguimiento"
+            [queryParams]="{ periodo: periodoSeleccionadoId || null, correspondencia: 'sin' }"
+            aria-label="Ver asignaciones sin correspondencia confirmada en Seguimiento">
             <div class="kpi-icon red"><i class="bx bx-unlink" aria-hidden="true"></i></div>
             <div class="kpi-body">
               <span class="kpi-value">{{ res.metricas.sinConfirmada ?? 0 }}</span>
               <span class="kpi-label">Sin correspondencia confirmada</span>
             </div>
-          </div>
+          </a>
         </div>
       </ng-container>
     </section>

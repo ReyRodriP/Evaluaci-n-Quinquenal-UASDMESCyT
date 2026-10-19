@@ -1,5 +1,6 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
@@ -111,6 +112,19 @@ describe('Seguimiento', () => {
     vinculacionService.listarCorrespondencias.and.callFake(exitoCorrespondencias);
     component.cargarDatos();
     fixture.detectChanges();
+  };
+
+  const crearConUrl = (params: Record<string, string>) => {
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    const route = TestBed.inject(ActivatedRoute);
+    Object.defineProperty(route, 'snapshot', {
+      configurable: true,
+      get: () => ({ queryParamMap: convertToParamMap(params) }),
+    });
+    const nuevo = TestBed.createComponent(Seguimiento);
+    nuevo.detectChanges();
+    return nuevo;
   };
 
   beforeEach(async () => {
@@ -490,5 +504,127 @@ describe('Seguimiento', () => {
     expect(lineas[1].split(',')[7]).toBe(
       component.etiquetaCorrespondencia(component.filasFiltradas[0].correspondenciaEstado)
     );
+  });
+
+  it('inicializa los filtros de revisión y correspondencia desde la URL', () => {
+    const nuevo = crearConUrl({ periodo: '10', revision: 'en_revision', correspondencia: 'confirmada' });
+    const c = nuevo.componentInstance;
+
+    expect(c.periodoSeleccionadoId).toBe('10');
+    expect(c.filtros.revision).toBe('en_revision');
+    expect(c.filtros.correspondencia).toBe('confirmada');
+    expect(c.filasFiltradas.map((fila) => fila.asignacionId)).toEqual([2]);
+    expect(c.metricas.total).toBe(1);
+  });
+
+  it('ignora parámetros de filtro inválidos en la URL', () => {
+    const nuevo = crearConUrl({ periodo: '10', revision: 'no_existe', correspondencia: 'desconocida' });
+    const c = nuevo.componentInstance;
+
+    expect(c.filtros.revision).toBe('');
+    expect(c.filtros.correspondencia).toBe('');
+    expect(c.filasFiltradas.length).toBe(4);
+  });
+
+  it('permite modificar y limpiar los filtros recibidos desde la URL', () => {
+    const nuevo = crearConUrl({ periodo: '10', revision: 'en_revision' });
+    const c = nuevo.componentInstance;
+    expect(c.filasFiltradas.length).toBe(1);
+
+    c.cambiarFiltro('revision', 'observada');
+    expect(c.filasFiltradas.map((fila) => fila.asignacionId)).toEqual([3]);
+
+    c.limpiarFiltros();
+    expect(c.filtros.revision).toBe('');
+    expect(c.filtros.correspondencia).toBe('');
+    expect(c.filasFiltradas.length).toBe(4);
+  });
+
+  it('sincroniza los filtros de revisión y correspondencia en la URL', () => {
+    const router = TestBed.inject(Router);
+    const navigate = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+
+    component.cambiarFiltro('revision', 'en_revision');
+    let extras = navigate.calls.mostRecent().args[1] as any;
+    expect(extras.queryParams.periodo).toBe('10');
+    expect(extras.queryParams.revision).toBe('en_revision');
+
+    component.limpiarFiltros();
+    extras = navigate.calls.mostRecent().args[1] as any;
+    expect(extras.queryParams.revision).toBeNull();
+    expect(extras.queryParams.correspondencia).toBeNull();
+  });
+
+  it('descarta el filtro de correspondencia cuando no está disponible por permisos', () => {
+    vinculacionService.listarCorrespondencias.and.returnValue(throwError(() => ({ status: 403 })));
+    const nuevo = crearConUrl({ periodo: '10', correspondencia: 'confirmada' });
+    const c = nuevo.componentInstance;
+
+    expect(c.errorCorrespondencias).toBeTrue();
+    expect(c.filtros.correspondencia).toBe('');
+    expect(c.filasFiltradas.length).toBe(4);
+    const texto = (nuevo.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto).toContain('No se pudo consultar el estado de correspondencias');
+  });
+
+  it('exporta según el filtro recibido desde la URL', () => {
+    const nuevo = crearConUrl({ periodo: '10', revision: 'en_revision' });
+    const c = nuevo.componentInstance;
+    const spy = spyOn(c, 'descargar');
+
+    c.exportarCsv();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const contenido = spy.calls.mostRecent().args[0] as string;
+    expect(contenido).toContain('Pendiente de revisión');
+    expect(contenido).not.toContain('Sin evidencia');
+    expect(contenido.replace('\uFEFF', '').split('\r\n').filter(Boolean).length).toBe(2);
+  });
+
+  it('ofrece la opción de revisión activa aunque el período no tenga filas con esa clave', fakeAsync(() => {
+    data.asignaciones = data.asignaciones.filter((asignacion) => asignacion.estado !== 'observada');
+    const nuevo = crearConUrl({ periodo: '10', revision: 'observada' });
+    tick();
+    nuevo.detectChanges();
+    const c = nuevo.componentInstance;
+
+    expect(c.filtros.revision).toBe('observada');
+    expect(c.opcionesRevision.some((opcion) => opcion.valor === 'observada')).toBeTrue();
+    expect(c.filasFiltradas.length).toBe(0);
+    const select = (nuevo.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(
+      'select[aria-label="Estado de revisión"]'
+    );
+    expect(select?.value).toBe('observada');
+    expect(select?.selectedOptions[0]?.textContent?.trim()).toBe('Observada');
+  }));
+
+  it('reintenta la carga de períodos cuando la consulta falla', () => {
+    evaluacionService.listarPeriodos.and.returnValue(throwError(() => ({ status: 500 })));
+    const nuevo = TestBed.createComponent(Seguimiento);
+    nuevo.detectChanges();
+    const c = nuevo.componentInstance;
+
+    expect(c.errorPeriodos).toBeTrue();
+    expect((nuevo.nativeElement as HTMLElement).textContent).toContain('No se pudieron cargar los períodos');
+
+    evaluacionService.listarPeriodos.and.callFake(() => of(data.periodos));
+    c.reintentar();
+    nuevo.detectChanges();
+
+    expect(c.errorPeriodos).toBeFalse();
+    expect(c.periodoSeleccionadoId).toBe('10');
+    expect(c.filas.length).toBe(4);
+  });
+
+  it('consulta solo correspondencias confirmadas y propuestas y prioriza el destino confirmado', () => {
+    const estadosConsultados = vinculacionService.listarCorrespondencias.calls
+      .allArgs()
+      .map((argumentos) => (argumentos[0] as any)?.estado);
+    expect(estadosConsultados).toEqual(['confirmada', 'propuesta']);
+
+    const fila = component.filas.find((item) => item.indicadorId === 100)!;
+    expect(fila.correspondenciaEstado).toBe('confirmada');
+    expect(fila.codigoDestino).toBe('6.1.1.1-IND-01');
+    expect(fila.versionMarco).toBe('Marco 2026');
   });
 });
