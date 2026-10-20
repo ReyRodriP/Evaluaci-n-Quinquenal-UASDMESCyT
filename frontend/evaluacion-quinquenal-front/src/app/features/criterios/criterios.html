@@ -1,8 +1,44 @@
 <div class="crud-container">
   <div class="crud-header">
     <app-search-bar [titulo]="'Criterios'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todas', 'Activos', 'Inactivos']" [showCreate]="puedeCrear" [pageSize]="pageSize" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)" (pageSizeChange)="onPageSizeChange($event)"></app-search-bar>
-    <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)"></app-crud-table>
+    <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" (edit)="openEdit($event)" (remove)="onRemove($event)" (toggleEstado)="onToggleEstado($event)">
+      @if (puedeVincular) {
+        <ng-template #acciones let-row>
+          @if (!ocultarAcciones.includes('edit')) {
+            <button title="Editar" aria-label="Editar" (click)="openEdit(row)">
+              <i class="bx bx-edit" aria-hidden="true"></i>
+            </button>
+          }
+          @if (!ocultarAcciones.includes('toggle')) {
+            <button title="Activar/Desactivar" aria-label="Activar o desactivar" (click)="onToggleEstado(row)">
+              <i class="bx bx-power" aria-hidden="true"></i>
+            </button>
+          }
+          @if (!ocultarAcciones.includes('remove')) {
+            <button title="Eliminar" aria-label="Eliminar" (click)="onRemove(row)">
+              <i class="bx bx-trash" aria-hidden="true"></i>
+            </button>
+          }
+          <button
+            class="accion-vincular"
+            title="Proponer vínculo con el marco EQ-SIDACES"
+            aria-label="Proponer vínculo EQ-SIDACES"
+            (click)="abrirVinculo(row)">
+            <i class="bx bx-link" aria-hidden="true"></i>
+          </button>
+        </ng-template>
+      }
+    </app-crud-table>
     <app-pagination [total]="datosFiltrados.length" [pageSize]="pageSize" [currentPage]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+
+    @if (criterioVincular) {
+      <section class="panel-vinculo" aria-label="Nueva propuesta de correspondencia para el criterio">
+        <app-correspondencia-form
+          [origenFijo]="criterioVincular"
+          (cancelada)="cerrarVinculo()"
+        ></app-correspondencia-form>
+      </section>
+    }
 
     <app-modal
       [open]="showModal"

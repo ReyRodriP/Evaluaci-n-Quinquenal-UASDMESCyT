@@ -1,0 +1,264 @@
+:host {
+  display: block;
+  padding: 1.5rem 2rem 3rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.vinculacion-header h1 {
+  margin: 0;
+  color: var(--text-title-color, #2d56c8);
+  font-size: 1.4rem;
+}
+
+.intro {
+  margin: 0.5rem 0 1.25rem;
+  color: var(--text-color, #707070);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.intro a {
+  color: var(--primary-color, #0091ff);
+  font-weight: 600;
+}
+
+.filtros-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filtro {
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filtro:hover {
+  background: #f7f9fa;
+}
+
+.filtro-activo {
+  background: var(--primary-color, #0091ff);
+  border-color: var(--primary-color, #0091ff);
+  color: #fff;
+}
+
+.total-filtro {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-color, #707070);
+}
+
+.aviso-dominio {
+  font-size: 0.85rem;
+  color: var(--text-color, #707070);
+  background: #f1f6ff;
+  border-left: 4px solid var(--primary-color, #0091ff);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.estado {
+  background: #f8fafc;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  color: var(--text-color, #707070);
+}
+
+.estado-error {
+  background: #fff5f5;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+
+.estado-error button {
+  margin-top: 0.5rem;
+}
+
+.tarjeta-correspondencia {
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-left: 4px solid #94a3b8;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.tarjeta-correspondencia[data-estado='confirmada'] {
+  border-left-color: #198754;
+}
+
+.tarjeta-correspondencia[data-estado='propuesta'] {
+  border-left-color: #f0ad4e;
+}
+
+.tarjeta-correspondencia[data-estado='rechazada'] {
+  border-left-color: #dc3545;
+}
+
+.tarjeta-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.badge-propuesta {
+  background: #fff3cd;
+  color: #997404;
+}
+
+.badge-confirmada {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.badge-rechazada {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.procedencia,
+.version {
+  font-size: 0.8rem;
+  color: var(--text-color, #707070);
+}
+
+.nodo {
+  margin: 0.25rem 0;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.enlace-origen {
+  margin-left: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-selected-color, #355cc0);
+}
+
+.meta,
+.comentario {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--text-color, #707070);
+}
+
+.acciones-tarjeta,
+.acciones-form {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.btn-primario,
+.btn-secundario {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-primario {
+  background: var(--primary-color, #0091ff);
+  color: #fff;
+}
+
+.btn-secundario {
+  background: #eef2f7;
+  color: #334155;
+}
+
+.btn-primario:disabled,
+.btn-secundario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.form-transicion {
+  margin-top: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.form-transicion label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 0.3rem;
+}
+
+.form-transicion textarea {
+  width: 100%;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background: #fff;
+}
+
+.confirmacion-texto {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.mensaje-error {
+  color: #842029;
+  background: #fff5f5;
+  border: 1px solid #f5c2c7;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.pagina-actual {
+  font-size: 0.85rem;
+  color: var(--text-color, #707070);
+}
+
+@media (max-width: 720px) {
+  :host {
+    padding: 1rem;
+  }
+
+  .total-filtro {
+    margin-left: 0;
+  }
+}

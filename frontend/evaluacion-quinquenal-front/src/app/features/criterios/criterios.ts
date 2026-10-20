@@ -3,13 +3,14 @@ import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
+import { CorrespondenciaForm, OrigenFijo } from '../../shared/components/correspondencia-form/correspondencia-form';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
 
 @Component({
   selector: 'app-criterios',
-  imports: [CrudTable, SearchBar, Pagination, Modal],
+  imports: [CrudTable, SearchBar, Pagination, Modal, CorrespondenciaForm],
   templateUrl: './criterios.html',
   styleUrl: './criterios.css',
 })
@@ -27,6 +28,8 @@ export class Criterios implements OnInit {
 
   showModal: boolean = false;
   selectedItem: any = null;
+
+  criterioVincular: OrigenFijo | null = null;
 
   criterioFields: any[] = [
     { label: 'Nombre', name: 'nombre', type: 'text', placeholder: 'Ej. Criterio de calidad', defaultValue: '' },
@@ -47,6 +50,21 @@ export class Criterios implements OnInit {
     if (!this.permisos.tienePermiso('evaluation.change_criterio')) ocultas.push('edit', 'toggle');
     if (!this.permisos.tienePermiso('evaluation.delete_criterio')) ocultas.push('remove');
     return ocultas;
+  }
+
+  get puedeVincular(): boolean {
+    const rolEscritura =
+      this.permisos.tieneGrupo('Administrador General') || this.permisos.tieneGrupo('Coordinador Quinquenal');
+    return this.permisos.esSuperuser || (this.permisos.tienePermiso('vinculacion.add_correspondencia') && rolEscritura);
+  }
+
+  abrirVinculo(item: any): void {
+    if (!item?.id) return;
+    this.criterioVincular = { nivel: 'criterio', id: item.id, texto: item.nombre ?? '' };
+  }
+
+  cerrarVinculo(): void {
+    this.criterioVincular = null;
   }
 
   constructor(

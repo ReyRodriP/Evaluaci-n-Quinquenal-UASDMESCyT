@@ -273,3 +273,31 @@
 .tabla-asignaciones a {
   color: var(--text-selected-color, #355cc0);
 }
+
+.btn-proponer {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--primary-color, #0091ff);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-color, #0091ff);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-proponer:hover {
+  background: #f1f6ff;
+}
+
+.panel-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.panel-acciones .btn-proponer {
+  margin-top: 0;
+}

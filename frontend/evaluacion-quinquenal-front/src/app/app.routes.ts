@@ -26,6 +26,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { PermisoGuard } from './core/guards/permiso.guard';
 import { Perfil } from './features/perfil/perfil';
 import { Catalogo } from './features/catalogo/catalogo';
+import { Vinculacion } from './features/vinculacion/vinculacion';
 
 export const routes: Routes = [
     {
@@ -80,6 +81,11 @@ export const routes: Routes = [
             {
                 path: 'marco-evaluacion',
                 component: Catalogo
+            },
+            {
+                path: 'vinculacion',
+                component: Vinculacion,
+                canActivate: [PermisoGuard]
             },
             {
                 path: 'usuarios',

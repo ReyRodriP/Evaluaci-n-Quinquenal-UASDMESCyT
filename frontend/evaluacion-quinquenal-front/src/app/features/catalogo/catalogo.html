@@ -43,6 +43,18 @@
     </div>
   }
 
+  @if (proposicionError) {
+    <div class="estado estado-error" role="alert">{{ proposicionError }}</div>
+  }
+
+  @if (formPropuesta && !indicadorPanel) {
+    <app-correspondencia-form
+      [destinoFijo]="formPropuesta"
+      (creada)="onPropuestaCreada()"
+      (cancelada)="cancelarPropuesta()"
+    ></app-correspondencia-form>
+  }
+
   @if (cargando) {
     <div class="estado" role="status">Cargando…</div>
   } @else if (error) {
@@ -80,6 +92,16 @@
               <span class="ir">Ver siguiente nivel →</span>
             }
           </button>
+          @if (puedeProponerEn(nivelActual)) {
+            <button
+              type="button"
+              class="btn-proponer"
+              (click)="abrirPropuesta(nivelActual, item)"
+              [attr.aria-label]="'Proponer vínculo con ' + codigoDe(item)"
+            >
+              Proponer vínculo
+            </button>
+          }
         </li>
       }
     </ul>
@@ -102,7 +124,14 @@
             }
           </div>
         </div>
-        <button type="button" class="btn-reintentar" (click)="cerrarPanel()">Cerrar detalle</button>
+        <div class="panel-acciones">
+          @if (puedeProponer && !formPropuesta) {
+            <button type="button" class="btn-proponer" (click)="abrirPropuesta('indicadores', indicadorPanel)">
+              Proponer vínculo
+            </button>
+          }
+          <button type="button" class="btn-reintentar" (click)="cerrarPanel()">Cerrar detalle</button>
+        </div>
       </div>
 
       <p class="texto">{{ textoDe(indicadorPanel) }}</p>
@@ -110,6 +139,14 @@
         <p class="panel-meta">
           Estándar contenedor: <span class="codigo">{{ indicadorPanel.estandar_codigo }}</span>
         </p>
+      }
+
+      @if (formPropuesta && indicadorPanel) {
+        <app-correspondencia-form
+          [destinoFijo]="formPropuesta"
+          (creada)="onPropuestaCreada()"
+          (cancelada)="cancelarPropuesta()"
+        ></app-correspondencia-form>
       }
 
       <h3 class="panel-subtitulo">Correspondencias registradas</h3>
@@ -144,6 +181,9 @@
                 <strong>{{ etiquetaOrigen(corr.origen.nivel) }}:</strong>
                 {{ corr.origen.texto }}
               </p>
+              @if (rutaOrigen(corr); as ruta) {
+                <a class="panel-enlace" [routerLink]="ruta">Ver origen operativo →</a>
+              }
             }
             @if (corr.fecha_confirmacion) {
               <p class="panel-meta">
@@ -200,6 +240,32 @@
               propuesta(s) pendiente(s) de validación (no vigente(s) como relación activa)
             </span>
           </article>
+          @for (corr of correspondenciasPropuestas; track corr.id) {
+            <article class="vinculo vinculo-propuesta">
+              <div class="vinculo-cabecera">
+                <span class="insignia insignia-propuesta">Propuesta (pendiente de validación)</span>
+                <span class="panel-meta">Marco: {{ corr.version_marco.nombre }}</span>
+              </div>
+              @if (corr.origen) {
+                <p class="texto">
+                  <strong>{{ etiquetaOrigen(corr.origen.nivel) }}:</strong>
+                  {{ corr.origen.texto }}
+                </p>
+                @if (rutaOrigen(corr); as ruta) {
+                  <a class="panel-enlace" [routerLink]="ruta">Ver origen operativo →</a>
+                }
+              }
+              <p class="panel-meta">
+                Propuesta {{ corr.fecha_creacion | date: 'dd/MM/yyyy' }}
+                @if (corr.creado_por) {
+                  por {{ corr.creado_por }}
+                }
+              </p>
+              @if (corr.comentario) {
+                <p class="texto">Justificación: {{ corr.comentario }}</p>
+              }
+            </article>
+          }
         }
       }
     </section>

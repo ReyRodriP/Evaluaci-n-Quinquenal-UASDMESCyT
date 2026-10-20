@@ -1,0 +1,199 @@
+<div class="vinculacion-container">
+  <header class="vinculacion-header">
+    <h1>Gestión de vínculos (correspondencias)</h1>
+    <p class="intro">
+      Las <strong>propuestas</strong> son vínculos pendientes de validación; solo las
+      correspondencias en estado <strong>Confirmada</strong> representan acuerdos vigentes con el
+      marco EQ-SIDACES. Para proponer nuevos vínculos use el
+      <a routerLink="/catalogo">Explorador EQ-SIDACES</a> o la pantalla del elemento operativo.
+    </p>
+  </header>
+
+  <nav class="filtros-estado" aria-label="Filtrar correspondencias por estado">
+    <button
+      type="button"
+      class="filtro"
+      [class.filtro-activo]="estadoFiltro === ''"
+      (click)="seleccionarEstado('')">
+      Todas
+    </button>
+    <button
+      type="button"
+      class="filtro"
+      [class.filtro-activo]="estadoFiltro === 'propuesta'"
+      (click)="seleccionarEstado('propuesta')">
+      Propuestas
+    </button>
+    <button
+      type="button"
+      class="filtro"
+      [class.filtro-activo]="estadoFiltro === 'confirmada'"
+      (click)="seleccionarEstado('confirmada')">
+      Confirmadas
+    </button>
+    <button
+      type="button"
+      class="filtro"
+      [class.filtro-activo]="estadoFiltro === 'rechazada'"
+      (click)="seleccionarEstado('rechazada')">
+      Rechazadas
+    </button>
+    @if (respuesta) {
+      <span class="total-filtro">{{ respuesta.count }} registro(s) · {{ tituloEstado }}</span>
+    }
+  </nav>
+
+  @if (cargando) {
+    <div class="estado" role="status">Cargando correspondencias…</div>
+  } @else if (sinPermiso) {
+    <div class="estado">
+      No tiene permisos para consultar las correspondencias. Contacte al administrador del sistema
+      si necesita acceso.
+    </div>
+  } @else if (error) {
+    <div class="estado estado-error" role="alert">
+      <p>{{ error }}</p>
+      <button type="button" class="btn-secundario" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else if (!respuesta || respuesta.results.length === 0) {
+    <div class="estado">
+      @if (estadoFiltro === 'propuesta') {
+        No hay propuestas pendientes en este momento.
+      } @else if (estadoFiltro === 'confirmada') {
+        No hay correspondencias confirmadas en este momento.
+      } @else if (estadoFiltro === 'rechazada') {
+        No hay correspondencias rechazadas en este momento.
+      } @else {
+        No hay correspondencias registradas para su alcance de acceso.
+      }
+    </div>
+  } @else {
+    <p class="aviso-dominio">
+      Solo un usuario autorizado puede confirmar, rechazar o desconfirmar; cada acción le pedirá
+      confirmación previa y quedará registrada a su nombre con fecha.
+    </p>
+
+    @for (corr of respuesta.results; track corr.id) {
+      <article class="tarjeta-correspondencia" [attr.data-estado]="corr.estado">
+        <div class="tarjeta-cabecera">
+          <span class="badge" [ngClass]="claseEstado(corr.estado)">{{ etiquetaEstado(corr.estado) }}</span>
+          <span class="procedencia">{{ etiquetaProcedencia(corr.procedencia) }}</span>
+          <span class="version">Marco: {{ corr.version_marco.nombre }}</span>
+        </div>
+
+        @if (corr.origen) {
+          <p class="nodo">
+            <strong>{{ etiquetaNivel(corr.origen.nivel) }}:</strong>
+            {{ corr.origen.texto }}
+            @if (rutaOrigen(corr); as ruta) {
+              <a class="enlace-origen" [routerLink]="ruta">Ver origen operativo →</a>
+            }
+          </p>
+        }
+        @if (corr.destino) {
+          <p class="nodo">
+            <strong>{{ etiquetaNivel(corr.destino.nivel) }}:</strong>
+            {{ corr.destino.texto }}
+          </p>
+        }
+
+        <p class="meta">
+          Creada por {{ corr.creado_por || '—' }} · {{ corr.fecha_creacion | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+        @if (corr.estado === 'confirmada') {
+          <p class="meta">
+            Confirmada por {{ corr.confirmado_por || '—' }}
+            · {{ corr.fecha_confirmacion | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+        }
+        @if (corr.estado === 'rechazada') {
+          <p class="meta">
+            Rechazada por {{ corr.rechazado_por || '—' }}
+            · {{ corr.fecha_rechazo | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+        }
+        @if (corr.comentario) {
+          <p class="comentario">Justificación: {{ corr.comentario }}</p>
+        }
+
+        @if (puedeTransicionar) {
+          @if (transicion && transicion.id === corr.id) {
+            <div class="form-transicion">
+              @if (transicion.accion === 'confirmar') {
+                <p class="confirmacion-texto">
+                  ¿Confirma este vínculo como correspondencia vigente? Quedará registrada a su
+                  nombre con la fecha de hoy.
+                </p>
+              } @else {
+                <label for="vf-comentario">
+                  {{ transicion.accion === 'rechazar' ? 'Motivo del rechazo' : 'Motivo de la desconfirmación' }}
+                  (obligatorio)
+                </label>
+                <textarea
+                  id="vf-comentario"
+                  name="vf_comentario"
+                  [(ngModel)]="transicion.comentario"
+                  rows="2"></textarea>
+              }
+              @if (errorTransicion) {
+                <p class="mensaje-error" role="alert">{{ errorTransicion }}</p>
+              }
+              <div class="acciones-form">
+                <button
+                  type="button"
+                  class="btn-primario"
+                  (click)="ejecutarTransicion()"
+                  [disabled]="enTransicionId != null || (transicion.accion !== 'confirmar' && !transicion.comentario.trim())">
+                  @if (enTransicionId != null) {
+                    Procesando…
+                  } @else if (transicion.accion === 'confirmar') {
+                    Sí, confirmar
+                  } @else if (transicion.accion === 'rechazar') {
+                    Rechazar
+                  } @else {
+                    Devolver a propuesta
+                  }
+                </button>
+                <button
+                  type="button"
+                  class="btn-secundario"
+                  (click)="cancelarTransicion()"
+                  [disabled]="enTransicionId != null">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="acciones-tarjeta">
+              @if (corr.estado === 'propuesta') {
+                <button type="button" class="btn-primario" (click)="iniciarTransicion(corr, 'confirmar')">
+                  Confirmar…
+                </button>
+                <button type="button" class="btn-secundario" (click)="iniciarTransicion(corr, 'rechazar')">
+                  Rechazar…
+                </button>
+              }
+              @if (corr.estado === 'confirmada') {
+                <button type="button" class="btn-secundario" (click)="iniciarTransicion(corr, 'desconfirmar')">
+                  Desconfirmar…
+                </button>
+              }
+            </div>
+          }
+        }
+      </article>
+    }
+
+    @if (hayAnterior || haySiguiente) {
+      <nav class="paginacion" aria-label="Paginación de correspondencias">
+        <button type="button" class="btn-secundario" [disabled]="!hayAnterior || cargando" (click)="irPagina(pagina - 1)">
+          ← Anterior
+        </button>
+        <span class="pagina-actual">Página {{ pagina }}</span>
+        <button type="button" class="btn-secundario" [disabled]="!haySiguiente || cargando" (click)="irPagina(pagina + 1)">
+          Siguiente →
+        </button>
+      </nav>
+    }
+  }
+</div>

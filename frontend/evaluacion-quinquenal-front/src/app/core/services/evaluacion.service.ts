@@ -47,6 +47,10 @@ export class EvaluacionService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/criterios/`));
   }
 
+  listarCriteriosPagina(page = 1): Observable<RespuestaPaginada<any>> {
+    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/criterios/`, { params: { page: String(page) } });
+  }
+
   crearCriterio(payload: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/criterios/`, payload);
   }

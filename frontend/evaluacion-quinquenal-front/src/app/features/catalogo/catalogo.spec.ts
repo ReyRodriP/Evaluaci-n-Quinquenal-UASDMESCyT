@@ -3,6 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Catalogo } from './catalogo';
+import { AuthService } from '../../features/auth/services/auth-service';
+import { PermisosService } from '../../core/services/permisos.service';
 import { environment } from '../../../environments/environment';
 
 describe('Catalogo', () => {
@@ -387,5 +389,174 @@ describe('Catalogo', () => {
     expect(component.indicadorPanel).toBeNull();
     expect(component.correspondenciasConfirmadas).toEqual([]);
     expect(fixture.nativeElement.querySelector('.panel-marco')).toBeNull();
+  });
+
+  function conPermisosVinculacion(): void {
+    const auth = TestBed.inject(AuthService);
+    spyOn(auth, 'getUser').and.returnValue({
+      is_superuser: false,
+      groups: ['Administrador General'],
+      permisos: ['vinculacion.add_correspondencia'],
+    });
+  }
+
+  function sinPermisosVinculacion(): void {
+    const auth = TestBed.inject(AuthService);
+    spyOn(auth, 'getUser').and.returnValue({ is_superuser: false, groups: [], permisos: [] });
+  }
+
+  function resolverOrigenesDelFormulario(): void {
+    httpMock
+      .expectOne((r) => r.url === `${environment.apiUrl}/indicadores/` && r.params.get('page') === '1')
+      .flush({ count: 0, results: [], next: null, previous: null });
+  }
+
+  function botonProponer(): HTMLButtonElement | null {
+    return (
+      (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).find(
+        (b) => (b.textContent ?? '').includes('Proponer vínculo')
+      ) ?? null
+    );
+  }
+
+  it('sin permisos no se ofrece proponer vínculo', () => {
+    sinPermisosVinculacion();
+    fixture.detectChanges();
+    resolverVersiones();
+    component.seleccionar({ id: 1, slug: 'eq-sidaces-2019-res27-2019', activo: false });
+    httpMock
+      .expectOne((r) => r.url === `${base}/dimensiones/`)
+      .flush({ results: [{ id: 15, codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' }] });
+    fixture.detectChanges();
+
+    expect(botonProponer()).toBeNull();
+    expect(component.puedeProponer).toBeFalse();
+  });
+
+  it('en niveles sin destino válido (componentes) no se ofrece proponer vínculo', () => {
+    conPermisosVinculacion();
+    fixture.detectChanges();
+    resolverVersiones();
+    component.seleccionar({ id: 1, slug: 'eq-sidaces-2019-res27-2019', activo: false });
+    httpMock
+      .expectOne((r) => r.url === `${base}/dimensiones/`)
+      .flush({ results: [{ id: 15, codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' }] });
+    component.seleccionar({ id: 15, codigo: 'VI' });
+    httpMock
+      .expectOne((r) => r.url === `${base}/componentes/`)
+      .flush({ results: [{ id: 21, codigo: '6.1', codigo_completo: '6.1', nombre: 'Administración' }] });
+    fixture.detectChanges();
+
+    expect(component.nivelActual).toBe('componentes');
+    expect(botonProponer()).toBeNull();
+  });
+
+  it('abre el formulario de propuesta desde una dimensión con el destino correcto y se puede cancelar', () => {
+    conPermisosVinculacion();
+    fixture.detectChanges();
+    resolverVersiones();
+    component.seleccionar({ id: 1, slug: 'eq-sidaces-2019-res27-2019', activo: false });
+    httpMock
+      .expectOne((r) => r.url === `${base}/dimensiones/`)
+      .flush({ results: [{ id: 15, codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' }] });
+    fixture.detectChanges();
+
+    const boton = botonProponer()!;
+    expect(boton).toBeTruthy();
+    boton.click();
+    fixture.detectChanges();
+
+    expect(component.formPropuesta).toEqual(
+      jasmine.objectContaining({ nivel: 'dimension', id: 15, version: 1 })
+    );
+    expect(fixture.nativeElement.querySelector('app-correspondencia-form')).toBeTruthy();
+    resolverOrigenesDelFormulario();
+    fixture.detectChanges();
+
+    const cancelar = (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).find(
+      (b) => (b.textContent ?? '').includes('Cancelar')
+    )!;
+    cancelar.click();
+    fixture.detectChanges();
+
+    expect(component.formPropuesta).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-correspondencia-form')).toBeNull();
+  });
+
+  it('al crear una propuesta desde el panel se recargan las correspondencias', () => {
+    conPermisosVinculacion();
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    resolverPanel();
+    resolverAsignaciones();
+    fixture.detectChanges();
+
+    botonProponer()!.click();
+    fixture.detectChanges();
+
+    expect(component.formPropuesta).toEqual(
+      jasmine.objectContaining({ nivel: 'indicador_marco', id: 51, version: 1 })
+    );
+    resolverOrigenesDelFormulario();
+    fixture.detectChanges();
+
+    component.onPropuestaCreada();
+    resolverPanel();
+    resolverAsignaciones();
+
+    expect(component.correspondenciasConfirmadas.length).toBe(1);
+    expect(component.panelError).toBe('');
+  });
+
+  it('el panel muestra el detalle de las propuestas pendientes', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    httpMock
+      .expectOne(
+        (r) =>
+          r.url === `${vincBase}/` &&
+          r.params.get('estado') === 'confirmada' &&
+          r.params.get('indicador_marco') === '51'
+      )
+      .flush({ count: 0, results: [] });
+    httpMock
+      .expectOne(
+        (r) =>
+          r.url === `${vincBase}/` &&
+          r.params.get('estado') === 'propuesta' &&
+          r.params.get('indicador_marco') === '51'
+      )
+      .flush({
+        count: 1,
+        results: [
+          {
+            ...corrPropuesta,
+            creado_por: 'ana',
+            fecha_creacion: '2026-10-01T10:00:00Z',
+            comentario: 'Vincula con el estándar',
+          },
+        ],
+      });
+    spyOn(TestBed.inject(PermisosService), 'puedeAccederRuta').and.returnValue(true);
+    fixture.detectChanges();
+
+    const texto: string = fixture.nativeElement.textContent;
+    expect(texto).toContain('Propuesta (pendiente de validación)');
+    expect(texto).toContain('Justificación: Vincula con el estándar');
+    expect(texto).toContain('por ana');
+    expect(texto).toContain('Ver origen operativo');
+  });
+
+  it('enlaza al indicador operativo de origen de una correspondencia confirmada', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    resolverPanel();
+    resolverAsignaciones();
+    fixture.detectChanges();
+
+    const enlaces = Array.from(fixture.nativeElement.querySelectorAll('a[href]')).map(
+      (a: any) => a.getAttribute('href') ?? ''
+    );
+    expect(enlaces.some((href: string) => href.includes('/indicadores/90/detalle'))).toBeTrue();
   });
 });

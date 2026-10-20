@@ -5,7 +5,9 @@ import { Subscription, forkJoin, of, catchError } from 'rxjs';
 import { CatalogoService } from '../../core/services/catalogo.service';
 import { VinculacionService } from '../../core/services/vinculacion.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
+import { PermisosService } from '../../core/services/permisos.service';
 import { Correspondencia } from '../../core/models/vinculacion.model';
+import { CorrespondenciaForm, DestinoFijo } from '../../shared/components/correspondencia-form/correspondencia-form';
 
 type Nivel =
   | 'versiones'
@@ -30,9 +32,15 @@ const TITULOS: Record<Nivel, string> = {
   indicadores: 'Indicadores',
 };
 
+const NIVELES_PROPUESTA: Partial<Record<Nivel, DestinoFijo['nivel']>> = {
+  dimensiones: 'dimension',
+  estandares: 'estandar',
+  indicadores: 'indicador_marco',
+};
+
 @Component({
   selector: 'app-catalogo',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CorrespondenciaForm],
   templateUrl: './catalogo.html',
   styleUrl: './catalogo.css',
 })
@@ -55,10 +63,14 @@ export class Catalogo implements OnInit {
   asignacionesPorOrigen = new Map<number, any[]>();
   asignacionesCargando = false;
 
+  formPropuesta: DestinoFijo | null = null;
+  proposicionError: string | null = null;
+
   constructor(
     private catalogoService: CatalogoService,
     private vinculacionService: VinculacionService,
-    private evaluacionService: EvaluacionService
+    private evaluacionService: EvaluacionService,
+    private permisos: PermisosService
   ) {}
 
   ngOnInit(): void {
@@ -149,6 +161,8 @@ export class Catalogo implements OnInit {
   }
 
   abrirPanel(item: any): void {
+    this.formPropuesta = null;
+    this.proposicionError = null;
     this.indicadorPanel = item;
     this.cargarPanel();
   }
@@ -162,6 +176,62 @@ export class Catalogo implements OnInit {
     this.panelSinPermiso = false;
     this.panelCargando = false;
     this.asignacionesCargando = false;
+    this.formPropuesta = null;
+    this.proposicionError = null;
+  }
+
+  get puedeProponer(): boolean {
+    const rolEscritura =
+      this.permisos.tieneGrupo('Administrador General') || this.permisos.tieneGrupo('Coordinador Quinquenal');
+    return this.permisos.esSuperuser || (this.permisos.tienePermiso('vinculacion.add_correspondencia') && rolEscritura);
+  }
+
+  puedeProponerEn(nivel: Nivel): boolean {
+    return this.puedeProponer && NIVELES_PROPUESTA[nivel] !== undefined;
+  }
+
+  abrirPropuesta(nivel: Nivel, item: any): void {
+    const nivelDestino = NIVELES_PROPUESTA[nivel];
+    if (!this.puedeProponer || !nivelDestino) return;
+    const version = this.resolverVersion(item);
+    if (version == null) {
+      this.proposicionError =
+        'No se pudo identificar la versión del marco de este nodo. Recargue la página e inténtelo de nuevo.';
+      return;
+    }
+    this.proposicionError = null;
+    if (nivel === 'indicadores' && this.indicadorPanel?.id !== item.id) this.abrirPanel(item);
+    this.formPropuesta = {
+      nivel: nivelDestino,
+      id: item.id,
+      version,
+      codigo: this.codigoDe(item),
+      texto: this.textoDe(item),
+    };
+  }
+
+  cancelarPropuesta(): void {
+    this.formPropuesta = null;
+    this.proposicionError = null;
+  }
+
+  onPropuestaCreada(): void {
+    if (this.indicadorPanel) this.cargarPanel();
+  }
+
+  rutaOrigen(corr: Correspondencia): any[] | null {
+    if (!corr.origen) return null;
+    if (corr.origen.nivel === 'indicador') return ['/indicadores', corr.origen.id, 'detalle'];
+    if (corr.origen.nivel === 'criterio' && this.permisos.puedeAccederRuta('/criterios')) return ['/criterios'];
+    return null;
+  }
+
+  private resolverVersion(item: any): number | null {
+    const delItem = item?.version?.id;
+    if (typeof delItem === 'number') return delItem;
+    const paso = this.pila.find((p) => p.nivel === 'versiones');
+    const deLaPila = paso?.item?.id;
+    return typeof deLaPila === 'number' ? deLaPila : null;
   }
 
   cargarPanel(): void {
