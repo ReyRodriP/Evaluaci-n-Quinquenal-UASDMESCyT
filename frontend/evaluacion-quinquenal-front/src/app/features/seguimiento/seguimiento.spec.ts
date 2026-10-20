@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
+import { CatalogoService } from '../../core/services/catalogo.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { EvidenciasService } from '../../core/services/evidencias.service';
 import { VinculacionService } from '../../core/services/vinculacion.service';
@@ -15,6 +16,24 @@ const pagina = (results: any[], count = results.length) => ({
   previous: null as string | null,
   results,
 });
+
+const dimensionesMarcoPrueba = [
+  {
+    id: 1,
+    codigo: 'I',
+    nombre: 'Dim I',
+    componentes: [
+      { id: 11, codigo: '1.1', codigo_completo: '1.1', nombre: 'Comp 1' },
+      { id: 12, codigo: '1.2', codigo_completo: '1.2', nombre: 'Comp 2' },
+    ],
+  },
+  {
+    id: 2,
+    codigo: 'II',
+    nombre: 'Dim II',
+    componentes: [{ id: 21, codigo: '2.1', codigo_completo: '2.1', nombre: 'Comp 3' }],
+  },
+];
 
 function baseData() {
   return {
@@ -63,9 +82,9 @@ function baseData() {
       { id_evidencia: 503, asignacion: 4, estado: 'activa', versiones: [] },
     ] as any[],
     indicadores: [
-      { id: 100, nombre: 'IND-01', criterio_nombre: 'Criterio A' },
-      { id: 300, nombre: 'IND-03', criterio_nombre: 'Criterio C' },
-      { id: 400, nombre: 'IND-04', criterio_nombre: 'Criterio D' },
+      { id: 100, nombre: 'IND-01', criterio: 11, criterio_nombre: 'Criterio A' },
+      { id: 300, nombre: 'IND-03', criterio: 33, criterio_nombre: 'Criterio C' },
+      { id: 400, nombre: 'IND-04', criterio: 44, criterio_nombre: 'Criterio D' },
     ] as any[],
     confirmadas: [
       {
@@ -96,6 +115,7 @@ describe('Seguimiento', () => {
   let evaluacionService: jasmine.SpyObj<EvaluacionService>;
   let evidenciasService: jasmine.SpyObj<EvidenciasService>;
   let vinculacionService: jasmine.SpyObj<VinculacionService>;
+  let catalogoService: jasmine.SpyObj<CatalogoService>;
 
   const exitoAsignaciones = (periodoId: any, page: number) =>
     of(pagina(Number(periodoId) === 11 ? data.asignacionesHistoricas : data.asignaciones));
@@ -135,6 +155,7 @@ describe('Seguimiento', () => {
     );
     evidenciasService = jasmine.createSpyObj<EvidenciasService>('EvidenciasService', ['listarEvidenciasPagina']);
     vinculacionService = jasmine.createSpyObj<VinculacionService>('VinculacionService', ['listarCorrespondencias']);
+    catalogoService = jasmine.createSpyObj<CatalogoService>('CatalogoService', ['listarVersiones', 'listarDimensiones']);
 
     evaluacionService.listarPeriodos.and.callFake(() => of(data.periodos));
     evaluacionService.periodoActivo.and.callFake(() => of(data.activo));
@@ -142,6 +163,8 @@ describe('Seguimiento', () => {
     evaluacionService.listarIndicadoresPagina.and.callFake(exitoIndicadores);
     evidenciasService.listarEvidenciasPagina.and.callFake(exitoEvidencias);
     vinculacionService.listarCorrespondencias.and.callFake(exitoCorrespondencias);
+    catalogoService.listarVersiones.and.callFake(() => of([{ id: 1, slug: 'marco-2026', activo: true }]));
+    catalogoService.listarDimensiones.and.callFake(() => of(dimensionesMarcoPrueba));
 
     await TestBed.configureTestingModule({
       imports: [Seguimiento, HttpClientTestingModule, RouterTestingModule],
@@ -149,6 +172,7 @@ describe('Seguimiento', () => {
         { provide: EvaluacionService, useValue: evaluacionService },
         { provide: EvidenciasService, useValue: evidenciasService },
         { provide: VinculacionService, useValue: vinculacionService },
+        { provide: CatalogoService, useValue: catalogoService },
       ],
     }).compileComponents();
 
@@ -626,5 +650,168 @@ describe('Seguimiento', () => {
     expect(fila.correspondenciaEstado).toBe('confirmada');
     expect(fila.codigoDestino).toBe('6.1.1.1-IND-01');
     expect(fila.versionMarco).toBe('Marco 2026');
+  });
+
+  it('ofrece dimensiones y componentes del marco vigente como opciones de filtro', () => {
+    expect(catalogoService.listarVersiones).toHaveBeenCalledTimes(1);
+    expect(catalogoService.listarDimensiones).toHaveBeenCalledWith('marco-2026');
+    expect(component.opcionesDimensiones).toEqual([
+      { valor: '1', etiqueta: 'I — Dim I' },
+      { valor: '2', etiqueta: 'II — Dim II' },
+    ]);
+    expect(component.opcionesComponentes).toEqual([]);
+
+    component.onDimensionMarcoChange('1');
+    expect(component.opcionesComponentes).toEqual([
+      { valor: '11', etiqueta: '1.1 — Comp 1' },
+      { valor: '12', etiqueta: '1.2 — Comp 2' },
+    ]);
+    expect(component.marcoListo).toBeTrue();
+    expect(component.marcoError).toBeFalse();
+  });
+
+  it('al filtrar por dimensión restringe a asignaciones con correspondencia confirmada aplicable', () => {
+    const router = TestBed.inject(Router);
+    const navigate = spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+
+    component.onDimensionMarcoChange('1');
+
+    expect(vinculacionService.listarCorrespondencias).toHaveBeenCalledWith(
+      jasmine.objectContaining({ estado: 'confirmada', dimension: 1 })
+    );
+    expect(component.filtros.dimension).toBe('1');
+    expect(component.filtros.componente).toBe('');
+    expect(component.marcoListo).toBeTrue();
+    expect(component.filasFiltradas.map((fila) => fila.asignacionId)).toEqual([1, 2]);
+
+    const extras = navigate.calls.mostRecent().args[1] as any;
+    expect(extras.queryParams.dimension).toBe('1');
+    expect(extras.queryParams.componente).toBeNull();
+  });
+
+  it('el filtro por componente usa las correspondencias confirmadas de ese componente', () => {
+    component.onDimensionMarcoChange('1');
+    component.onComponenteMarcoChange('11');
+
+    expect(vinculacionService.listarCorrespondencias).toHaveBeenCalledWith(
+      jasmine.objectContaining({ estado: 'confirmada', componente: 11 })
+    );
+    expect(component.filtros.componente).toBe('11');
+    expect(component.filasFiltradas.map((fila) => fila.asignacionId)).toEqual([1, 2]);
+  });
+
+  it('cambiar la dimensión limpia el componente y recarga los orígenes', () => {
+    component.onDimensionMarcoChange('1');
+    component.onComponenteMarcoChange('12');
+    expect(component.filtros.componente).toBe('12');
+
+    component.onDimensionMarcoChange('2');
+
+    expect(component.filtros.componente).toBe('');
+    expect(component.opcionesComponentes).toEqual([{ valor: '21', etiqueta: '2.1 — Comp 3' }]);
+    const filtrosConsultados = vinculacionService.listarCorrespondencias.calls
+      .allArgs()
+      .map((argumentos) => (argumentos[0] as any)?.dimension);
+    expect(filtrosConsultados).toContain(2);
+  });
+
+  it('el filtro del marco excluye asignaciones sin correspondencia aplicable y limpiar restaura', () => {
+    component.onDimensionMarcoChange('1');
+    expect(component.filasFiltradas.every((fila) => fila.indicadorId === 100)).toBeTrue();
+    expect(component.filasFiltradas.length).toBe(2);
+
+    component.limpiarFiltros();
+    expect(component.filtros.dimension).toBe('');
+    expect(component.filtros.componente).toBe('');
+    expect(component.filasFiltradas.length).toBe(4);
+  });
+
+  it('reconoce orígenes de correspondencia cuyo origen es criterio operativo', () => {
+    data.confirmadas.push({
+      id: 9,
+      estado: 'confirmada',
+      criterio_op: 33,
+      indicador_op: null,
+      destino: { nivel: 'estandar', id: 9, texto: 'E1.2' },
+      version_marco: { id: 1, nombre: 'Marco 2026', slug: 'marco-2026', activo: true },
+    });
+    recargar();
+
+    component.onDimensionMarcoChange('1');
+
+    const ids = component.filasFiltradas.map((fila) => fila.asignacionId);
+    expect(ids).toContain(3);
+    expect(ids).toContain(1);
+    expect(ids).toContain(2);
+    expect(ids).not.toContain(4);
+  });
+
+  it('lee dimensión y componente desde la URL y aplica el filtro del marco', () => {
+    const nuevo = crearConUrl({ periodo: '10', dimension: '1', componente: '11' });
+    const c = nuevo.componentInstance;
+
+    expect(c.filtros.dimension).toBe('1');
+    expect(c.filtros.componente).toBe('11');
+    const filtrosComponente = vinculacionService.listarCorrespondencias.calls
+      .allArgs()
+      .map((argumentos) => argumentos[0] as any)
+      .filter((argumento) => argumento?.componente === 11);
+    expect(filtrosComponente.length).toBeGreaterThan(0);
+    expect(filtrosComponente[0].estado).toBe('confirmada');
+    expect(c.filasFiltradas.map((fila) => fila.asignacionId)).toEqual([1, 2]);
+  });
+
+  it('ignora dimensión o componente inválidos en la URL', () => {
+    const nuevo = crearConUrl({ periodo: '10', dimension: '999', componente: '999' });
+    const c = nuevo.componentInstance;
+
+    expect(c.filtros.dimension).toBe('');
+    expect(c.filtros.componente).toBe('');
+    expect(c.filasFiltradas.length).toBe(4);
+    expect(c.marcoFiltroError).toBeFalse();
+  });
+
+  it('si falla la carga del filtro del marco se limpia y se avisa', () => {
+    vinculacionService.listarCorrespondencias.and.callFake((filtro: any) =>
+      filtro?.dimension || filtro?.componente
+        ? throwError(() => ({ status: 500 }))
+        : of(pagina(filtro?.estado === 'propuesta' ? data.propuestas : data.confirmadas))
+    );
+
+    component.onDimensionMarcoChange('1');
+    fixture.detectChanges();
+
+    expect(component.marcoFiltroError).toBeTrue();
+    expect(component.filtros.dimension).toBe('');
+    expect(component.filasFiltradas.length).toBe(4);
+    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto).toContain('el filtro se limpió');
+  });
+
+  it('deshabilita los filtros del marco si el catálogo no carga', fakeAsync(() => {
+    catalogoService.listarVersiones.and.returnValue(throwError(() => ({ status: 500 })));
+    const nuevo = TestBed.createComponent(Seguimiento);
+    nuevo.detectChanges();
+    tick();
+    nuevo.detectChanges();
+    const c = nuevo.componentInstance;
+
+    expect(c.marcoError).toBeTrue();
+    expect(c.marcoListo).toBeFalse();
+    const select = (nuevo.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(
+      'select[aria-label="Dimensión del marco"]'
+    );
+    expect(select?.disabled).toBeTrue();
+  }));
+
+  it('limpia el filtro del marco al limpiar todos los filtros desde el botón', () => {
+    component.onDimensionMarcoChange('1');
+    component.onComponenteMarcoChange('11');
+    expect(component.filtroMarcoActivo).toBeTrue();
+
+    component.limpiarFiltros();
+
+    expect(component.filtroMarcoActivo).toBeFalse();
+    expect(component.filasFiltradas.length).toBe(4);
   });
 });

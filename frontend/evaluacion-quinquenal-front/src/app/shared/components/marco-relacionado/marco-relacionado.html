@@ -42,6 +42,20 @@
               · {{ naturaleza }}
             </span>
           </p>
+          <ul class="marco-cadena" *ngIf="cadenaDe(corr) as cadena" aria-label="Jerarquía del marco">
+            <li *ngIf="cadena.dimension">
+              <strong>{{ etiquetaCadena('dimension') }}:</strong> {{ textoCadena(cadena.dimension) }}
+            </li>
+            <li *ngIf="cadena.componente">
+              <strong>{{ etiquetaCadena('componente') }}:</strong> {{ textoCadena(cadena.componente) }}
+            </li>
+            <li *ngIf="cadena.criterio">
+              <strong>{{ etiquetaCadena('criterio') }}:</strong> {{ textoCadena(cadena.criterio) }}
+            </li>
+            <li *ngIf="cadena.estandar">
+              <strong>{{ etiquetaCadena('estandar') }}:</strong> {{ textoCadena(cadena.estandar) }}
+            </li>
+          </ul>
           <p class="marco-meta" *ngIf="corr.fecha_confirmacion">
             Confirmada {{ corr.fecha_confirmacion | date: 'dd/MM/yyyy' }}
             <span *ngIf="corr.confirmado_por"> por {{ corr.confirmado_por }}</span>

@@ -2,14 +2,15 @@ import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, forkJoin, of, throwError } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { EvaluacionService } from '../../../../core/services/evaluacion.service';
 import { OrganizacionService } from '../../../../core/services/organizacion.service';
 import { PermisosService } from '../../../../core/services/permisos.service';
 import { SeguimientoResumenService } from '../../../../core/services/seguimiento-resumen.service';
-import { ResultadoSeguimiento } from '../../../../core/models/seguimiento.model';
+import { CatalogoService } from '../../../../core/services/catalogo.service';
+import { FilaSeguimiento, ResultadoSeguimiento, calcularMetricas } from '../../../../core/models/seguimiento.model';
 import ApexCharts from 'apexcharts';
 
 @Component({
@@ -40,6 +41,20 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   mostrarFiltrosExtras = false
   agrupamientoAvance = 'unidad'
   loading = true
+  dimensionesMarco: any[] = []
+  estandaresComponente: any[] = []
+  dimensionSeleccionadaId = ''
+  componenteSeleccionadoId = ''
+  estandarSeleccionadoId = ''
+  marcoCargando = false
+  marcoError = false
+  marcoFiltroError = false
+  avisoMarcoTruncado = false
+  cargandoOrigenesMarco = false
+  marcoListo = false
+  estandaresCargando = false
+  private marcoOrigenesIndicador = new Set<number>()
+  private marcoOrigenesCriterio = new Set<number>()
   readonly estadosAsignacion = [
     { value: 'pendiente', label: 'Pendiente' },
     { value: 'en_progreso', label: 'En revisión' },
@@ -65,6 +80,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     private organizacionService: OrganizacionService,
     private permisos: PermisosService,
     private seguimientoResumen: SeguimientoResumenService,
+    private catalogoService: CatalogoService,
     private route: ActivatedRoute,
     private router: Router,
     private toast: ToastrService
@@ -72,6 +88,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.cargarPeriodos()
+    this.cargarMarco()
     this.observarTema()
   }
 
@@ -210,10 +227,174 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     this.indicadorSeleccionadoId = ''
   }
 
+  private cargarMarco(): void {
+    this.marcoCargando = true
+    this.catalogoService
+      .listarVersiones()
+      .pipe(
+        switchMap((versiones: any[]) => {
+          const activa = versiones.find((item: any) => item.activo) ?? versiones[0]
+          return activa ? this.catalogoService.listarDimensiones(activa.slug) : of([])
+        }),
+        catchError(() => of(null))
+      )
+      .subscribe((dimensiones) => {
+        this.marcoCargando = false
+        if (dimensiones === null) {
+          this.marcoError = true
+          this.dimensionesMarco = []
+          return
+        }
+        this.marcoError = false
+        this.dimensionesMarco = dimensiones
+        this.restaurarFiltrosMarcoUrl()
+      })
+  }
+
+  private restaurarFiltrosMarcoUrl(): void {
+    const params = this.route.snapshot.queryParamMap
+    const dimensionUrl = params.get('dimension') || ''
+    const componenteUrl = params.get('componente') || ''
+    const estandarUrl = params.get('estandar') || ''
+    this.dimensionSeleccionadaId = this.opcionesDimensiones.some(
+      (opcion) => opcion.valor === dimensionUrl
+    )
+      ? dimensionUrl
+      : ''
+    if (!this.dimensionSeleccionadaId) {
+      this.filtrosAplicados = { ...this.construirFiltros() }
+      return
+    }
+    this.componenteSeleccionadoId = this.opcionesComponentes.some(
+      (opcion) => opcion.valor === componenteUrl
+    )
+      ? componenteUrl
+      : ''
+    if (!this.componenteSeleccionadoId) {
+      this.filtrosAplicados = { ...this.construirFiltros() }
+      return
+    }
+    this.cargarEstandaresComponente(this.componenteSeleccionadoId).subscribe(() => {
+      this.estandarSeleccionadoId =
+        estandarUrl && this.opcionesEstandares.some((opcion) => opcion.valor === estandarUrl)
+          ? estandarUrl
+          : ''
+      this.filtrosAplicados = { ...this.construirFiltros() }
+      if (this.filtroMarcoActivo) this.cargarOrigenesMarco()
+    })
+  }
+
+  onDimensionMarcoChange(valor: string): void {
+    this.dimensionSeleccionadaId = valor
+    this.componenteSeleccionadoId = ''
+    this.estandarSeleccionadoId = ''
+    this.estandaresComponente = []
+  }
+
+  onComponenteMarcoChange(valor: string): void {
+    this.componenteSeleccionadoId = valor
+    this.estandarSeleccionadoId = ''
+    if (valor) {
+      this.cargarEstandaresComponente(valor).subscribe()
+    } else {
+      this.estandaresComponente = []
+    }
+  }
+
+  private cargarEstandaresComponente(componenteId: string): Observable<boolean> {
+    this.estandaresCargando = true
+    this.estandaresComponente = []
+    return this.catalogoService.listarCriterios(Number(componenteId)).pipe(
+      switchMap((criterios: any[]) => {
+        if (!criterios.length) return of([] as any[][])
+        return forkJoin(
+          criterios.map((criterio: any) =>
+            this.catalogoService.listarEstandares(criterio.id).pipe(catchError(() => of([] as any[])))
+          )
+        )
+      }),
+      map((listas) => {
+        this.estandaresComponente = ([] as any[]).concat(...listas)
+        this.estandaresCargando = false
+        return true
+      }),
+      catchError(() => {
+        this.estandaresCargando = false
+        this.estandaresComponente = []
+        return of(false)
+      })
+    )
+  }
+
+  private cargarOrigenesMarco(): void {
+    if (!this.filtroMarcoActivo) {
+      this.limpiarOrigenesMarco()
+      return
+    }
+    this.cargandoOrigenesMarco = true
+    this.marcoListo = false
+    this.marcoFiltroError = false
+    const filtro: { dimension?: number; componente?: number; estandar?: number } = {}
+    if (this.estandarSeleccionadoId) {
+      filtro.estandar = Number(this.estandarSeleccionadoId)
+    } else if (this.componenteSeleccionadoId) {
+      filtro.componente = Number(this.componenteSeleccionadoId)
+    } else if (this.dimensionSeleccionadaId) {
+      filtro.dimension = Number(this.dimensionSeleccionadaId)
+    }
+    this.seguimientoResumen.obtenerOrigenesMarco(filtro).subscribe({
+      next: (origen) => {
+        this.marcoOrigenesIndicador = origen.indicadores
+        this.marcoOrigenesCriterio = origen.criterios
+        this.cargandoOrigenesMarco = false
+        this.marcoListo = true
+        this.avisoMarcoTruncado = origen.truncado
+      },
+      error: () => {
+        this.cargandoOrigenesMarco = false
+        this.marcoListo = false
+        this.marcoFiltroError = true
+        this.dimensionSeleccionadaId = ''
+        this.componenteSeleccionadoId = ''
+        this.estandarSeleccionadoId = ''
+        this.estandaresComponente = []
+        this.limpiarOrigenesMarco()
+        this.filtrosAplicados = { ...this.construirFiltros() }
+        this.actualizarFiltrosUrl()
+      },
+    })
+  }
+
+  private limpiarOrigenesMarco(): void {
+    this.marcoOrigenesIndicador = new Set<number>()
+    this.marcoOrigenesCriterio = new Set<number>()
+    this.marcoListo = false
+    this.cargandoOrigenesMarco = false
+  }
+
+  private filaPerteneceAlMarco(fila: FilaSeguimiento): boolean {
+    if (this.marcoOrigenesIndicador.has(Number(fila.indicadorId))) return true
+    if (fila.criterioId != null && this.marcoOrigenesCriterio.has(Number(fila.criterioId))) return true
+    return false
+  }
+
   aplicarFiltros(): void {
+    const marcoCambio =
+      (this.filtrosAplicados['dimension'] ?? '') !== this.dimensionSeleccionadaId ||
+      (this.filtrosAplicados['componente'] ?? '') !== this.componenteSeleccionadoId ||
+      (this.filtrosAplicados['estandar'] ?? '') !== this.estandarSeleccionadoId
     this.filtrosAplicados = { ...this.construirFiltros() }
     this.mostrarFiltrosExtras = false
     this.actualizarFiltrosUrl()
+    if (marcoCambio) {
+      this.avisoMarcoTruncado = false
+      this.marcoFiltroError = false
+      if (this.filtroMarcoActivo) {
+        this.cargarOrigenesMarco()
+      } else {
+        this.limpiarOrigenesMarco()
+      }
+    }
     this.cargarDatos()
   }
 
@@ -223,6 +404,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     this.criterioSeleccionadoId = this.filtrosAplicados['criterio'] ?? ''
     this.indicadorSeleccionadoId = this.filtrosAplicados['indicador'] ?? ''
     this.estadoSeleccionado = this.filtrosAplicados['estado'] ?? ''
+    this.dimensionSeleccionadaId = this.filtrosAplicados['dimension'] ?? ''
+    this.componenteSeleccionadoId = this.filtrosAplicados['componente'] ?? ''
+    this.estandarSeleccionadoId = this.filtrosAplicados['estandar'] ?? ''
+    if (this.componenteSeleccionadoId) {
+      this.cargarEstandaresComponente(this.componenteSeleccionadoId).subscribe()
+    } else {
+      this.estandaresComponente = []
+    }
     this.mostrarFiltrosExtras = false
   }
 
@@ -232,6 +421,10 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     this.criterioSeleccionadoId = ''
     this.indicadorSeleccionadoId = ''
     this.estadoSeleccionado = ''
+    this.dimensionSeleccionadaId = ''
+    this.componenteSeleccionadoId = ''
+    this.estandarSeleccionadoId = ''
+    this.estandaresComponente = []
     this.aplicarFiltros()
   }
 
@@ -262,6 +455,9 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       criterio: this.criterioSeleccionadoId,
       indicador: this.indicadorSeleccionadoId,
       estado: this.estadoSeleccionado,
+      dimension: this.dimensionSeleccionadaId,
+      componente: this.componenteSeleccionadoId,
+      estandar: this.estandarSeleccionadoId,
     }
     Object.entries(valores).forEach(([key, value]) => {
       if (value) filtros[key] = value
@@ -279,6 +475,9 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
         criterio: this.criterioSeleccionadoId || null,
         indicador: this.indicadorSeleccionadoId || null,
         estado: this.estadoSeleccionado || null,
+        dimension: this.dimensionSeleccionadaId || null,
+        componente: this.componenteSeleccionadoId || null,
+        estandar: this.estandarSeleccionadoId || null,
       },
       queryParamsHandling: 'merge',
       replaceUrl: true,
@@ -341,6 +540,99 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   get indicadoresPeriodo(): any[] {
     const criteriosIds = new Set(this.criteriosPeriodo.map((criterio: any) => Number(criterio.id)))
     return this.indicadores.filter((indicador: any) => criteriosIds.has(Number(indicador.criterio)))
+  }
+
+  get opcionesDimensiones(): { valor: string; etiqueta: string }[] {
+    return this.dimensionesMarco.map((dimension: any) => ({
+      valor: String(dimension.id),
+      etiqueta: `${dimension.codigo} — ${dimension.nombre}`,
+    }))
+  }
+
+  get opcionesComponentes(): { valor: string; etiqueta: string }[] {
+    const dimension = this.dimensionesMarco.find(
+      (item: any) => String(item.id) === this.dimensionSeleccionadaId
+    )
+    const componentes = dimension?.componentes ?? []
+    return componentes.map((componente: any) => ({
+      valor: String(componente.id),
+      etiqueta: `${componente.codigo_completo || componente.codigo} — ${componente.nombre}`,
+    }))
+  }
+
+  get opcionesEstandares(): { valor: string; etiqueta: string }[] {
+    return this.estandaresComponente.map((estandar: any) => ({
+      valor: String(estandar.id),
+      etiqueta: `${estandar.codigo_completo || estandar.codigo} — ${estandar.redaccion ?? ''}`,
+    }))
+  }
+
+  get filtroMarcoActivo(): boolean {
+    return Boolean(
+      this.dimensionSeleccionadaId || this.componenteSeleccionadoId || this.estandarSeleccionadoId
+    )
+  }
+
+  get aplicandoFiltroMarco(): boolean {
+    return this.filtroMarcoActivo && !this.marcoListo && !this.marcoFiltroError
+  }
+
+  get resultadoVisible(): ResultadoSeguimiento | null {
+    const res = this.resultadoSeguimiento
+    if (!res) return null
+    if (!this.filtroMarcoActivo) return res
+    if (!this.marcoListo) return null
+    const filas = res.filas.filter((fila) => this.filaPerteneceAlMarco(fila))
+    return {
+      ...res,
+      filas,
+      metricas: calcularMetricas(filas, res.correspondenciasDisponibles),
+    }
+  }
+
+  get contextoMarco(): string {
+    const partes: string[] = []
+    const dimensionId = this.filtrosAplicados['dimension'] ?? ''
+    const componenteId = this.filtrosAplicados['componente'] ?? ''
+    const estandarId = this.filtrosAplicados['estandar'] ?? ''
+    const dim = this.dimensionesMarco.find((item: any) => String(item.id) === dimensionId)
+    if (dim) partes.push(`${dim.codigo} — ${dim.nombre}`)
+    if (componenteId) {
+      const comp = this.opcionesComponentes.find((opcion) => opcion.valor === componenteId)
+      if (comp) partes.push(comp.etiqueta)
+    }
+    if (estandarId) {
+      const est = this.opcionesEstandares.find((opcion) => opcion.valor === estandarId)
+      if (est) partes.push(est.etiqueta)
+    }
+    return partes.join(' → ')
+  }
+
+  get filtrosMarcoUrl(): Record<string, string> {
+    const params: Record<string, string> = {}
+    if (this.dimensionSeleccionadaId) params['dimension'] = this.dimensionSeleccionadaId
+    if (this.componenteSeleccionadoId) params['componente'] = this.componenteSeleccionadoId
+    return params
+  }
+
+  queryParamsResumen(): Record<string, string> {
+    return { periodo: this.periodoSeleccionadoId, ...this.filtrosMarcoUrl }
+  }
+
+  queryParamsRevision(clave: string): Record<string, string | null> {
+    return {
+      periodo: this.periodoSeleccionadoId || null,
+      revision: clave,
+      ...this.filtrosMarcoUrl,
+    }
+  }
+
+  queryParamsCorrespondencia(clave: string): Record<string, string | null> {
+    return {
+      periodo: this.periodoSeleccionadoId || null,
+      correspondencia: clave,
+      ...this.filtrosMarcoUrl,
+    }
   }
 
   private diferirGraficos(): void {

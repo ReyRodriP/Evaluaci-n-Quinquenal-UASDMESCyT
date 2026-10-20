@@ -1,6 +1,7 @@
 ﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { Catalogo } from './catalogo';
 import { environment } from '../../../environments/environment';
 
@@ -9,10 +10,11 @@ describe('Catalogo', () => {
   let fixture: ComponentFixture<Catalogo>;
   let httpMock: HttpTestingController;
   const base = `${environment.apiUrl}/catalogo`;
+  const vincBase = `${environment.apiUrl}/vinculacion/correspondencias`;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Catalogo],
+      imports: [Catalogo, RouterTestingModule],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
@@ -158,5 +160,232 @@ describe('Catalogo', () => {
     httpMock.expectOne((r) => r.url === `${base}/exportar/`).flush(new Blob(['x']));
     expect(descarga).toHaveBeenCalled();
     expect(component.errorExport).toBeNull();
+  });
+
+  function navegarAIndicadores(): void {
+    fixture.detectChanges();
+    resolverVersiones();
+    component.seleccionar({ id: 1, slug: 'eq-sidaces-2019-res27-2019', activo: false });
+    httpMock
+      .expectOne((r) => r.url === `${base}/dimensiones/`)
+      .flush({ results: [{ id: 15, codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' }] });
+    component.seleccionar({ id: 15, codigo: 'VI' });
+    httpMock
+      .expectOne((r) => r.url === `${base}/componentes/`)
+      .flush({ results: [{ id: 21, codigo: '6.1', codigo_completo: '6.1', nombre: 'Administración' }] });
+    component.seleccionar({ id: 21 });
+    httpMock
+      .expectOne((r) => r.url === `${base}/criterios/`)
+      .flush({ results: [{ id: 31, codigo: '6.1.1', codigo_completo: '6.1.1', nombre: 'Criterio' }] });
+    component.seleccionar({ id: 31 });
+    httpMock
+      .expectOne((r) => r.url === `${base}/estandares/`)
+      .flush({ results: [{ id: 41, codigo_completo: '6.1.1.1', nombre: 'Estándar 1' }] });
+    component.seleccionar({ id: 41 });
+    httpMock
+      .expectOne((r) => r.url === `${base}/indicadores/`)
+      .flush({
+        results: [
+          {
+            id: 51,
+            codigo_completo: '6.1.1.1-IND-01',
+            codigo_sintetico: true,
+            estado_revision: 'confirmado',
+            redaccion_oficial: 'Existe el plan de gestión',
+            estandar_codigo: '6.1.1.1',
+          },
+        ],
+      });
+  }
+
+  const corrConfirmada = {
+    id: 7,
+    estado: 'confirmada',
+    origen: { nivel: 'indicador', id: 90, texto: 'Indicador 90' },
+    destino: { nivel: 'indicador_marco', id: 51, texto: '6.1.1.1-IND-01' },
+    version_marco: { id: 1, nombre: 'EQ 2026', slug: 'eq-2026', activo: true },
+    fecha_confirmacion: '2026-10-01T00:00:00Z',
+    confirmado_por: 'maria',
+  };
+
+  const corrPropuesta = {
+    id: 8,
+    estado: 'propuesta',
+    origen: { nivel: 'criterio', id: 31, texto: 'Criterio 6.1.1' },
+    destino: { nivel: 'indicador_marco', id: 51, texto: '6.1.1.1-IND-01' },
+    version_marco: { id: 1, nombre: 'EQ 2026', slug: 'eq-2026', activo: true },
+    fecha_confirmacion: null,
+    confirmado_por: null,
+  };
+
+  function resolverPanel(modo: 'ok' | 'sin-permisos' | 'error' | 'vacio' = 'ok'): void {
+    const confirmadas = httpMock.expectOne(
+      (r) =>
+        r.url === `${vincBase}/` &&
+        r.params.get('estado') === 'confirmada' &&
+        r.params.get('indicador_marco') === '51'
+    );
+    const propuestas = httpMock.expectOne(
+      (r) =>
+        r.url === `${vincBase}/` &&
+        r.params.get('estado') === 'propuesta' &&
+        r.params.get('indicador_marco') === '51'
+    );
+    if (modo === 'sin-permisos') {
+      confirmadas.error(new ProgressEvent('error'), { status: 403 } as any);
+      propuestas.flush({ count: 0, results: [] });
+    } else if (modo === 'error') {
+      confirmadas.error(new ProgressEvent('error'), { status: 500 } as any);
+      propuestas.flush({ count: 0, results: [] });
+    } else if (modo === 'vacio') {
+      confirmadas.flush({ count: 0, results: [] });
+      propuestas.flush({ count: 0, results: [] });
+    } else {
+      confirmadas.flush({ count: 1, results: [corrConfirmada] });
+      propuestas.flush({ count: 1, results: [corrPropuesta] });
+    }
+  }
+
+  function resolverAsignaciones(): void {
+    httpMock
+      .expectOne(
+        (r) =>
+          r.url === `${environment.apiUrl}/asignaciones/` && r.params.get('indicador') === '90'
+      )
+      .flush({
+        count: 2,
+        results: [
+          {
+            id: 3,
+            unidad_responsable_nombre: 'Unidad A',
+            periodo_nombre: 'Período 1',
+            estado_display: 'Pendiente',
+          },
+          {
+            id: 4,
+            unidad_responsable_nombre: 'Unidad A',
+            periodo_nombre: 'Período 1',
+            estado_display: 'En progreso',
+          },
+        ],
+      });
+  }
+
+  it('al seleccionar un indicador abre el panel con correspondencias y asignaciones de origen', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51, codigo_completo: '6.1.1.1-IND-01' });
+
+    expect(component.indicadorPanel?.id).toBe(51);
+    resolverPanel();
+    resolverAsignaciones();
+    fixture.detectChanges();
+
+    expect(component.correspondenciasConfirmadas.length).toBe(1);
+    expect(component.correspondenciasPropuestas.length).toBe(1);
+    expect(component.asignacionesDe(component.correspondenciasConfirmadas[0]).length).toBe(2);
+    expect(component.panelError).toBe('');
+    expect(component.panelSinPermiso).toBeFalse();
+
+    const texto: string = fixture.nativeElement.textContent;
+    expect(texto).toContain('Indicador del marco');
+    expect(texto).toContain('6.1.1.1-IND-01');
+    expect(texto).toContain('Correspondencia confirmada');
+    expect(texto).toContain('Indicador 90');
+    expect(texto).toContain('Unidad A');
+    expect(texto).toContain('propuesta(s) pendiente(s)');
+    const enlaces = Array.from(fixture.nativeElement.querySelectorAll('a[href]')).map(
+      (a: any) => a.getAttribute('href') ?? ''
+    );
+    expect(enlaces.some((href: string) => href.includes('/asignaciones/3/detalle'))).toBeTrue();
+    expect(enlaces.some((href: string) => href.includes('/asignaciones/4/detalle'))).toBeTrue();
+  });
+
+  it('un 403 en las correspondencias del panel muestra el mensaje sin permisos', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    resolverPanel('sin-permisos');
+    fixture.detectChanges();
+
+    expect(component.panelSinPermiso).toBeTrue();
+    expect(component.panelError).toBe('');
+    expect(fixture.nativeElement.textContent).toContain(
+      'No tiene permisos para consultar las correspondencias del marco'
+    );
+  });
+
+  it('un error de red en el panel muestra error recuperable con reintentar', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    resolverPanel('error');
+    fixture.detectChanges();
+
+    expect(component.panelError).toContain('No se pudieron cargar');
+    const texto: string = fixture.nativeElement.textContent;
+    expect(texto).toContain('No se pudieron cargar las correspondencias del marco.');
+
+    component.cargarPanel();
+    resolverPanel('ok');
+    resolverAsignaciones();
+    fixture.detectChanges();
+
+    expect(component.panelError).toBe('');
+    expect(component.correspondenciasConfirmadas.length).toBe(1);
+  });
+
+  it('un panel sin correspondencias muestra el estado vacio', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    resolverPanel('vacio');
+    fixture.detectChanges();
+
+    expect(component.correspondenciasConfirmadas.length).toBe(0);
+    expect(component.correspondenciasPropuestas.length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain(
+      'Este indicador del marco no tiene correspondencias registradas'
+    );
+  });
+
+  it('un origen de criterio operativo se explica y enlaza a Seguimiento sin consultar asignaciones', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    const confirmadas = httpMock.expectOne(
+      (r) =>
+        r.url === `${vincBase}/` &&
+        r.params.get('estado') === 'confirmada' &&
+        r.params.get('indicador_marco') === '51'
+    );
+    const propuestas = httpMock.expectOne(
+      (r) =>
+        r.url === `${vincBase}/` &&
+        r.params.get('estado') === 'propuesta' &&
+        r.params.get('indicador_marco') === '51'
+    );
+    confirmadas.flush({ count: 1, results: [{ ...corrConfirmada, origen: corrPropuesta.origen }] });
+    propuestas.flush({ count: 0, results: [] });
+    fixture.detectChanges();
+
+    const texto: string = fixture.nativeElement.textContent;
+    expect(texto).toContain('Criterio operativo');
+    expect(texto).toContain('consultan desde la pantalla de Seguimiento');
+    const enlaces = Array.from(fixture.nativeElement.querySelectorAll('a[href]')).map(
+      (a: any) => a.getAttribute('href') ?? ''
+    );
+    expect(enlaces).toContain('/seguimiento');
+  });
+
+  it('cerrar el detalle limpia el panel', () => {
+    navegarAIndicadores();
+    component.seleccionar({ id: 51 });
+    resolverPanel();
+    resolverAsignaciones();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.panel-marco')).toBeTruthy();
+
+    component.cerrarPanel();
+    fixture.detectChanges();
+
+    expect(component.indicadorPanel).toBeNull();
+    expect(component.correspondenciasConfirmadas).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.panel-marco')).toBeNull();
   });
 });

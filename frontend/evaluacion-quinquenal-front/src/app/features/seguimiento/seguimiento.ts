@@ -2,14 +2,17 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Observable, catchError, forkJoin, of } from 'rxjs';
+import { Observable, catchError, forkJoin, of, switchMap } from 'rxjs';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { SeguimientoResumenService } from '../../core/services/seguimiento-resumen.service';
+import { VinculacionService } from '../../core/services/vinculacion.service';
+import { CatalogoService } from '../../core/services/catalogo.service';
 import { RespuestaPaginada } from '../../core/models/vinculacion.model';
 import {
   ETIQUETAS_CORRESPONDENCIA,
   ETIQUETAS_REVISION,
+  MAX_PAGINAS_CORRESPONDENCIAS,
   ClaveRevision,
   EstadoCorrespondenciaFila,
   FilaSeguimiento,
@@ -57,11 +60,21 @@ export class Seguimiento implements OnInit {
   avisosTruncado: string[] = [];
   avisoCorrespondenciaTruncada = false;
 
+  dimensionesMarco: any[] = [];
+  marcoCargando = false;
+  marcoError = false;
+  cargandoOrigenesMarco = false;
+  marcoListo = false;
+  marcoFiltroError = false;
+  avisoMarcoTruncado = false;
+  private marcoOrigenesIndicador = new Set<number>();
+  private marcoOrigenesCriterio = new Set<number>();
+
   filas: FilaSeguimiento[] = [];
   filasFiltradas: FilaSeguimiento[] = [];
   filasPaginadas: FilaSeguimiento[] = [];
 
-  filtros = { unidad: '', estado: '', revision: '', correspondencia: '' };
+  filtros = { unidad: '', estado: '', revision: '', correspondencia: '', dimension: '', componente: '' };
   opcionesUnidades: OpcionFiltro[] = [];
   opcionesEstados: OpcionFiltro[] = [];
   opcionesRevision: OpcionFiltro[] = [];
@@ -87,6 +100,8 @@ export class Seguimiento implements OnInit {
   constructor(
     private evaluacionService: EvaluacionService,
     private resumenService: SeguimientoResumenService,
+    private vinculacionService: VinculacionService,
+    private catalogoService: CatalogoService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -115,14 +130,149 @@ export class Seguimiento implements OnInit {
         if (activo && !this.periodos.some((item: any) => Number(item.id) === Number(activo.id))) {
           this.periodos = [...this.periodos, activo];
         }
-        this.leerFiltrosDesdeUrl();
-        this.sincronizarUrl();
-        this.cargarDatos();
+        this.cargarMarcoEInicializar();
       },
       error: () => {
         this.errorPeriodos = true;
       },
     });
+  }
+
+  private cargarMarcoEInicializar(): void {
+    this.marcoCargando = true;
+    this.catalogoService
+      .listarVersiones()
+      .pipe(
+        switchMap((versiones: any[]) => {
+          const activa = versiones.find((item: any) => item.activo) ?? versiones[0];
+          return activa ? this.catalogoService.listarDimensiones(activa.slug) : of([]);
+        }),
+        catchError(() => of(null))
+      )
+      .subscribe((dimensiones) => {
+        this.marcoCargando = false;
+        if (dimensiones === null) {
+          this.marcoError = true;
+          this.dimensionesMarco = [];
+        } else {
+          this.marcoError = false;
+          this.dimensionesMarco = dimensiones;
+        }
+        this.leerFiltrosDesdeUrl();
+        this.sincronizarUrl();
+        this.cargarDatos();
+        if (!this.marcoError && (this.filtros.dimension || this.filtros.componente)) {
+          this.cargarOrigenesMarco();
+        }
+      });
+  }
+
+  get opcionesDimensiones(): OpcionFiltro[] {
+    return this.dimensionesMarco.map((dimension) => ({
+      valor: String(dimension.id),
+      etiqueta: `${dimension.codigo} — ${dimension.nombre}`,
+    }));
+  }
+
+  get opcionesComponentes(): OpcionFiltro[] {
+    const dimension = this.dimensionesMarco.find((item) => String(item.id) === this.filtros.dimension);
+    const componentes = dimension?.componentes ?? [];
+    return componentes.map((componente: any) => ({
+      valor: String(componente.id),
+      etiqueta: `${componente.codigo_completo || componente.codigo} — ${componente.nombre}`,
+    }));
+  }
+
+  get filtroMarcoActivo(): boolean {
+    return Boolean(this.filtros.dimension || this.filtros.componente);
+  }
+
+  onDimensionMarcoChange(valor: string): void {
+    this.filtros.dimension = valor;
+    this.filtros.componente = '';
+    this.currentPage = 1;
+    this.marcoListo = false;
+    this.marcoFiltroError = false;
+    this.avisoMarcoTruncado = false;
+    if (!valor) {
+      this.limpiarOrigenesMarco();
+      this.aplicarFiltros();
+      return;
+    }
+    this.cargarOrigenesMarco();
+  }
+
+  onComponenteMarcoChange(valor: string): void {
+    this.filtros.componente = valor;
+    this.currentPage = 1;
+    this.marcoListo = false;
+    this.marcoFiltroError = false;
+    this.avisoMarcoTruncado = false;
+    if (!valor) {
+      if (this.filtros.dimension) {
+        this.cargarOrigenesMarco();
+      } else {
+        this.limpiarOrigenesMarco();
+        this.aplicarFiltros();
+      }
+      return;
+    }
+    this.cargarOrigenesMarco();
+  }
+
+  private limpiarOrigenesMarco(): void {
+    this.marcoOrigenesIndicador = new Set<number>();
+    this.marcoOrigenesCriterio = new Set<number>();
+    this.marcoListo = false;
+  }
+
+  private cargarOrigenesMarco(): void {
+    if (!this.filtros.dimension && !this.filtros.componente) {
+      this.limpiarOrigenesMarco();
+      this.aplicarFiltros();
+      return;
+    }
+    this.cargandoOrigenesMarco = true;
+    this.marcoListo = false;
+    const filtro: { estado: 'confirmada'; dimension?: number; componente?: number } = { estado: 'confirmada' };
+    if (this.filtros.componente) {
+      filtro.componente = Number(this.filtros.componente);
+    } else if (this.filtros.dimension) {
+      filtro.dimension = Number(this.filtros.dimension);
+    }
+    this.obtenerPaginas(
+      (page) => this.vinculacionService.listarCorrespondencias({ ...filtro, page }),
+      MAX_PAGINAS_CORRESPONDENCIAS
+    ).subscribe({
+      next: (resultado) => {
+        const indicadores = new Set<number>();
+        const criterios = new Set<number>();
+        for (const corr of resultado.items) {
+          if (typeof corr.indicador_op === 'number') indicadores.add(corr.indicador_op);
+          if (typeof corr.criterio_op === 'number') criterios.add(corr.criterio_op);
+        }
+        this.marcoOrigenesIndicador = indicadores;
+        this.marcoOrigenesCriterio = criterios;
+        this.cargandoOrigenesMarco = false;
+        this.marcoListo = true;
+        this.avisoMarcoTruncado = resultado.truncado;
+        this.aplicarFiltros();
+      },
+      error: () => {
+        this.cargandoOrigenesMarco = false;
+        this.marcoListo = false;
+        this.marcoFiltroError = true;
+        this.filtros.dimension = '';
+        this.filtros.componente = '';
+        this.aplicarFiltros();
+      },
+    });
+  }
+
+  private filaPerteneceAlMarco(fila: FilaSeguimiento): boolean {
+    if (this.marcoOrigenesIndicador.has(Number(fila.indicadorId))) return true;
+    if (fila.criterioId != null && this.marcoOrigenesCriterio.has(Number(fila.criterioId))) return true;
+    return false;
   }
 
   onPeriodoChange(periodoId: string): void {
@@ -174,7 +324,10 @@ export class Seguimiento implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.filtros = { unidad: '', estado: '', revision: '', correspondencia: '' };
+    this.filtros = { unidad: '', estado: '', revision: '', correspondencia: '', dimension: '', componente: '' };
+    this.limpiarOrigenesMarco();
+    this.marcoFiltroError = false;
+    this.avisoMarcoTruncado = false;
     this.aplicarFiltros();
   }
 
@@ -199,12 +352,14 @@ export class Seguimiento implements OnInit {
   }
 
   aplicarFiltros(): void {
+    const restringirPorMarco = this.filtroMarcoActivo && this.marcoListo;
     this.filasFiltradas = this.filas.filter(
       (fila) =>
         (!this.filtros.unidad || String(fila.unidadId) === this.filtros.unidad) &&
         (!this.filtros.estado || fila.estado === this.filtros.estado) &&
         (!this.filtros.revision || fila.claveRevision === this.filtros.revision) &&
-        (!this.filtros.correspondencia || fila.correspondenciaEstado === this.filtros.correspondencia)
+        (!this.filtros.correspondencia || fila.correspondenciaEstado === this.filtros.correspondencia) &&
+        (!restringirPorMarco || this.filaPerteneceAlMarco(fila))
     );
     this.currentPage = 1;
     this.calcularMetricas();
@@ -353,12 +508,20 @@ export class Seguimiento implements OnInit {
     const parametros = this.route.snapshot.queryParamMap;
     const revision = parametros.get('revision') ?? '';
     const correspondencia = parametros.get('correspondencia') ?? '';
+    const dimension = parametros.get('dimension') ?? '';
+    const componente = parametros.get('componente') ?? '';
     const clavesRevision = Object.keys(ETIQUETAS_REVISION);
     this.filtros.revision = clavesRevision.includes(revision) ? revision : '';
     this.filtros.correspondencia = this.opcionesCorrespondencia.some(
       (opcion) => opcion.valor === correspondencia
     )
       ? correspondencia
+      : '';
+    this.filtros.dimension = this.opcionesDimensiones.some((opcion) => opcion.valor === dimension)
+      ? dimension
+      : '';
+    this.filtros.componente = this.opcionesComponentes.some((opcion) => opcion.valor === componente)
+      ? componente
       : '';
   }
 
@@ -369,6 +532,8 @@ export class Seguimiento implements OnInit {
         periodo: this.periodoSeleccionadoId || null,
         revision: this.filtros.revision || null,
         correspondencia: this.filtros.correspondencia || null,
+        dimension: this.filtros.dimension || null,
+        componente: this.filtros.componente || null,
       },
       queryParamsHandling: 'merge',
       replaceUrl: true,

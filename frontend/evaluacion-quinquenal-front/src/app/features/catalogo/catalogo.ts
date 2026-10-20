@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { Subscription, forkJoin, of, catchError } from 'rxjs';
 import { CatalogoService } from '../../core/services/catalogo.service';
+import { VinculacionService } from '../../core/services/vinculacion.service';
+import { EvaluacionService } from '../../core/services/evaluacion.service';
+import { Correspondencia } from '../../core/models/vinculacion.model';
 
 type Nivel =
   | 'versiones'
@@ -28,7 +32,7 @@ const TITULOS: Record<Nivel, string> = {
 
 @Component({
   selector: 'app-catalogo',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './catalogo.html',
   styleUrl: './catalogo.css',
 })
@@ -42,7 +46,20 @@ export class Catalogo implements OnInit {
   errorExport: string | null = null;
   private peticion?: Subscription;
 
-  constructor(private catalogoService: CatalogoService) {}
+  indicadorPanel: any | null = null;
+  panelCargando = false;
+  panelError = '';
+  panelSinPermiso = false;
+  correspondenciasConfirmadas: Correspondencia[] = [];
+  correspondenciasPropuestas: Correspondencia[] = [];
+  asignacionesPorOrigen = new Map<number, any[]>();
+  asignacionesCargando = false;
+
+  constructor(
+    private catalogoService: CatalogoService,
+    private vinculacionService: VinculacionService,
+    private evaluacionService: EvaluacionService
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -104,7 +121,11 @@ export class Catalogo implements OnInit {
   }
 
   seleccionar(item: any): void {
-    if (this.nivelActual === 'indicadores') return;
+    if (this.nivelActual === 'indicadores') {
+      this.abrirPanel(item);
+      return;
+    }
+    this.cerrarPanel();
     this.pila = [
       ...this.pila,
       { nivel: this.nivelActual, etiqueta: this.etiquetaDe(item), item },
@@ -114,15 +135,98 @@ export class Catalogo implements OnInit {
   }
 
   volverAindice(indice: number): void {
+    this.cerrarPanel();
     this.pila = this.pila.slice(0, indice + 1);
     this.nivelActual = this.pila[indice].nivel;
     this.cargar();
   }
 
   volverAInicio(): void {
+    this.cerrarPanel();
     this.pila = [];
     this.nivelActual = 'versiones';
     this.cargar();
+  }
+
+  abrirPanel(item: any): void {
+    this.indicadorPanel = item;
+    this.cargarPanel();
+  }
+
+  cerrarPanel(): void {
+    this.indicadorPanel = null;
+    this.correspondenciasConfirmadas = [];
+    this.correspondenciasPropuestas = [];
+    this.asignacionesPorOrigen = new Map();
+    this.panelError = '';
+    this.panelSinPermiso = false;
+    this.panelCargando = false;
+    this.asignacionesCargando = false;
+  }
+
+  cargarPanel(): void {
+    const indicador = this.indicadorPanel;
+    if (!indicador) return;
+    this.panelCargando = true;
+    this.panelError = '';
+    this.panelSinPermiso = false;
+    this.correspondenciasConfirmadas = [];
+    this.correspondenciasPropuestas = [];
+    this.asignacionesPorOrigen = new Map();
+    forkJoin({
+      confirmadas: this.vinculacionService
+        .listarCorrespondencias({ estado: 'confirmada', indicador_marco: indicador.id })
+        .pipe(catchError((err) => of({ __error: err }))),
+      propuestas: this.vinculacionService
+        .listarCorrespondencias({ estado: 'propuesta', indicador_marco: indicador.id })
+        .pipe(catchError((err) => of({ __error: err }))),
+    }).subscribe({
+      next: ({ confirmadas, propuestas }: any) => {
+        const error = confirmadas?.__error ?? propuestas?.__error;
+        this.panelCargando = false;
+        if (error) {
+          if (error?.status === 403) {
+            this.panelSinPermiso = true;
+          } else {
+            this.panelError = 'No se pudieron cargar las correspondencias del marco.';
+          }
+          return;
+        }
+        this.correspondenciasConfirmadas = confirmadas?.results ?? [];
+        this.correspondenciasPropuestas = propuestas?.results ?? [];
+        this.cargarAsignacionesOrigenes();
+      },
+      error: () => {
+        this.panelCargando = false;
+        this.panelError = 'No se pudieron cargar las correspondencias del marco.';
+      },
+    });
+  }
+
+  private cargarAsignacionesOrigenes(): void {
+    const origenes = this.correspondenciasConfirmadas
+      .map((c) => c.origen)
+      .filter((origen) => !!origen && origen.nivel === 'indicador' && typeof origen.id === 'number');
+    if (!origenes.length) return;
+    this.asignacionesCargando = true;
+    const peticiones = origenes.map((origen) =>
+      this.evaluacionService.listarAsignacionesPorIndicador(origen!.id).pipe(catchError(() => of([] as any[])))
+    );
+    forkJoin(peticiones).subscribe((listas) => {
+      const mapa = new Map<number, any[]>();
+      origenes.forEach((origen, indice) => mapa.set(origen!.id, listas[indice] ?? []));
+      this.asignacionesPorOrigen = mapa;
+      this.asignacionesCargando = false;
+    });
+  }
+
+  asignacionesDe(corr: Correspondencia): any[] {
+    const id = corr.origen?.id;
+    return typeof id === 'number' ? (this.asignacionesPorOrigen.get(id) ?? []) : [];
+  }
+
+  etiquetaOrigen(nivel: string): string {
+    return nivel === 'indicador' ? 'Indicador operativo' : 'Criterio operativo';
   }
 
   get slugVersion(): string | null {

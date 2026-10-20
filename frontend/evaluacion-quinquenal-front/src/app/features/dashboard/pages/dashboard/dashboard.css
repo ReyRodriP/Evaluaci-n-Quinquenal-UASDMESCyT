@@ -643,6 +643,10 @@ body.dark .chip-completado   { background: #123333; color: #5eead4; }
   max-width: 70ch;
 }
 
+.resumen-segu-contexto strong {
+  color: var(--heading-color);
+}
+
 .resumen-segu-enlace {
   display: inline-flex;
   align-items: center;

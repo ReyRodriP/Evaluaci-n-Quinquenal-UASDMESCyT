@@ -128,6 +128,20 @@
   color: var(--text-color, #707070);
 }
 
+.marco-cadena {
+  list-style: none;
+  margin: 0.35rem 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--border-color, #e6e9ed);
+  background: #f8fafc;
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.marco-cadena li {
+  margin: 0.15rem 0;
+}
+
 .marco-meta {
   margin: 0.2rem 0 0;
   font-size: 0.8rem;

@@ -26,6 +26,15 @@ export class MarcoRelacionado implements OnChanges {
   origenTexto = '';
   correspondencias: Correspondencia[] = [];
   naturalezas: Record<string, 'oficial' | 'sintetico'> = {};
+  cadenas: Record<
+    string,
+    {
+      dimension: any | null;
+      componente: any | null;
+      criterio: any | null;
+      estandar: any | null;
+    }
+  > = {};
 
   constructor(
     private vinculacionService: VinculacionService,
@@ -46,6 +55,30 @@ export class MarcoRelacionado implements OnChanges {
 
   get propuestasPendientes(): number {
     return this.correspondencias.filter((c) => c.estado === 'propuesta').length;
+  }
+
+  cadenaDe(corr: Correspondencia):
+    | { dimension: any | null; componente: any | null; criterio: any | null; estandar: any | null }
+    | null {
+    return this.cadenas[String(corr.id)] ?? null;
+  }
+
+  etiquetaCadena(nivel: string): string {
+    const etiquetas: Record<string, string> = {
+      dimension: 'Dimensión',
+      componente: 'Componente',
+      criterio: 'Criterio del marco',
+      estandar: 'Estándar',
+    };
+    return etiquetas[nivel] ?? nivel;
+  }
+
+  textoCadena(nodo: any): string {
+    if (!nodo) return '';
+    const codigo = nodo.codigo_completo || nodo.codigo || '';
+    const texto = nodo.nombre || nodo.redaccion || '';
+    if (codigo && texto) return `${codigo} — ${texto}`;
+    return codigo || texto;
   }
 
   get puedeGestionar(): boolean {
@@ -86,6 +119,7 @@ export class MarcoRelacionado implements OnChanges {
     this.errorCarga = '';
     this.sinAlcance = false;
     this.puedeReintentar = true;
+    this.cadenas = {};
 
     this.evaluacionService.obtenerIndicador(id).pipe(catchError(() => of(null))).subscribe((indicador) => {
       if (indicador) {
@@ -102,10 +136,12 @@ export class MarcoRelacionado implements OnChanges {
         this.correspondencias = contexto.correspondencias ?? [];
         this.cargando = false;
         this.cargarNaturalezas();
+        this.cargarCadenas();
       },
       error: (err) => {
         this.correspondencias = [];
         this.naturalezas = {};
+        this.cadenas = {};
         this.cargando = false;
         if (err?.status === 404) {
           this.sinAlcance = true;
@@ -117,6 +153,46 @@ export class MarcoRelacionado implements OnChanges {
         }
       },
     });
+  }
+
+  private cargarCadenas(): void {
+    for (const corr of this.confirmadas) {
+      if (!corr.destino) continue;
+      if (corr.destino.nivel === 'estandar' && typeof corr.destino.id === 'number') {
+        this.resolverEstandarParaCadena(String(corr.id), corr.destino.id);
+      } else if (corr.destino.nivel === 'indicador_marco' && typeof corr.destino.id === 'number') {
+        this.catalogoService
+          .obtenerIndicadorMarco(corr.destino.id)
+          .pipe(catchError(() => of(null)))
+          .subscribe((indicador) => {
+            if (indicador && typeof indicador.estandar === 'number') {
+              this.resolverEstandarParaCadena(String(corr.id), indicador.estandar);
+            }
+          });
+      }
+    }
+  }
+
+  private resolverEstandarParaCadena(clave: string, estandarId: number): void {
+    this.catalogoService
+      .obtenerEstandar(estandarId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((estandar) => {
+        if (!estandar) return;
+        this.cadenas = {
+          ...this.cadenas,
+          [clave]: {
+            dimension: estandar.dimension ?? null,
+            componente: estandar.componente ?? null,
+            criterio: estandar.criterio ?? null,
+            estandar: {
+              id: estandar.id,
+              codigo_completo: estandar.codigo_completo,
+              redaccion: estandar.redaccion,
+            },
+          },
+        };
+      });
   }
 
   private cargarNaturalezas(): void {

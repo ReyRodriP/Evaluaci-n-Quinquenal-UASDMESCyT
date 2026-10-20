@@ -179,11 +179,16 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         finalizar_periodos_vencidos()
         qs = Asignacion.objects.all().order_by("periodo", "unidad_responsable")
         periodo_id = self.request.query_params.get("periodo")
+        indicador_id = self.request.query_params.get("indicador")
         evaluador_externo = "Evaluador Externo" in _grupos_usuario(self.request.user)
         if periodo_id:
             qs = qs.filter(periodo_id=periodo_id)
         elif self.request.method in ("GET", "HEAD", "OPTIONS") and not evaluador_externo:
             qs = qs.filter(periodo__activo=True)
+        if indicador_id is not None:
+            if not indicador_id.isdigit():
+                raise ValidationError({"indicador": "El filtro 'indicador' debe ser un identificador numérico."})
+            qs = qs.filter(indicador_id=int(indicador_id))
         return filtrar_por_rol(qs, self.request, dept_field="unidad_responsable")
 
     def get_object(self):

@@ -10,6 +10,12 @@ usan version_marco de la correspondencia (sin conmutar a la versión activa).
 ContextoCriterio/ContextoIndicador: lectura del contexto de correspondencias de
 un origen operativo; un origen inexistente o fuera del ámbito responde 404
 genérico (ocultación, patrón del proyecto).
+
+Búsqueda inversa marco→operativo: la lista admite filtros opcionales por destino
+del marco (dimension, componente, estandar, indicador_marco) para localizar las
+correspondencias aplicables a un nodo del catálogo. Se validan igual que los
+filtros existentes (400 si el valor no es numérico o no existe) y se aplican
+después del alcance por rol, por lo que no amplían la visibilidad.
 """
 
 from django.db import IntegrityError, transaction
@@ -29,6 +35,7 @@ from accounts.permissions import (
     unidades_organizacionales_permitidas,
     _unidades_del_ambito,
 )
+from catalogo.models import Componente, Dimension, Estandar, IndicadorMarco
 from django.core.exceptions import ValidationError as DjangoValidationError
 from evaluation.models import Asignacion, Criterio, Indicador
 
@@ -122,6 +129,16 @@ def _resolver_version_filtro(param):
         raise ValidationError({"version": f"No existe una versión de marco con el identificador '{param}'."})
 
 
+def _resolver_id_modelo(param, nombre, model):
+    """Filtro numérico por PK; 400 si no es numérico o el registro no existe."""
+    if not param.isdigit():
+        raise ValidationError({nombre: f"El filtro '{nombre}' debe ser un identificador numérico."})
+    try:
+        return model.objects.get(pk=int(param))
+    except model.DoesNotExist:
+        raise ValidationError({nombre: f"No existe {nombre} con identificador '{param}'."})
+
+
 class CorrespondenciaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """API de correspondencias: lectura, creación de propuestas y transiciones."""
 
@@ -161,6 +178,34 @@ class CorrespondenciaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, v
             if not indicador_op.isdigit():
                 raise ValidationError({"indicador_op": "El filtro 'indicador_op' debe ser un identificador numérico."})
             qs = qs.filter(indicador_op_id=int(indicador_op))
+        # Búsqueda inversa marco→operativo: filtros por destino del marco.
+        # dimension y estandar abarcan el subárbol (destino dimensión o estándar
+        # bajo ella; destino estándar o indicador del marco bajo ese estándar);
+        # componente solo acepta destinos anclados a un estándar o indicador de
+        # ese componente (una correspondencia a dimensión no queda anclada a un
+        # componente).
+        dimension = self.request.query_params.get("dimension")
+        if dimension is not None:
+            dim = _resolver_id_modelo(dimension, "dimension", Dimension)
+            qs = qs.filter(
+                Q(dimension=dim)
+                | Q(estandar__criterio_marco__componente__dimension=dim)
+                | Q(indicador_marco__estandar__criterio_marco__componente__dimension=dim)
+            ).distinct()
+        componente = self.request.query_params.get("componente")
+        if componente is not None:
+            comp = _resolver_id_modelo(componente, "componente", Componente)
+            qs = qs.filter(
+                Q(estandar__criterio_marco__componente=comp)
+                | Q(indicador_marco__estandar__criterio_marco__componente=comp)
+            ).distinct()
+        estandar = self.request.query_params.get("estandar")
+        if estandar is not None:
+            est = _resolver_id_modelo(estandar, "estandar", Estandar)
+            qs = qs.filter(Q(estandar=est) | Q(indicador_marco__estandar=est)).distinct()
+        indicador_marco = self.request.query_params.get("indicador_marco")
+        if indicador_marco is not None:
+            qs = qs.filter(indicador_marco=_resolver_id_modelo(indicador_marco, "indicador_marco", IndicadorMarco))
         return qs
 
     def create(self, request, *args, **kwargs):

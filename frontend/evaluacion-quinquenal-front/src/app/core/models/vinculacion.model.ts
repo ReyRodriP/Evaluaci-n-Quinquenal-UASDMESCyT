@@ -66,5 +66,9 @@ export interface FiltroCorrespondencias {
   version?: string | number;
   criterio_op?: number;
   indicador_op?: number;
+  dimension?: number;
+  componente?: number;
+  estandar?: number;
+  indicador_marco?: number;
   page?: number;
 }

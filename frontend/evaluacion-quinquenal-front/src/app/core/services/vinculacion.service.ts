@@ -25,6 +25,10 @@ export class VinculacionService {
     if (filtro.version !== undefined && filtro.version !== null) params = params.set('version', String(filtro.version));
     if (filtro.criterio_op != null) params = params.set('criterio_op', String(filtro.criterio_op));
     if (filtro.indicador_op != null) params = params.set('indicador_op', String(filtro.indicador_op));
+    if (filtro.dimension != null) params = params.set('dimension', String(filtro.dimension));
+    if (filtro.componente != null) params = params.set('componente', String(filtro.componente));
+    if (filtro.estandar != null) params = params.set('estandar', String(filtro.estandar));
+    if (filtro.indicador_marco != null) params = params.set('indicador_marco', String(filtro.indicador_marco));
     if (filtro.page != null) params = params.set('page', String(filtro.page));
     return this.http.get<RespuestaPaginada<Correspondencia>>(`${this.base}/`, { params });
   }

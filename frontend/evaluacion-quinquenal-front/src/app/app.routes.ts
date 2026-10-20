@@ -78,6 +78,10 @@ export const routes: Routes = [
                 component: Catalogo
             },
             {
+                path: 'marco-evaluacion',
+                component: Catalogo
+            },
+            {
                 path: 'usuarios',
                 component: Usuarios,
                 canActivate: [PermisoGuard]

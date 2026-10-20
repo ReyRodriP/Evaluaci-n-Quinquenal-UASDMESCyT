@@ -32,6 +32,22 @@
   <ng-container *ngIf="!cargando && !errorPeriodos && !errorCarga">
     <div class="seguimiento-filters" aria-label="Filtros de seguimiento">
       <label>
+        Dimensión del marco
+        <select [ngModel]="filtros.dimension" (ngModelChange)="onDimensionMarcoChange($event)"
+          aria-label="Dimensión del marco" [disabled]="marcoError">
+          <option value="">Todas las dimensiones</option>
+          <option *ngFor="let opcion of opcionesDimensiones" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+        </select>
+      </label>
+      <label>
+        Componente del marco
+        <select [ngModel]="filtros.componente" (ngModelChange)="onComponenteMarcoChange($event)"
+          aria-label="Componente del marco" [disabled]="marcoError || !filtros.dimension">
+          <option value="">Todos los componentes</option>
+          <option *ngFor="let opcion of opcionesComponentes" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+        </select>
+      </label>
+      <label>
         Unidad responsable
         <select [ngModel]="filtros.unidad" (ngModelChange)="cambiarFiltro('unidad', $event)" aria-label="Unidad responsable">
           <option value="">Todas las unidades</option>
@@ -87,6 +103,22 @@
       <div class="aviso aviso-warn" *ngIf="avisoCorrespondenciaTruncada" role="status">
         <i class="bx bx-info-circle" aria-hidden="true"></i>
         <span>El estado de correspondencias supera el límite de consulta; algunos indicadores pueden mostrarse sin correspondencia confirmada.</span>
+      </div>
+      <div class="aviso aviso-warn" *ngIf="avisoMarcoTruncado" role="status">
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        <span>Las correspondencias confirmadas del marco superan el límite de consulta; algunas asignaciones relacionadas pueden quedar fuera del filtro.</span>
+      </div>
+      <div class="aviso aviso-warn" *ngIf="marcoError" role="status">
+        <i class="bx bx-info-circle" aria-hidden="true"></i>
+        <span>No se pudo consultar el catálogo del marco; los filtros de dimensión y componente no están disponibles.</span>
+      </div>
+      <div class="aviso aviso-warn" *ngIf="marcoFiltroError" role="alert">
+        <i class="bx bx-error-circle" aria-hidden="true"></i>
+        <span>No se pudo aplicar el filtro del marco (permisos o error del servicio); el filtro se limpió y la vista muestra todos los registros de su alcance.</span>
+      </div>
+      <div class="aviso aviso-warn" *ngIf="cargandoOrigenesMarco" role="status">
+        <i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i>
+        <span>Aplicando filtro del marco…</span>
       </div>
       <div class="aviso aviso-error" *ngIf="!correspondenciasDisponibles" role="alert">
         <i class="bx bx-error-circle" aria-hidden="true"></i>

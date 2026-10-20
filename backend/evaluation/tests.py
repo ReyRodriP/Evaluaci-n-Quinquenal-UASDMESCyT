@@ -583,6 +583,32 @@ class AsignacionViewSetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual([row["id"] for row in response.data["results"]], [asignacion.pk])
 
+    def test_list_filtrada_por_indicador(self):
+        asignacion = Asignacion.objects.create(
+            indicador=self.indicador,
+            unidad_responsable=self.unidad,
+            periodo=self.periodo,
+        )
+        otro_criterio = Criterio.objects.create(nombre="C2", periodo=self.periodo)
+        otro_indicador = Indicador.objects.create(nombre="I2", criterio=otro_criterio)
+        Asignacion.objects.create(
+            indicador=otro_indicador,
+            unidad_responsable=self.unidad,
+            periodo=self.periodo,
+        )
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.get(f"/api/asignaciones/?indicador={self.indicador.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.data["results"]], [asignacion.pk])
+
+    def test_filtro_indicador_invalido_devuelve_400(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.admin_token))
+        response = self.client.get("/api/asignaciones/?indicador=abc")
+        self.assertEqual(response.status_code, 400)
+        response = self.client.get("/api/asignaciones/?indicador=999999")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["results"], [])
+
     def test_create_asignacion_for_historical_period_is_denied(self):
         self.periodo.activo = False
         self.periodo.save()

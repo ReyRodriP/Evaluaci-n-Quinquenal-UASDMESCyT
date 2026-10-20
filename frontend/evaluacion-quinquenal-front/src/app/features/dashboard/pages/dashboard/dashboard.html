@@ -38,6 +38,30 @@
 
   <div class="filters-more" *ngIf="mostrarFiltrosExtras">
     <label>
+      Dimensión del marco
+      <select [ngModel]="dimensionSeleccionadaId" (ngModelChange)="onDimensionMarcoChange($event)"
+        aria-label="Dimensión del marco" [disabled]="marcoError">
+        <option value="">Todas las dimensiones</option>
+        <option *ngFor="let opcion of opcionesDimensiones" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+      </select>
+    </label>
+    <label>
+      Componente del marco
+      <select [ngModel]="componenteSeleccionadoId" (ngModelChange)="onComponenteMarcoChange($event)"
+        aria-label="Componente del marco" [disabled]="marcoError || !dimensionSeleccionadaId">
+        <option value="">Todos los componentes</option>
+        <option *ngFor="let opcion of opcionesComponentes" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+      </select>
+    </label>
+    <label>
+      Estándar del marco
+      <select [ngModel]="estandarSeleccionadoId" (ngModelChange)="estandarSeleccionadoId = $event"
+        aria-label="Estándar del marco" [disabled]="marcoError || !componenteSeleccionadoId || estandaresCargando">
+        <option value="">Todos los estándares</option>
+        <option *ngFor="let opcion of opcionesEstandares" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+      </select>
+    </label>
+    <label>
       Criterio
       <select [ngModel]="criterioSeleccionadoId" (ngModelChange)="onCriterioChange($event)" aria-label="Criterio">
         <option value="">Todos los criterios</option>
@@ -65,6 +89,11 @@
         <option *ngFor="let tipo of tiposUnidad" [value]="tipo.id">{{ tipo.nombre }}</option>
       </select>
     </label>
+  </div>
+
+  <div class="aviso aviso-warn" *ngIf="marcoError" role="status">
+    <i class="bx bx-info-circle" aria-hidden="true"></i>
+    <span>No se pudo consultar el catálogo del marco; los filtros de dimensión, componente y estándar no están disponibles.</span>
   </div>
 
   <div *ngIf="loading" class="state-msg">Cargando información del dashboard...</div>
@@ -122,7 +151,7 @@
         </div>
       </div>
       <a class="kpi-card kpi-enlace" routerLink="/seguimiento"
-        [queryParams]="{ periodo: periodoSeleccionadoId || null, revision: 'sin_evidencia' }"
+        [queryParams]="queryParamsRevision('sin_evidencia')"
         aria-label="Ver asignaciones sin evidencia en Seguimiento">
         <div class="kpi-icon amber"><i class="bx bx-file-x"></i></div>
         <div class="kpi-body">
@@ -132,22 +161,34 @@
       </a>
     </div>
 
+    <div class="aviso aviso-warn" *ngIf="filtroMarcoActivo" role="status">
+      <i class="bx bx-info-circle" aria-hidden="true"></i>
+      <span>Los filtros del marco (dimensión, componente, estándar) no aplican a este bloque ni a los gráficos; sí aplican al Resumen de Seguimiento.</span>
+    </div>
+
     <span class="section-divider">RESUMEN DE SEGUIMIENTO</span>
     <section class="seguimiento-resumen" aria-label="Resumen de seguimiento del período">
       <div class="resumen-segu-head">
         <div class="resumen-segu-titulo">
           <h3>Evidencias y correspondencias del período</h3>
           <p>
-            Métricas operativas con el ámbito de acceso del usuario; no aplican los filtros superiores.
+            Métricas operativas con el ámbito de acceso del usuario; responden al período y a los filtros del marco.
+            No aplican los filtros operativos (unidad, criterio, indicador, estado, tipo).
             El detalle, los filtros y la exportación están en Seguimiento.
           </p>
+          <p class="resumen-segu-contexto" *ngIf="filtroMarcoActivo && contextoMarco">
+            Ámbito del marco: <strong>{{ contextoMarco }}</strong> · Solo correspondencias confirmadas.
+          </p>
         </div>
-        <a class="resumen-segu-enlace" routerLink="/seguimiento" [queryParams]="{ periodo: periodoSeleccionadoId }">
+        <a class="resumen-segu-enlace" routerLink="/seguimiento"
+          [queryParams]="queryParamsResumen()">
           Ver seguimiento completo <i class="bx bx-chevron-right" aria-hidden="true"></i>
         </a>
       </div>
 
       <div *ngIf="cargandoSeguimiento" class="state-msg" role="status">Cargando resumen de seguimiento...</div>
+
+      <div *ngIf="!cargandoSeguimiento && aplicandoFiltroMarco" class="state-msg" role="status">Aplicando filtro del marco...</div>
 
       <div *ngIf="!cargandoSeguimiento && errorSeguimiento" class="state-msg state-error" role="alert">
         <i class="bx bx-error-circle" aria-hidden="true"></i>
@@ -155,11 +196,11 @@
         <button type="button" class="btn-reintentar" (click)="reintentarResumenSeguimiento()">Reintentar</button>
       </div>
 
-      <div *ngIf="!cargandoSeguimiento && !errorSeguimiento && !resultadoSeguimiento" class="state-msg">
+      <div *ngIf="!cargandoSeguimiento && !errorSeguimiento && !resultadoVisible && !aplicandoFiltroMarco" class="state-msg">
         {{ periodoSeleccionadoId ? 'No hay datos de seguimiento para el período seleccionado.' : 'Seleccione un período para consultar el resumen de seguimiento.' }}
       </div>
 
-      <ng-container *ngIf="resultadoSeguimiento as res">
+      <ng-container *ngIf="resultadoVisible as res">
         <div class="resumen-segu-avisos" aria-live="polite">
           <div class="aviso aviso-warn" *ngFor="let aviso of res.avisosTruncado" role="status">
             <i class="bx bx-info-circle" aria-hidden="true"></i>
@@ -169,15 +210,50 @@
             <i class="bx bx-info-circle" aria-hidden="true"></i>
             <span>El estado de correspondencias supera el límite de consulta; algunos indicadores pueden mostrarse sin correspondencia confirmada.</span>
           </div>
+          <div class="aviso aviso-warn" *ngIf="avisoMarcoTruncado" role="status">
+            <i class="bx bx-info-circle" aria-hidden="true"></i>
+            <span>Las correspondencias confirmadas del marco superan el límite de consulta; el filtro del marco puede no cubrir todo el ámbito.</span>
+          </div>
+          <div class="aviso aviso-warn" *ngIf="marcoFiltroError" role="alert">
+            <i class="bx bx-error-circle" aria-hidden="true"></i>
+            <span>No se pudo aplicar el filtro del marco (permisos o error del servicio); el filtro se limpió y el resumen muestra el período completo.</span>
+          </div>
           <div class="aviso aviso-error" *ngIf="!res.correspondenciasDisponibles" role="alert">
             <i class="bx bx-error-circle" aria-hidden="true"></i>
             <span>El contexto EQ-SIDACES no está disponible (permisos o error del servicio); se omiten las métricas de correspondencia.</span>
           </div>
         </div>
 
+        <div *ngIf="filtroMarcoActivo && res.metricas.total === 0" class="state-msg" role="status">
+          No hay asignaciones en el ámbito del marco seleccionado para este período.
+        </div>
+
         <div class="kpi-grid">
+          <ng-container *ngIf="filtroMarcoActivo">
+            <div class="kpi-card">
+              <div class="kpi-icon cyan"><i class="bx bx-filter" aria-hidden="true"></i></div>
+              <div class="kpi-body">
+                <span class="kpi-value">{{ res.metricas.total }}</span>
+                <span class="kpi-label">Asignaciones en el ámbito</span>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon green"><i class="bx bx-file" aria-hidden="true"></i></div>
+              <div class="kpi-body">
+                <span class="kpi-value">{{ res.metricas.conEvidencia }}</span>
+                <span class="kpi-label">Con evidencia</span>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon amber"><i class="bx bx-file-x" aria-hidden="true"></i></div>
+              <div class="kpi-body">
+                <span class="kpi-value">{{ res.metricas.sinEvidencia }}</span>
+                <span class="kpi-label">Sin evidencia</span>
+              </div>
+            </div>
+          </ng-container>
           <a class="kpi-card kpi-enlace" routerLink="/seguimiento"
-            [queryParams]="{ periodo: periodoSeleccionadoId || null, revision: 'en_revision' }"
+            [queryParams]="queryParamsRevision('en_revision')"
             aria-label="Ver pendientes de revisión en Seguimiento">
             <div class="kpi-icon indigo"><i class="bx bx-time" aria-hidden="true"></i></div>
             <div class="kpi-body">
@@ -186,7 +262,7 @@
             </div>
           </a>
           <a class="kpi-card kpi-enlace" routerLink="/seguimiento"
-            [queryParams]="{ periodo: periodoSeleccionadoId || null, revision: 'observada' }"
+            [queryParams]="queryParamsRevision('observada')"
             aria-label="Ver evidencias observadas en Seguimiento">
             <div class="kpi-icon purple"><i class="bx bx-message-detail" aria-hidden="true"></i></div>
             <div class="kpi-body">
@@ -195,7 +271,7 @@
             </div>
           </a>
           <a class="kpi-card kpi-enlace" *ngIf="res.correspondenciasDisponibles" routerLink="/seguimiento"
-            [queryParams]="{ periodo: periodoSeleccionadoId || null, correspondencia: 'confirmada' }"
+            [queryParams]="queryParamsCorrespondencia('confirmada')"
             aria-label="Ver asignaciones con correspondencia confirmada en Seguimiento">
             <div class="kpi-icon green"><i class="bx bx-link" aria-hidden="true"></i></div>
             <div class="kpi-body">
@@ -204,7 +280,7 @@
             </div>
           </a>
           <a class="kpi-card kpi-enlace" *ngIf="res.correspondenciasDisponibles" routerLink="/seguimiento"
-            [queryParams]="{ periodo: periodoSeleccionadoId || null, correspondencia: 'sin' }"
+            [queryParams]="queryParamsCorrespondencia('sin')"
             aria-label="Ver asignaciones sin correspondencia confirmada en Seguimiento">
             <div class="kpi-icon red"><i class="bx bx-unlink" aria-hidden="true"></i></div>
             <div class="kpi-body">

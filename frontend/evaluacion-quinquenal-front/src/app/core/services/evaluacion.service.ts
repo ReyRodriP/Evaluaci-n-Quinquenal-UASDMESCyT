@@ -105,6 +105,12 @@ export class EvaluacionService {
     return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/asignaciones/`, { params });
   }
 
+  listarAsignacionesPorIndicador(indicadorId: number): Observable<any[]> {
+    return this.toList(
+      this.http.get<any>(`${this.apiUrl}/asignaciones/`, { params: { indicador: String(indicadorId) } })
+    );
+  }
+
   obtenerAsignacion(id: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/asignaciones/${id}/`);
   }

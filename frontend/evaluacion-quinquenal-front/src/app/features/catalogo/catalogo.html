@@ -74,12 +74,134 @@
               }
             </div>
             <p class="texto">{{ textoDe(item) }}</p>
-            @if (nivelActual !== 'indicadores' && nivelActual !== 'versiones') {
+            @if (nivelActual === 'indicadores') {
+              <span class="ir">Ver correspondencias →</span>
+            } @else if (nivelActual !== 'versiones') {
               <span class="ir">Ver siguiente nivel →</span>
             }
           </button>
         </li>
       }
     </ul>
+  }
+
+  @if (indicadorPanel) {
+    <section class="panel-marco" aria-label="Correspondencias del indicador del marco">
+      <div class="panel-cabecera">
+        <div>
+          <h2 class="panel-titulo">Indicador del marco</h2>
+          <div class="tarjeta-fila">
+            @if (codigoDe(indicadorPanel)) {
+              <span class="codigo">{{ codigoDe(indicadorPanel) }}</span>
+            }
+            @if (indicadorPanel.estado_revision === 'confirmado') {
+              <span class="insignia insignia-ok">Confirmado</span>
+            }
+            @if (indicadorPanel.codigo_sintetico) {
+              <span class="insignia insignia-sintetico">Código sintético (no oficial)</span>
+            }
+          </div>
+        </div>
+        <button type="button" class="btn-reintentar" (click)="cerrarPanel()">Cerrar detalle</button>
+      </div>
+
+      <p class="texto">{{ textoDe(indicadorPanel) }}</p>
+      @if (indicadorPanel.estandar_codigo) {
+        <p class="panel-meta">
+          Estándar contenedor: <span class="codigo">{{ indicadorPanel.estandar_codigo }}</span>
+        </p>
+      }
+
+      <h3 class="panel-subtitulo">Correspondencias registradas</h3>
+
+      @if (panelCargando) {
+        <div class="estado" role="status">Cargando correspondencias…</div>
+      } @else if (panelSinPermiso) {
+        <div class="estado">
+          No tiene permisos para consultar las correspondencias del marco.
+          Puede continuar explorando el catálogo.
+        </div>
+      } @else if (panelError) {
+        <div class="estado estado-error" role="alert">
+          <p>{{ panelError }}</p>
+          <button type="button" class="btn-reintentar" (click)="cargarPanel()">Reintentar</button>
+        </div>
+      } @else {
+        @if (correspondenciasConfirmadas.length === 0 && correspondenciasPropuestas.length === 0) {
+          <div class="estado">
+            Este indicador del marco no tiene correspondencias registradas con
+            indicadores o criterios operativos.
+          </div>
+        }
+        @for (corr of correspondenciasConfirmadas; track corr.id) {
+          <article class="vinculo vinculo-confirmada">
+            <div class="vinculo-cabecera">
+              <span class="insignia insignia-ok">Correspondencia confirmada</span>
+              <span class="panel-meta">Marco: {{ corr.version_marco.nombre }}</span>
+            </div>
+            @if (corr.origen) {
+              <p class="texto">
+                <strong>{{ etiquetaOrigen(corr.origen.nivel) }}:</strong>
+                {{ corr.origen.texto }}
+              </p>
+            }
+            @if (corr.fecha_confirmacion) {
+              <p class="panel-meta">
+                Confirmada {{ corr.fecha_confirmacion | date: 'dd/MM/yyyy' }}
+                @if (corr.confirmado_por) {
+                  por {{ corr.confirmado_por }}
+                }
+              </p>
+            }
+            @if (corr.origen?.nivel === 'indicador') {
+              @if (asignacionesCargando) {
+                <p class="panel-meta">Consultando asignaciones del indicador operativo…</p>
+              } @else if (asignacionesDe(corr).length === 0) {
+                <p class="panel-meta">
+                  Sin asignaciones visibles para su alcance de acceso (con el período activo por defecto).
+                </p>
+              } @else {
+                <table class="tabla-asignaciones">
+                  <thead>
+                    <tr>
+                      <th scope="col">Unidad responsable</th>
+                      <th scope="col">Período</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (asig of asignacionesDe(corr); track asig.id) {
+                      <tr>
+                        <td>{{ asig.unidad_responsable_nombre }}</td>
+                        <td>{{ asig.periodo_nombre }}</td>
+                        <td>{{ asig.estado_display }}</td>
+                        <td>
+                          <a [routerLink]="['/asignaciones', asig.id, 'detalle']">Ver asignación</a>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            } @else {
+              <p class="panel-meta">
+                El origen de esta correspondencia es un criterio operativo; sus
+                asignaciones se consultan desde la pantalla de Seguimiento.
+              </p>
+              <a class="panel-enlace" routerLink="/seguimiento">Ir a Seguimiento</a>
+            }
+          </article>
+        }
+        @if (correspondenciasPropuestas.length > 0) {
+          <article class="vinculo vinculo-propuesta">
+            <span class="insignia insignia-propuesta">
+              {{ correspondenciasPropuestas.length }}
+              propuesta(s) pendiente(s) de validación (no vigente(s) como relación activa)
+            </span>
+          </article>
+        }
+      }
+    </section>
   }
 </div>

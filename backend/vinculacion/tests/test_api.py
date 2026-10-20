@@ -978,3 +978,78 @@ class SincronizacionMatrizVinculacionTests(TestCase):
         sync_group_permissions(grupo)
         _, faltantes = get_role_permissions_diff(grupo)
         self.assertEqual([p for p in faltantes if p.content_type.app_label == "vinculacion"], [])
+
+
+class FiltrosMarcoApiTests(BaseApiVinculacion):
+    """Búsqueda inversa marco→operativo: filtros por destino del marco.
+
+    dimension y estandar abarcan el subárbol (dimensión; estándar o indicador
+    del marco bajo la dimensión/estándar); componente solo destinos anclados a
+    ese componente; indicador_marco compara el destino exacto. Los filtros se
+    aplican después del alcance por rol y no amplían la visibilidad.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.comp_a = cls.std_a.criterio_marco.componente
+        cls.comp_a2 = cls.std_a2.criterio_marco.componente
+        cls.corr_dim = Correspondencia.crear_propuesta(
+            actor=cls.admin, version_marco=cls.version_a, dimension=cls.dim_a, criterio_op=cls.criterio_a
+        )
+        cls.corr_dim.confirmar(cls.admin)
+        cls.corr_ind = Correspondencia.crear_propuesta(
+            actor=cls.admin,
+            version_marco=cls.version_a,
+            indicador_marco=cls.ind_marco_a,
+            indicador_op=cls.indicador_a,
+        )
+        cls.corr_ind_prop = Correspondencia.crear_propuesta(
+            actor=cls.admin,
+            version_marco=cls.version_a,
+            indicador_marco=cls.ind_marco_a2,
+            criterio_op=cls.criterio_b,
+        )
+
+    def ids(self, respuesta):
+        return sorted(item["id"] for item in self.resultados(respuesta))
+
+    def test_filtro_estandar_incluye_indicadores_bajo_el_estandar(self):
+        respuesta = self.cliente(self.admin).get(URL, {"estandar": self.std_a.pk})
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.ids(respuesta), sorted([self.corr_a.pk, self.corr_ind.pk]))
+
+    def test_filtro_estandar_excluye_otro_estandar(self):
+        respuesta = self.cliente(self.admin).get(URL, {"estandar": self.std_a2.pk})
+        self.assertEqual(self.ids(respuesta), sorted([self.corr_b.pk, self.corr_ind_prop.pk]))
+
+    def test_filtro_indicador_marco_confirmada_y_propuesta(self):
+        respuesta = self.cliente(self.admin).get(URL, {"indicador_marco": self.ind_marco_a.pk})
+        self.assertEqual(self.ids(respuesta), [self.corr_ind.pk])
+        respuesta = self.cliente(self.admin).get(URL, {"indicador_marco": self.ind_marco_a2.pk})
+        self.assertEqual(self.ids(respuesta), [self.corr_ind_prop.pk])
+
+    def test_filtro_dimension_incluye_subarbol_y_excluye_otra_dimension(self):
+        respuesta = self.cliente(self.admin).get(URL, {"dimension": self.dim_a.pk})
+        self.assertEqual(self.ids(respuesta), sorted([self.corr_a.pk, self.corr_dim.pk, self.corr_ind.pk]))
+
+    def test_filtro_componente_excluye_destino_a_dimension(self):
+        respuesta = self.cliente(self.admin).get(URL, {"componente": self.comp_a.pk})
+        self.assertEqual(self.ids(respuesta), sorted([self.corr_a.pk, self.corr_ind.pk]))
+
+    def test_filtros_de_marco_invalidos_devuelven_400(self):
+        cliente = self.cliente(self.admin)
+        for filtro in ("dimension", "componente", "estandar", "indicador_marco"):
+            with self.subTest(filtro=filtro, valor="texto"):
+                respuesta = cliente.get(URL, {filtro: "texto"})
+                self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+            with self.subTest(filtro=filtro, valor="inexistente"):
+                respuesta = cliente.get(URL, {filtro: "999999"})
+                self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filtro_de_marco_respeta_alcance_del_rol(self):
+        respuesta = self.cliente(self.tecnico).get(URL, {"estandar": self.std_a2.pk})
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.ids(respuesta), [])
+        respuesta = self.cliente(self.tecnico).get(URL, {"estandar": self.std_a.pk})
+        self.assertEqual(self.ids(respuesta), sorted([self.corr_a.pk, self.corr_ind.pk]))

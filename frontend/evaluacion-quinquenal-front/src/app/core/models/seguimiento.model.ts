@@ -20,6 +20,7 @@ export interface FilaSeguimiento {
   unidadNombre: string;
   indicadorId: number | string;
   indicadorNombre: string;
+  criterioId: number | null;
   criterioNombre: string;
   estado: string;
   estadoDisplay: string;

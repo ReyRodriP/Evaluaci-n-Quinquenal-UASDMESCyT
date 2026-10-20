@@ -52,6 +52,10 @@ export class CatalogoService {
     );
   }
 
+  obtenerEstandar(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/catalogo/estandares/${id}/`);
+  }
+
   listarIndicadores(estandarId: number): Observable<any[]> {
     return this.toList(
       this.http.get<any>(`${this.apiUrl}/catalogo/indicadores/`, {

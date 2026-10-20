@@ -45,6 +45,24 @@ describe('VinculacionService', () => {
     expect(resultado.results).toEqual([]);
   });
 
+  it('listarCorrespondencias envia los filtros del marco (dimension, componente, estandar, indicador_marco)', () => {
+    let resultado: any = null;
+    service
+      .listarCorrespondencias({ dimension: 1, componente: 11, estandar: 3, indicador_marco: 42 })
+      .subscribe((d) => (resultado = d));
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${base}/` &&
+        r.params.get('dimension') === '1' &&
+        r.params.get('componente') === '11' &&
+        r.params.get('estandar') === '3' &&
+        r.params.get('indicador_marco') === '42'
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ count: 0, results: [] });
+    expect(resultado.results).toEqual([]);
+  });
+
   it('obtenerCorrespondencia hace GET al detalle', () => {
     let resultado: any = null;
     service.obtenerCorrespondencia(9).subscribe((d) => (resultado = d));

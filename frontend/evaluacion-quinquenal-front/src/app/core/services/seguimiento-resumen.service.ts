@@ -125,6 +125,31 @@ export class SeguimientoResumenService {
     );
   }
 
+  /**
+   * @brief Orígenes operativos con correspondencia confirmada para un filtro
+   * de marco (dimensión, componente o estándar; subárbol según la API).
+   */
+  obtenerOrigenesMarco(filtro: { dimension?: number; componente?: number; estandar?: number }): Observable<{
+    indicadores: Set<number>;
+    criterios: Set<number>;
+    truncado: boolean;
+  }> {
+    return this.obtenerPaginas(
+      (page) => this.vinculacionService.listarCorrespondencias({ ...filtro, estado: 'confirmada', page }),
+      MAX_PAGINAS_CORRESPONDENCIAS
+    ).pipe(
+      map((resultado) => {
+        const indicadores = new Set<number>();
+        const criterios = new Set<number>();
+        for (const corr of resultado.items as any[]) {
+          if (typeof corr?.indicador_op === 'number') indicadores.add(corr.indicador_op);
+          if (typeof corr?.criterio_op === 'number') criterios.add(corr.criterio_op);
+        }
+        return { indicadores, criterios, truncado: resultado.truncado };
+      })
+    );
+  }
+
   private cargarCorrespondencias(): Observable<CorrespondenciasPaginadas | null> {
     return forkJoin({
       confirmadas: this.obtenerPaginas(
@@ -193,8 +218,10 @@ export class SeguimientoResumenService {
       if (asignacionId != null) evPorAsignacion.set(asignacionId, evidencia);
     }
     const criterioPorIndicador = new Map<number, string>();
+    const criterioIdPorIndicador = new Map<number, number | null>();
     for (const indicador of cache.indicadores) {
       criterioPorIndicador.set(indicador.id, indicador.criterio_nombre || '');
+      criterioIdPorIndicador.set(indicador.id, typeof indicador.criterio === 'number' ? indicador.criterio : null);
     }
 
     return cache.asignaciones.map((asignacion: any) => {
@@ -215,6 +242,7 @@ export class SeguimientoResumenService {
         unidadNombre: asignacion.unidad_responsable_nombre || '',
         indicadorId,
         indicadorNombre: asignacion.indicador_nombre || '',
+        criterioId: criterioIdPorIndicador.get(indicadorId) ?? null,
         criterioNombre: criterioPorIndicador.get(indicadorId) || '—',
         estado: asignacion.estado || '',
         estadoDisplay: asignacion.estado_display || asignacion.estado || '',

@@ -21,6 +21,7 @@ describe('MarcoRelacionado', () => {
 
   const catalogoMock = {
     obtenerIndicadorMarco: jasmine.createSpy('obtenerIndicadorMarco'),
+    obtenerEstandar: jasmine.createSpy('obtenerEstandar'),
   };
 
   const permisosMock = {
@@ -68,12 +69,14 @@ describe('MarcoRelacionado', () => {
     vinculacionMock.contextoIndicador.calls.reset();
     evaluacionMock.obtenerIndicador.calls.reset();
     catalogoMock.obtenerIndicadorMarco.calls.reset();
+    catalogoMock.obtenerEstandar.calls.reset();
     permisosMock.tieneGrupo.calls.reset();
     permisosMock.tieneAlgunPermiso.calls.reset();
 
     vinculacionMock.contextoIndicador.and.returnValue(of(contexto()));
     evaluacionMock.obtenerIndicador.and.returnValue(of({ id: 7, nombre: 'Indicador 7', criterio_nombre: 'Criterio A' }));
     catalogoMock.obtenerIndicadorMarco.and.returnValue(of({ codigo: '6.1.1.1-IND-01', codigo_sintetico: true }));
+    catalogoMock.obtenerEstandar.and.returnValue(of(null));
     permisosMock.esSuperuser = false;
     permisosMock.tieneGrupo.and.returnValue(false);
     permisosMock.tieneAlgunPermiso.and.returnValue(false);
@@ -222,5 +225,76 @@ describe('MarcoRelacionado', () => {
 
     expect(component.cargando).toBe(true);
     expect(texto()).toContain('Cargando contexto EQ-SIDACES');
+  });
+
+  it('muestra la cadena jerarquica completa cuando el destino es un estandar', () => {
+    catalogoMock.obtenerEstandar.and.returnValue(
+      of({
+        id: 3,
+        codigo_completo: '6.1.1.1',
+        redaccion: 'Norma mínima de gestión',
+        dimension: { codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' },
+        componente: { codigo_completo: '6.1', nombre: 'Administración' },
+        criterio: { codigo: '6.1.1', nombre: 'Criterio 1' },
+      })
+    );
+    vinculacionMock.contextoIndicador.and.returnValue(of(contexto(corr())));
+    crear(7);
+
+    expect(catalogoMock.obtenerEstandar).toHaveBeenCalledWith(3);
+    const cadena = fixture.nativeElement.querySelector('.marco-cadena') as HTMLElement | null;
+    expect(cadena).toBeTruthy();
+    expect(cadena?.querySelectorAll('li').length).toBe(4);
+    const cadenaTexto = cadena?.textContent ?? '';
+    expect(cadenaTexto).toContain('VI');
+    expect(cadenaTexto).toContain('PERSONAL ACADÉMICO');
+    expect(cadenaTexto).toContain('6.1.1.1');
+    expect(texto()).toContain('Correspondencia confirmada');
+  });
+
+  it('resuelve la cadena de un destino indicador-marco a traves de su estandar', () => {
+    catalogoMock.obtenerIndicadorMarco.and.callFake(() =>
+      of({ codigo: '6.1.1.1-IND-01', codigo_sintetico: true, estandar: 3 })
+    );
+    catalogoMock.obtenerEstandar.and.returnValue(
+      of({
+        id: 3,
+        codigo_completo: '6.1.1.1',
+        redaccion: 'Norma mínima de gestión',
+        dimension: { codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' },
+        componente: { codigo_completo: '6.1', nombre: 'Administración' },
+        criterio: { codigo: '6.1.1', nombre: 'Criterio 1' },
+      })
+    );
+    vinculacionMock.contextoIndicador.and.returnValue(
+      of(contexto(corr({ destino: { nivel: 'indicador_marco', id: 42, texto: '6.1.1.1-IND-01' } })))
+    );
+    crear(7);
+
+    expect(catalogoMock.obtenerEstandar).toHaveBeenCalledWith(3);
+    const cadena = fixture.nativeElement.querySelector('.marco-cadena') as HTMLElement | null;
+    expect(cadena?.querySelectorAll('li').length).toBe(4);
+    expect(cadena?.textContent).toContain('Criterio 1');
+    expect(texto()).toContain('Código sintético (no oficial)');
+  });
+
+  it('no rompe la vista si el estandar de la cadena no se puede cargar', () => {
+    catalogoMock.obtenerEstandar.and.returnValue(throwError(() => ({ status: 500 })));
+    vinculacionMock.contextoIndicador.and.returnValue(of(contexto(corr())));
+    crear(7);
+
+    expect(fixture.nativeElement.querySelector('.marco-cadena')).toBeNull();
+    expect(texto()).toContain('Correspondencia confirmada');
+    expect(texto()).toContain('6.1.1.1');
+  });
+
+  it('no muestra cadena jerarquica para destinos que no son estandar ni indicador del marco', () => {
+    vinculacionMock.contextoIndicador.and.returnValue(
+      of(contexto(corr({ destino: { nivel: 'dimension', id: 6, texto: 'VI' } })))
+    );
+    crear(7);
+
+    expect(catalogoMock.obtenerEstandar).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.marco-cadena')).toBeNull();
   });
 });

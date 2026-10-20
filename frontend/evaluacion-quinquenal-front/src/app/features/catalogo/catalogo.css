@@ -190,3 +190,86 @@
   font-size: 0.8rem;
   color: var(--text-selected-color, #355cc0);
 }
+
+.panel-marco {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 10px;
+  background: var(--table-bg, #fff);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.panel-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.panel-titulo {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: var(--text-title-color, #2d56c8);
+}
+
+.panel-subtitulo {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-title-color, #2d56c8);
+}
+
+.panel-meta {
+  margin: 0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--text-color, #707070);
+}
+
+.panel-enlace {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-selected-color, #355cc0);
+}
+
+.vinculo {
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.6rem;
+}
+
+.vinculo-confirmada {
+  border-left: 4px solid #198754;
+  background: #fbfffd;
+}
+
+.vinculo-propuesta {
+  border-left: 4px solid #f0c36d;
+  background: #fdf6e3;
+}
+
+.insignia-propuesta {
+  border-color: #f0c36d;
+  color: #7a5b00;
+  background: #fdf6e3;
+}
+
+.tabla-asignaciones {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tabla-asignaciones th,
+.tabla-asignaciones td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border-color, #e6e9ed);
+}
+
+.tabla-asignaciones a {
+  color: var(--text-selected-color, #355cc0);
+}
