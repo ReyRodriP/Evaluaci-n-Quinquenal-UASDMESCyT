@@ -9,7 +9,7 @@ de archivos.
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from accounts.permissions import es_evaluador_externo
+from accounts.permissions import asignacion_revision_permitida, es_evaluador_externo
 
 from .models import Evidencia
 
@@ -74,6 +74,15 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         if value.size > max_size:
             raise serializers.ValidationError("El archivo no puede superar los 50 MB.")
         return value
+
+    def validate(self, attrs):
+        asignacion = attrs.get("asignacion", getattr(self.instance, "asignacion", None))
+        request = self.context.get("request")
+        if request and asignacion and not asignacion_revision_permitida(
+            request, asignacion.unidad_responsable_id, asignacion.periodo_id
+        ):
+            raise serializers.ValidationError({"asignacion": "La asignación está fuera de sus ámbitos de revisión."})
+        return attrs
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

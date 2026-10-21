@@ -76,6 +76,10 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'organization.add_perfilusuario': 'Añadir perfil de usuario',
   'organization.change_perfilusuario': 'Editar perfil de usuario',
   'organization.delete_perfilusuario': 'Eliminar perfil de usuario',
+  'organization.view_ambitorevision': 'Ver ámbitos de revisión',
+  'organization.add_ambitorevision': 'Asignar ámbito de revisión',
+  'organization.change_ambitorevision': 'Editar ámbito de revisión',
+  'organization.delete_ambitorevision': 'Desactivar ámbito de revisión',
 
   'notificaciones.view_notificacion': 'Ver notificación',
   'notificaciones.add_notificacion': 'Añadir notificación',

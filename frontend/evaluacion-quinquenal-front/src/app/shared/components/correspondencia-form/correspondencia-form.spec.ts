@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -303,5 +303,161 @@ describe('CorrespondenciaForm', () => {
       expect(component.errorCarga).toBe('No se pudieron cargar las dimensiones del marco');
       expect(fixture.nativeElement.textContent).toContain('No se pudieron cargar las dimensiones del marco');
     });
+  });
+
+  describe('edición de destino y búsqueda de orígenes (D4.11.1)', () => {
+    const destinoConRuta: DestinoFijo = {
+      nivel: 'dimension',
+      id: 15,
+      version: 1,
+      codigo: 'VI',
+      texto: 'Personal',
+      ruta: ['VI — Personal'],
+    };
+
+    function flushOrigenes(resultados: any[], count = resultados.length): void {
+      httpMock
+        .expectOne((r) => r.url === `${api}/indicadores/` && r.params.get('page') === '1' && !r.params.get('search'))
+        .flush({ count, results: resultados, next: null, previous: null });
+    }
+
+    function flushDimensiones(resultados: any[]): void {
+      httpMock
+        .expectOne((r) => r.url === `${api}/catalogo/dimensiones/` && r.params.get('version') === '1')
+        .flush({ results: resultados });
+    }
+
+    function botonPorTexto(texto: string): HTMLButtonElement {
+      return (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).find((b) =>
+        (b.textContent ?? '').includes(texto)
+      )!;
+    }
+
+    it('muestra origen y destino por separado con la ruta del destino inicial', () => {
+      conPermisos();
+      component.destinoFijo = destinoConRuta;
+      fixture.detectChanges();
+      flushOrigenes([{ id: 9, nombre: 'Indicador demo' }]);
+      fixture.detectChanges();
+
+      const texto: string = fixture.nativeElement.textContent;
+      expect(texto).toContain('Origen operativo (elemento de la evaluación)');
+      expect(texto).toContain('Destino EQ-SIDACES (nodo del marco)');
+      expect(texto).toContain('Ruta del destino: VI — Personal');
+      expect(component.editandoDestino).toBeFalse();
+    });
+
+    it('permite cambiar el destino manteniendo la versión y el origen seleccionado', () => {
+      conPermisos();
+      component.destinoFijo = destinoConRuta;
+      fixture.detectChanges();
+      flushOrigenes([{ id: 9, nombre: 'Indicador demo' }]);
+      component.origenSeleccionado = '9';
+      component.comentario = 'Cambio de destino justificado';
+      fixture.detectChanges();
+
+      botonPorTexto('Cambiar destino').click();
+      fixture.detectChanges();
+      flushDimensiones([
+        { id: 15, codigo: 'VI', nombre: 'Personal' },
+        { id: 16, codigo: 'VII', nombre: 'Investigación' },
+      ]);
+      fixture.detectChanges();
+
+      expect(component.editandoDestino).toBeTrue();
+      expect(component.versionSeleccionada).toBe('1');
+      expect(component.nivelDestino).toBe('dimension');
+      expect(component.dimensionSeleccionada).toBe('15');
+      expect(component.origenSeleccionado).toBe('9');
+      expect(component.comentario).toBe('Cambio de destino justificado');
+      expect(fixture.nativeElement.textContent).toContain('Usar destino original');
+
+      component.dimensionSeleccionada = '16';
+      component.onDimensionChange();
+      fixture.detectChanges();
+      expect(component.listo).toBeTrue();
+
+      component.crear();
+      const peticiones = httpMock.match((r) => r.method === 'POST' && r.url === `${vincBase}/`);
+      expect(peticiones.length).toBe(1);
+      expect(peticiones[0].request.body).toEqual({
+        version_marco: 1,
+        indicador_op: 9,
+        dimension: 16,
+        comentario: 'Cambio de destino justificado',
+      });
+      peticiones[0].flush({ id: 12, estado: 'propuesta' });
+      expect(component.exito).toBeTrue();
+    });
+
+    it('restaurar el destino original vuelve al resumen fijo y envía el destino inicial', () => {
+      conPermisos();
+      component.destinoFijo = destino;
+      fixture.detectChanges();
+      flushOrigenes([{ id: 9, nombre: 'Indicador demo' }]);
+      fixture.detectChanges();
+
+      botonPorTexto('Cambiar destino').click();
+      fixture.detectChanges();
+      flushDimensiones([{ id: 15, codigo: 'VI', nombre: 'Personal' }]);
+      fixture.detectChanges();
+
+      botonPorTexto('Usar destino original').click();
+      fixture.detectChanges();
+
+      expect(component.editandoDestino).toBeFalse();
+      expect(fixture.nativeElement.textContent).toContain('Estándar del marco');
+      expect(fixture.nativeElement.querySelector('#cf-nivel-destino')).toBeNull();
+
+      component.origenSeleccionado = '9';
+      fixture.detectChanges();
+      component.crear();
+      const peticiones = httpMock.match((r) => r.method === 'POST' && r.url === `${vincBase}/`);
+      expect(peticiones[0].request.body).toEqual({
+        version_marco: 1,
+        indicador_op: 9,
+        estandar: 41,
+        comentario: '',
+      });
+      peticiones[0].flush({ id: 13, estado: 'propuesta' });
+    });
+
+    it('avisa cuando hay más orígenes que los de la página cargada', () => {
+      conPermisos();
+      component.destinoFijo = destino;
+      fixture.detectChanges();
+      flushOrigenes([{ id: 9, nombre: 'Indicador demo' }], 60);
+      fixture.detectChanges();
+
+      expect(component.origenesTruncado).toBeTrue();
+      expect(fixture.nativeElement.textContent).toContain('Hay más orígenes operativos');
+    });
+
+    it('la búsqueda de orígenes consulta ?search= en el servidor tras el debounce', fakeAsync(() => {
+      conPermisos();
+      component.destinoFijo = destino;
+      fixture.detectChanges();
+      flushOrigenes(Array.from({ length: 13 }, (_, i) => ({ id: i + 1, nombre: `Indicador ${i + 1}` })));
+      fixture.detectChanges();
+
+      component.filtroOrigen = 'demo';
+      component.onFiltroOrigenChange();
+      tick(300);
+      fixture.detectChanges();
+
+      httpMock
+        .expectOne(
+          (r) =>
+            r.url === `${api}/indicadores/` &&
+            r.params.get('page') === '1' &&
+            r.params.get('search') === 'demo'
+        )
+        .flush({ count: 1, results: [{ id: 99, nombre: 'Indicador demo' }], next: null, previous: null });
+      fixture.detectChanges();
+
+      expect(component.origenes.length).toBe(1);
+      expect(component.origenTotal).toBe(1);
+      expect(component.origenSeleccionado).toBe('');
+    }));
   });
 });

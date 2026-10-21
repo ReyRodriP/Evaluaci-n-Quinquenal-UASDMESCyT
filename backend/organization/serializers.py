@@ -9,6 +9,7 @@ from rest_framework import serializers
 
 from .models import (
     AmbitoEvaluacion,
+    AmbitoRevision,
     Departamento,
     Facultad,
     PerfilUsuario,
@@ -138,4 +139,20 @@ class AmbitoEvaluacionSerializer(serializers.ModelSerializer):
                 duplicate = duplicate.exclude(pk=self.instance.pk)
             if duplicate.exists():
                 raise serializers.ValidationError("Ya existe un ámbito para este usuario, unidad y período.")
+        return attrs
+
+
+class AmbitoRevisionSerializer(AmbitoEvaluacionSerializer):
+    class Meta(AmbitoEvaluacionSerializer.Meta):
+        model = AmbitoRevision
+
+    def validate(self, attrs):
+        usuario = attrs.get("usuario", getattr(self.instance, "usuario", None))
+        unidad = attrs.get("unidad_organizacional", getattr(self.instance, "unidad_organizacional", None))
+        activo = attrs.get("activo", getattr(self.instance, "activo", True))
+        if activo and usuario and not usuario.groups.filter(name="Revisor Institucional").exists():
+            raise serializers.ValidationError({"usuario": "El usuario debe tener el rol Revisor Institucional."})
+        if activo and unidad and not unidad.activa:
+            raise serializers.ValidationError({"unidad_organizacional": "La unidad debe estar activa."})
+        # La unicidad se valida contra AmbitoRevision, nunca contra ámbitos externos.
         return attrs

@@ -138,6 +138,10 @@ WSGI_APPLICATION = "evaluacionQuinquenal.wsgi.application"
 
 AUTH_USER_MODEL = "accounts.Usuario"
 
+# Activar únicamente después de migrar y configurar los ámbitos de los revisores.
+# La preparación del esquema no cambia por sí sola los accesos existentes.
+AMBITOS_REVISION_EXPLICITOS = os.getenv("AMBITOS_REVISION_EXPLICITOS", "False").lower() in ("1", "true", "yes", "on")
+
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),

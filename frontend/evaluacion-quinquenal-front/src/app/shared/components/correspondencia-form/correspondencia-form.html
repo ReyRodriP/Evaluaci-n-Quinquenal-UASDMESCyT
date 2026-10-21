@@ -17,184 +17,233 @@
   } @else {
     <h4>Nueva propuesta de correspondencia</h4>
 
-    @if (modo === 'destino' && destinoFijo) {
-      <p class="nodo-fijo">
-        <strong>{{ etiquetaNivelDestino(destinoFijo.nivel) }} (destino):</strong>
-        @if (destinoFijo.codigo) {
-          <span class="codigo">{{ destinoFijo.codigo }}</span>
-        }
-        {{ destinoFijo.texto }}
-      </p>
-      <p class="aviso-dominio">
-        El destino está fijado por la posición elegida en el explorador EQ-SIDACES. Seleccione el
-        origen operativo que debe quedar vinculado; la propuesta quedará pendiente de validación.
-      </p>
+    <div class="seccion seccion-origen">
+      <p class="titulo-seccion" id="cf-titulo-origen">Origen operativo (elemento de la evaluación)</p>
 
-      <div class="campo">
-        <label for="cf-tipo-origen">Tipo de origen operativo</label>
-        <select id="cf-tipo-origen" name="cf_tipo_origen" [(ngModel)]="tipoOrigen" (ngModelChange)="cargarOrigenes()">
-          <option value="indicador">Indicador operativo</option>
-          <option value="criterio">Criterio operativo</option>
-        </select>
-      </div>
-
-      @if (origenesCargando) {
-        <p class="estado-carga" role="status">Cargando orígenes operativos…</p>
-      } @else if (errorCarga) {
-        <p class="mensaje-error" role="alert">{{ errorCarga }}</p>
-      } @else {
-        @if (mostrarFiltroOrigen) {
-          <div class="campo">
-            <label for="cf-filtro-origen">Filtrar por nombre o código</label>
-            <input
-              id="cf-filtro-origen"
-              type="text"
-              name="cf_filtro_origen"
-              [(ngModel)]="filtroOrigen"
-              placeholder="Escriba para filtrar la lista" />
-          </div>
-        }
-        <div class="campo">
-          <label for="cf-origen">{{ etiquetaNivelOrigen(tipoOrigen) }}</label>
-          <select id="cf-origen" name="cf_origen" [(ngModel)]="origenSeleccionado">
-            <option value="" disabled>Seleccione un origen</option>
-            @for (origen of origenesVisibles; track origen.id) {
-              <option [value]="origen.id">{{ etiquetaOrigen(origen) }}</option>
-            }
-          </select>
-        </div>
-        @if (origenes.length === 0) {
-          <p class="estado-vacio">No hay elementos operativos disponibles para su alcance de acceso.</p>
-        }
-        @if (origenesTruncado) {
-          <p class="aviso-truncado">
-            Se muestran solo los primeros registros disponibles; use el filtro si no encuentra el
-            elemento buscado.
-          </p>
-        }
+      @if (modo === 'origen' && origenFijo) {
+        <p class="nodo-fijo">
+          <strong>{{ etiquetaNivelOrigen(origenFijo.nivel) }}:</strong>
+          {{ origenFijo.texto }}
+        </p>
+        <p class="aclaracion">
+          El origen pertenece a la evaluación institucional: un criterio operativo no es un criterio
+          EQ-SIDACES del marco.
+        </p>
       }
-    }
 
-    @if (modo === 'origen' && origenFijo) {
-      <p class="nodo-fijo">
-        <strong>{{ etiquetaNivelOrigen(origenFijo.nivel) }} (origen):</strong>
-        {{ origenFijo.texto }}
-      </p>
-      <p class="aviso-dominio">
-        Seleccione la posición del marco EQ-SIDACES (dimensión, estándar o indicador) donde debe
-        quedar vinculado este elemento. La propuesta quedará pendiente de validación.
-      </p>
+      @if (modo === 'destino' && destinoFijo) {
+        <p class="aclaracion">
+          El origen pertenece a la evaluación institucional: un criterio operativo no es un criterio
+          EQ-SIDACES del marco. Seleccione qué elemento operativo debe quedar vinculado; la propuesta
+          quedará pendiente de validación.
+        </p>
 
-      <div class="campo">
-        <label for="cf-version-marco">Versión del marco</label>
-        <select
-          id="cf-version-marco"
-          name="cf_version_marco"
-          [(ngModel)]="versionSeleccionada"
-          (ngModelChange)="onVersionChange()"
-          required>
-          <option value="" disabled>Seleccione una versión</option>
-          @for (version of versiones; track version.id) {
-            <option [value]="version.id">{{ version.nombre }}{{ version.activo ? '' : ' (inactiva)' }}</option>
+        <div class="campo">
+          <label for="cf-tipo-origen">Tipo de origen operativo</label>
+          <select id="cf-tipo-origen" name="cf_tipo_origen" [(ngModel)]="tipoOrigen" (ngModelChange)="cargarOrigenes()">
+            <option value="indicador">Indicador operativo</option>
+            <option value="criterio">Criterio operativo</option>
+          </select>
+        </div>
+
+        @if (origenesCargando) {
+          <p class="estado-carga" role="status">Cargando orígenes operativos…</p>
+        } @else if (errorOrigen) {
+          <p class="mensaje-error" role="alert">{{ errorOrigen }}</p>
+        } @else {
+          @if (mostrarFiltroOrigen) {
+            <div class="campo">
+              <label for="cf-filtro-origen">Buscar origen por nombre</label>
+              <input
+                id="cf-filtro-origen"
+                type="text"
+                name="cf_filtro_origen"
+                [(ngModel)]="filtroOrigen"
+                (ngModelChange)="onFiltroOrigenChange()"
+                placeholder="Escriba para buscar en el servidor" />
+            </div>
           }
-        </select>
-      </div>
-
-      <div class="campo">
-        <label for="cf-nivel-destino">Nivel de destino en el marco</label>
-        <select id="cf-nivel-destino" name="cf_nivel_destino" [(ngModel)]="nivelDestino" (ngModelChange)="onNivelChange()">
-          <option value="dimension">Dimensión</option>
-          <option value="estandar">Estándar</option>
-          <option value="indicador_marco">Indicador del marco</option>
-        </select>
-      </div>
-
-      @if (nivelDestino === 'dimension') {
-        <div class="campo">
-          <label for="cf-dimension">Dimensión</label>
-          <select id="cf-dimension" name="cf_dimension" [(ngModel)]="dimensionSeleccionada">
-            <option value="" disabled>Seleccione una dimensión</option>
-            @for (dimension of dimensiones; track dimension.id) {
-              <option [value]="dimension.id">{{ etiquetaDimension(dimension) }}</option>
-            }
-          </select>
-        </div>
-      } @else {
-        <div class="campo">
-          <label for="cf-dimension-rama">Dimensión</label>
-          <select
-            id="cf-dimension-rama"
-            name="cf_dimension_rama"
-            [(ngModel)]="dimensionSeleccionada"
-            (ngModelChange)="onDimensionChange()"
-            required>
-            <option value="" disabled>Seleccione una dimensión</option>
-            @for (dimension of dimensiones; track dimension.id) {
-              <option [value]="dimension.id">{{ etiquetaDimension(dimension) }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="campo">
-          <label for="cf-componente">Componente</label>
-          <select
-            id="cf-componente"
-            name="cf_componente"
-            [(ngModel)]="componenteSeleccionado"
-            (ngModelChange)="onComponenteChange()"
-            required>
-            <option value="" disabled>Seleccione un componente</option>
-            @for (componente of componentes; track componente.id) {
-              <option [value]="componente.id">{{ etiquetaRama(componente) }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="campo">
-          <label for="cf-criterio-marco">Criterio del marco</label>
-          <select
-            id="cf-criterio-marco"
-            name="cf_criterio_marco"
-            [(ngModel)]="criterioSeleccionado"
-            (ngModelChange)="onCriterioChange()"
-            required>
-            <option value="" disabled>Seleccione un criterio</option>
-            @for (criterio of criteriosMarco; track criterio.id) {
-              <option [value]="criterio.id">{{ etiquetaRama(criterio) }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="campo">
-          <label for="cf-estandar">Estándar</label>
-          <select
-            id="cf-estandar"
-            name="cf_estandar"
-            [(ngModel)]="estandarSeleccionado"
-            (ngModelChange)="onEstandarChange()"
-            [required]="nivelDestino === 'estandar'">
-            <option value="" disabled>Seleccione un estándar</option>
-            @for (estandar of estandares; track estandar.id) {
-              <option [value]="estandar.id">{{ etiquetaEstandar(estandar) }}</option>
-            }
-          </select>
-        </div>
-
-        @if (nivelDestino === 'indicador_marco') {
           <div class="campo">
-            <label for="cf-indicador-marco">Indicador del marco</label>
-            <select id="cf-indicador-marco" name="cf_indicador_marco" [(ngModel)]="indicadorMarcoSeleccionado" required>
-              <option value="" disabled>Seleccione un indicador</option>
-              @for (indicador of indicadoresMarco; track indicador.id) {
-                <option [value]="indicador.id">{{ etiquetaIndicadorMarco(indicador) }}</option>
+            <label for="cf-origen">{{ etiquetaNivelOrigen(tipoOrigen) }}</label>
+            <select id="cf-origen" name="cf_origen" [(ngModel)]="origenSeleccionado">
+              <option value="" disabled>Seleccione un origen</option>
+              @for (origen of origenesVisibles; track origen.id) {
+                <option [value]="origen.id">{{ etiquetaOrigen(origen) }}</option>
               }
             </select>
           </div>
+          @if (origenes.length === 0) {
+            <p class="estado-vacio">No hay elementos operativos disponibles para su alcance de acceso.</p>
+          }
+          @if (origenesTruncado) {
+            <p class="aviso-truncado">
+              Hay más orígenes operativos ({{ origenTotal }} en total) de los que caben en una página.
+              Use la búsqueda por nombre para encontrar el que necesita.
+            </p>
+          }
         }
       }
-    }
+    </div>
 
-    @if (errorCarga && modo === 'origen') {
+    <div class="seccion seccion-destino">
+      <p class="titulo-seccion" id="cf-titulo-destino">Destino EQ-SIDACES (nodo del marco)</p>
+
+      @if (modo === 'destino' && destinoFijo && !editandoDestino) {
+        <p class="nodo-fijo">
+          <strong>{{ etiquetaNivelDestino(destinoFijo.nivel) }}:</strong>
+          @if (destinoFijo.codigo) {
+            <span class="codigo">{{ destinoFijo.codigo }}</span>
+          }
+          {{ destinoFijo.texto }}
+        </p>
+        @if (rutaDestino.length > 0) {
+          <p class="ruta-destino"><strong>Ruta del destino:</strong> {{ rutaDestino.join(' → ') }}</p>
+        }
+        <p class="aviso-dominio">
+          El destino inicial proviene de la posición elegida en el explorador EQ-SIDACES y puede
+          cambiarse antes de enviar la propuesta.
+        </p>
+        <button type="button" class="btn-secundario btn-cambiar-destino" (click)="iniciarCambioDestino()">
+          Cambiar destino
+        </button>
+      } @else {
+        @if (modo === 'origen') {
+          <p class="aviso-dominio">
+            Seleccione la posición del marco EQ-SIDACES donde debe quedar vinculado este elemento. La
+            propuesta quedará pendiente de validación.
+          </p>
+        } @else {
+          <p class="aviso-dominio">
+            La versión del marco queda fijada por la posición original; elija otra posición dentro
+            del mismo marco.
+          </p>
+        }
+
+        @if (mostrarCascada) {
+          @if (modo === 'origen') {
+            <div class="campo">
+              <label for="cf-version-marco">Versión del marco</label>
+              <select
+                id="cf-version-marco"
+                name="cf_version_marco"
+                [(ngModel)]="versionSeleccionada"
+                (ngModelChange)="onVersionChange()"
+                required>
+                <option value="" disabled>Seleccione una versión</option>
+                @for (version of versiones; track version.id) {
+                  <option [value]="version.id">{{ version.nombre }}{{ version.activo ? '' : ' (inactiva)' }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="campo">
+            <label for="cf-nivel-destino">Nivel de destino en el marco</label>
+            <select id="cf-nivel-destino" name="cf_nivel_destino" [(ngModel)]="nivelDestino" (ngModelChange)="onNivelChange()">
+              <option value="dimension">Dimensión</option>
+              <option value="estandar">Estándar</option>
+              <option value="indicador_marco">Indicador del marco</option>
+            </select>
+          </div>
+
+          @if (nivelDestino === 'dimension') {
+            <div class="campo">
+              <label for="cf-dimension">Dimensión</label>
+              <select id="cf-dimension" name="cf_dimension" [(ngModel)]="dimensionSeleccionada">
+                <option value="" disabled>Seleccione una dimensión</option>
+                @for (dimension of dimensiones; track dimension.id) {
+                  <option [value]="dimension.id">{{ etiquetaDimension(dimension) }}</option>
+                }
+              </select>
+            </div>
+          } @else {
+            <div class="campo">
+              <label for="cf-dimension-rama">Dimensión</label>
+              <select
+                id="cf-dimension-rama"
+                name="cf_dimension_rama"
+                [(ngModel)]="dimensionSeleccionada"
+                (ngModelChange)="onDimensionChange()"
+                required>
+                <option value="" disabled>Seleccione una dimensión</option>
+                @for (dimension of dimensiones; track dimension.id) {
+                  <option [value]="dimension.id">{{ etiquetaDimension(dimension) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="cf-componente">Componente</label>
+              <select
+                id="cf-componente"
+                name="cf_componente"
+                [(ngModel)]="componenteSeleccionado"
+                (ngModelChange)="onComponenteChange()"
+                required>
+                <option value="" disabled>Seleccione un componente</option>
+                @for (componente of componentes; track componente.id) {
+                  <option [value]="componente.id">{{ etiquetaRama(componente) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="cf-criterio-marco">Criterio del marco EQ-SIDACES</label>
+              <select
+                id="cf-criterio-marco"
+                name="cf_criterio_marco"
+                [(ngModel)]="criterioSeleccionado"
+                (ngModelChange)="onCriterioChange()"
+                required>
+                <option value="" disabled>Seleccione un criterio</option>
+                @for (criterio of criteriosMarco; track criterio.id) {
+                  <option [value]="criterio.id">{{ etiquetaRama(criterio) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="cf-estandar">Estándar</label>
+              <select
+                id="cf-estandar"
+                name="cf_estandar"
+                [(ngModel)]="estandarSeleccionado"
+                (ngModelChange)="onEstandarChange()"
+                [required]="nivelDestino === 'estandar'">
+                <option value="" disabled>Seleccione un estándar</option>
+                @for (estandar of estandares; track estandar.id) {
+                  <option [value]="estandar.id">{{ etiquetaEstandar(estandar) }}</option>
+                }
+              </select>
+            </div>
+
+            @if (nivelDestino === 'indicador_marco') {
+              <div class="campo">
+                <label for="cf-indicador-marco">Indicador del marco</label>
+                <select id="cf-indicador-marco" name="cf_indicador_marco" [(ngModel)]="indicadorMarcoSeleccionado" required>
+                  <option value="" disabled>Seleccione un indicador</option>
+                  @for (indicador of indicadoresMarco; track indicador.id) {
+                    <option [value]="indicador.id">{{ etiquetaIndicadorMarco(indicador) }}</option>
+                  }
+                </select>
+              </div>
+            }
+          }
+        }
+
+        @if (rutaDestino.length > 0) {
+          <p class="ruta-destino"><strong>Ruta del destino:</strong> {{ rutaDestino.join(' → ') }}</p>
+        }
+
+        @if (modo === 'destino') {
+          <button type="button" class="btn-secundario btn-restaurar" (click)="restaurarDestino()">
+            Usar destino original
+          </button>
+        }
+      }
+    </div>
+
+    @if (errorCarga && mostrarCascada) {
       <p class="mensaje-error" role="alert">{{ errorCarga }}</p>
     }
 

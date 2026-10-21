@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -136,5 +136,41 @@ export class OrganizacionService {
 
   actualizarAmbitoEvaluacion(id: number, payload: { activo: boolean }): Observable<any> {
     return this.http.patch(`${this.apiUrl}/ambitos-evaluacion/${id}/`, payload);
+  }
+
+  listarAmbitosRevision(usuarioId: number, page = 1): Observable<any[]> {
+    return this.listarPaginasAmbitos('ambitos-revision', { usuario: String(usuarioId) }, page);
+  }
+
+  listarUnidadesParaAmbitos(): Observable<any[]> {
+    return this.listarPaginasAmbitos('unidades-organizacionales');
+  }
+
+  listarPeriodosParaAmbitos(): Observable<any[]> {
+    return this.listarPaginasAmbitos('periodos');
+  }
+
+  private listarPaginasAmbitos(recurso: string, params: Record<string, string> = {}, page = 1): Observable<any[]> {
+    return this.http.get<any>(`${this.apiUrl}/${recurso}/`, {
+      params: { ...params, page: String(page) },
+    }).pipe(switchMap(data => {
+      if (Array.isArray(data)) return of(data);
+      const items = data?.results ?? [];
+      return data?.next && items.length
+        ? this.listarPaginasAmbitos(recurso, params, page + 1).pipe(map(siguientes => [...items, ...siguientes]))
+        : of(items);
+    }));
+  }
+
+  configuracionAmbitosRevision(): Observable<{ alcance_explicito_activo: boolean }> {
+    return this.http.get<{ alcance_explicito_activo: boolean }>(`${this.apiUrl}/ambitos-revision/configuracion/`);
+  }
+
+  crearAmbitoRevision(payload: { usuario: number; unidad_organizacional: number; periodo: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/ambitos-revision/`, payload);
+  }
+
+  actualizarAmbitoRevision(id: number, payload: { activo: boolean }): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/ambitos-revision/${id}/`, payload);
   }
 }

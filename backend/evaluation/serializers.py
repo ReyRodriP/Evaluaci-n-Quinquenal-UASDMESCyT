@@ -6,7 +6,7 @@ las instancias de los modelos del módulo de evaluación a formato JSON y viceve
 
 from rest_framework import serializers
 
-from accounts.permissions import es_evaluador_externo, filtrar_por_rol
+from accounts.permissions import asignacion_revision_permitida, es_evaluador_externo, filtrar_por_rol
 from organization.models import UnidadOrganizacional
 
 from .models import Asignacion, Criterio, HistorialEstado, Indicador, Periodo
@@ -140,6 +140,10 @@ class AsignacionSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         finalizar_periodos_vencidos()
         periodo = attrs.get("periodo", getattr(self.instance, "periodo", None))
+        unidad = attrs.get("unidad_responsable", getattr(self.instance, "unidad_responsable", None))
+        request = self.context.get("request")
+        if request and periodo and unidad and not asignacion_revision_permitida(request, unidad.pk, periodo.pk):
+            raise serializers.ValidationError({"unidad_responsable": "La unidad y el período están fuera de sus ámbitos de revisión."})
         if periodo is not None:
             periodo.refresh_from_db(fields=["activo"])
             if not periodo.activo:

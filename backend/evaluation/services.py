@@ -2,7 +2,25 @@ from django.utils import timezone
 
 from auditoria.utils import registrar_auditoria
 
-from .models import Periodo
+from .models import EstadoAsignacion, Periodo
+
+TRANSICIONES_ESTADO = {
+    EstadoAsignacion.PENDIENTE: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.OBSERVADA],
+    EstadoAsignacion.EN_PROGRESO: [
+        EstadoAsignacion.APROBADO,
+        EstadoAsignacion.RECHAZADO,
+        EstadoAsignacion.OBSERVADA,
+    ],
+    EstadoAsignacion.OBSERVADA: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.RECHAZADO],
+    EstadoAsignacion.RECHAZADO: [EstadoAsignacion.EN_PROGRESO],
+    EstadoAsignacion.APROBADO: [],
+    EstadoAsignacion.COMPLETADO: [],
+}
+
+
+def transicion_valida(estado_actual, estado_nuevo):
+    """Indica si la transición de estado de una asignación está permitida."""
+    return estado_nuevo in TRANSICIONES_ESTADO.get(estado_actual, [])
 
 
 def finalizar_periodos_vencidos(fecha=None):

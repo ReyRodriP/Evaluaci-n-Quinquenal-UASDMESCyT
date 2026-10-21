@@ -39,6 +39,12 @@ export class Usuarios implements OnInit {
   loadingAmbitos = false;
   nuevoAmbitoUnidad = '';
   nuevoAmbitoPeriodo = '';
+  tipoAmbito: 'evaluacion' | 'revision' = 'evaluacion';
+  alcanceRevisionExplicito: boolean | null = null;
+  errorAmbitos = '';
+  unidadesAmbitos: any[] = [];
+  periodosAmbitos: any[] = [];
+  private cargaAmbitos = 0;
 
   usuarioFields: any[] = [
     { label: 'Nombre de usuario', name: 'username', type: 'text', placeholder: 'Username', defaultValue: ''},
@@ -60,6 +66,22 @@ export class Usuarios implements OnInit {
       'organization.add_ambitoevaluacion',
       'organization.change_ambitoevaluacion',
     ]);
+  }
+
+  get puedeGestionarAmbitosRevision(): boolean {
+    return this.permisos.tienePermiso('organization.view_ambitorevision') && this.permisos.tieneAlgunPermiso([
+      'organization.add_ambitorevision', 'organization.change_ambitorevision',
+    ]);
+  }
+
+  get puedeCrearAmbitoActual(): boolean {
+    const modelo = this.tipoAmbito === 'revision' ? 'ambitorevision' : 'ambitoevaluacion';
+    return this.permisos.tienePermiso(`organization.add_${modelo}`);
+  }
+
+  get puedeCambiarAmbitoActual(): boolean {
+    const modelo = this.tipoAmbito === 'revision' ? 'ambitorevision' : 'ambitoevaluacion';
+    return this.permisos.tienePermiso(`organization.change_${modelo}`);
   }
 
   get ocultarAcciones(): string[] {
@@ -91,8 +113,18 @@ export class Usuarios implements OnInit {
     return roles.some((rol: any) => String(rol?.name ?? rol).toLowerCase() === 'evaluador externo');
   }
 
-  abrirAmbitos(item: any): void {
-    if (!this.puedeGestionarAmbitos || !item?.id) return;
+  esRevisor(item: any): boolean {
+    const roles = Array.isArray(item?.rol) ? item.rol : [item?.rol];
+    return roles.some((rol: any) => String(rol?.name ?? rol).toLowerCase() === 'revisor institucional');
+  }
+
+  abrirAmbitos(item: any, tipo: 'evaluacion' | 'revision' = 'evaluacion'): void {
+    if (!item?.id) return;
+    if (tipo === 'revision' ? !this.puedeGestionarAmbitosRevision || !this.esRevisor(item)
+      : !this.puedeGestionarAmbitos || !this.esEvaluadorExterno(item)) return;
+    this.tipoAmbito = tipo;
+    this.alcanceRevisionExplicito = null;
+    this.errorAmbitos = '';
     this.usuarioAmbitos = item;
     this.ambitosUsuario = [];
     this.nuevoAmbitoUnidad = item.unidadId ? String(item.unidadId) : '';
@@ -102,6 +134,7 @@ export class Usuarios implements OnInit {
   }
 
   cerrarAmbitos(): void {
+    this.cargaAmbitos++;
     this.showAmbitos = false;
     this.usuarioAmbitos = null;
     this.ambitosUsuario = [];
@@ -109,31 +142,71 @@ export class Usuarios implements OnInit {
 
   private cargarAmbitosUsuario(): void {
     if (!this.usuarioAmbitos?.id) return;
+    const carga = ++this.cargaAmbitos;
     this.loadingAmbitos = true;
+    if (this.tipoAmbito === 'revision') {
+      forkJoin({
+        ambitos: this.organizacionService.listarAmbitosRevision(this.usuarioAmbitos.id),
+        configuracion: this.organizacionService.configuracionAmbitosRevision(),
+        unidades: this.organizacionService.listarUnidadesParaAmbitos(),
+        periodos: this.organizacionService.listarPeriodosParaAmbitos(),
+      }).subscribe({
+        next: ({ ambitos, configuracion, unidades, periodos }) => {
+          if (carga !== this.cargaAmbitos) return;
+          this.ambitosUsuario = ambitos;
+          this.unidadesAmbitos = unidades;
+          this.periodosAmbitos = periodos;
+          this.alcanceRevisionExplicito = configuracion.alcance_explicito_activo;
+          this.loadingAmbitos = false;
+        },
+        error: () => {
+          if (carga !== this.cargaAmbitos) return;
+          this.errorAmbitos = 'No se pudieron cargar los ámbitos de revisión. Cierre y vuelva a abrir para reintentar.';
+          this.toast.error(this.errorAmbitos);
+          this.loadingAmbitos = false;
+        },
+      });
+      return;
+    }
     this.organizacionService.listarAmbitosEvaluacion(this.usuarioAmbitos.id).subscribe({
       next: (data) => {
+        if (carga !== this.cargaAmbitos) return;
         this.ambitosUsuario = data;
         this.loadingAmbitos = false;
       },
       error: () => {
+        if (carga !== this.cargaAmbitos) return;
         this.toast.error('No se pudieron cargar los ámbitos del evaluador');
         this.loadingAmbitos = false;
       },
     });
   }
 
+  get unidadesDelAmbitoActual(): any[] {
+    return this.tipoAmbito === 'revision' ? this.unidadesAmbitos : this.unidades;
+  }
+
+  get periodosDelAmbitoActual(): any[] {
+    return this.tipoAmbito === 'revision' ? this.periodosAmbitos : this.periodos;
+  }
+
   crearAmbito(): void {
+    if (!this.puedeCrearAmbitoActual || this.loadingAmbitos || this.errorAmbitos) return;
     const unidad = Number(this.nuevoAmbitoUnidad);
     const periodo = Number(this.nuevoAmbitoPeriodo);
     if (!this.usuarioAmbitos?.id || !unidad || !periodo) {
       this.toast.error('Seleccione una unidad y un período');
       return;
     }
-    this.organizacionService.crearAmbitoEvaluacion({
+    const payload = {
       usuario: this.usuarioAmbitos.id,
       unidad_organizacional: unidad,
       periodo,
-    }).subscribe({
+    };
+    const solicitud = this.tipoAmbito === 'revision'
+      ? this.organizacionService.crearAmbitoRevision(payload)
+      : this.organizacionService.crearAmbitoEvaluacion(payload);
+    solicitud.subscribe({
       next: () => {
         this.toast.success('Ámbito asignado correctamente');
         this.nuevoAmbitoUnidad = '';
@@ -148,7 +221,12 @@ export class Usuarios implements OnInit {
   }
 
   alternarAmbito(ambito: any): void {
-    this.organizacionService.actualizarAmbitoEvaluacion(ambito.id, { activo: !ambito.activo }).subscribe({
+    if (!this.puedeCambiarAmbitoActual || this.loadingAmbitos || this.errorAmbitos) return;
+    const payload = { activo: !ambito.activo };
+    const solicitud = this.tipoAmbito === 'revision'
+      ? this.organizacionService.actualizarAmbitoRevision(ambito.id, payload)
+      : this.organizacionService.actualizarAmbitoEvaluacion(ambito.id, payload);
+    solicitud.subscribe({
       next: () => {
         this.toast.success(`Ámbito ${ambito.activo ? 'desactivado' : 'activado'}`);
         this.cargarAmbitosUsuario();
@@ -240,11 +318,11 @@ export class Usuarios implements OnInit {
     });
   }
 
-  unitPath(unit: any): string {
+  unitPath(unit: any, unidades: any[] = this.unidades): string {
     const path = [unit.nombre];
     let parentId = unit.unidad_padre;
     while (parentId) {
-      const parent = this.unidades.find(candidate => candidate.id === parentId);
+      const parent = unidades.find(candidate => candidate.id === parentId);
       if (!parent) break;
       path.unshift(parent.nombre);
       parentId = parent.unidad_padre;

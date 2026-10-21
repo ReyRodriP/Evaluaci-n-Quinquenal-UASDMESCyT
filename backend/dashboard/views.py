@@ -6,6 +6,8 @@ del sistema de evaluación quinquenal, incluyendo resumen general,
 detalles por departamento, avance agrupado y filtrado por período.
 """
 
+import hashlib
+
 from django.core.cache import cache
 from django.db.models import Count, Exists, OuterRef, Q
 from django.http import Http404
@@ -18,9 +20,11 @@ from rest_framework.response import Response
 from accounts.permissions import (
     _grupos_usuario,
     _unidades_del_ambito,
+    alcances_revision,
     departamentos_permitidos,
     filtrar_por_rol,
     periodos_autorizados,
+    revision_con_ambitos,
     unidades_organizacionales_permitidas,
 )
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
@@ -38,7 +42,13 @@ def _cache_key(user, name, extra=""):
 
 def _filtros_cache(request):
     keys = ("unidad", "tipo", "criterio", "indicador", "estado", "departamento", "agrupar")
-    return "|".join(f"{key}={request.query_params.get(key, '')}" for key in keys)
+    filtros = "|".join(f"{key}={request.query_params.get(key, '')}" for key in keys)
+    if revision_con_ambitos(request):
+        # La revocación y los cambios de jerarquía no deben reutilizar métricas autorizadas antes.
+        alcance = sorted((p, sorted(unidades)) for p, unidades in alcances_revision(request))
+        firma = hashlib.sha256(repr(alcance).encode()).hexdigest()
+        filtros += f"|revision={firma}"
+    return filtros
 
 
 def _asignaciones_dashboard(request, periodo, departamento_id=None):
@@ -140,6 +150,11 @@ def _metricas_asignaciones(qs):
 def _periodo_solicitado(request, periodo_id=None):
     finalizar_periodos_vencidos()
     periodo_id = periodo_id or request.query_params.get("periodo")
+    if revision_con_ambitos(request):
+        periodos = Periodo.objects.filter(pk__in=[p for p, _ in alcances_revision(request)])
+        if periodo_id:
+            return get_object_or_404(periodos, pk=periodo_id)
+        return periodos.filter(activo=True).first()
     if not request.user.is_superuser and "Evaluador Externo" in _grupos_usuario(request.user):
         permitidos = periodos_autorizados(request)
         if periodo_id:

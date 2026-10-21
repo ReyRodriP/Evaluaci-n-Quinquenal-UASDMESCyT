@@ -6,11 +6,15 @@ Facultad, Departamento y PerfilUsuario, incluyendo permisos
 personalizados y registro de auditoría.
 """
 
+from django.conf import settings
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from accounts.permissions import (
     CustomModelPermissions,
+    PermisosAmbitosRevision,
     _grupos_usuario,
     departamentos_permitidos,
     facultades_permitidas,
@@ -18,9 +22,10 @@ from accounts.permissions import (
 from accounts.permissions import unidades_organizacionales_permitidas
 from auditoria.utils import registrar_auditoria
 
-from .models import AmbitoEvaluacion, Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
+from .models import AmbitoEvaluacion, AmbitoRevision, Departamento, Facultad, PerfilUsuario, TipoUnidadOrganizacional, UnidadOrganizacional
 from .serializers import (
     AmbitoEvaluacionSerializer,
+    AmbitoRevisionSerializer,
     DepartamentoSerializer,
     FacultadSerializer,
     PerfilUsuarioSerializer,
@@ -215,6 +220,8 @@ class AmbitoEvaluacionViewSet(viewsets.ModelViewSet):
     ).all()
     serializer_class = AmbitoEvaluacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+    modelo_auditoria = "AmbitoEvaluacion"
+    tipo_ambito = "evaluación"
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -235,8 +242,8 @@ class AmbitoEvaluacionViewSet(viewsets.ModelViewSet):
         ambito = serializer.save()
         registrar_auditoria(
             usuario=self.request.user,
-            accion="Asignar ámbito de evaluación",
-            modelo="AmbitoEvaluacion",
+            accion=f"Asignar ámbito de {self.tipo_ambito}",
+            modelo=self.modelo_auditoria,
             registro_id=ambito.pk,
             descripcion=(
                 f"Se autorizó a '{ambito.usuario.username}' a evaluar "
@@ -256,8 +263,8 @@ class AmbitoEvaluacionViewSet(viewsets.ModelViewSet):
             detalle = "; ".join(f"{campo}: {anterior} -> {nuevo}" for campo, (anterior, nuevo) in cambios.items())
             registrar_auditoria(
                 usuario=self.request.user,
-                accion="Actualizar ámbito de evaluación",
-                modelo="AmbitoEvaluacion",
+                accion=f"Actualizar ámbito de {self.tipo_ambito}",
+                modelo=self.modelo_auditoria,
                 registro_id=ambito.pk,
                 descripcion=f"Se actualizó el ámbito de '{ambito.usuario.username}'. Cambios: {detalle}.",
             )
@@ -268,11 +275,23 @@ class AmbitoEvaluacionViewSet(viewsets.ModelViewSet):
             instance.save(update_fields=["activo"])
             registrar_auditoria(
                 usuario=self.request.user,
-                accion="Desactivar ámbito de evaluación",
-                modelo="AmbitoEvaluacion",
+                accion=f"Desactivar ámbito de {self.tipo_ambito}",
+                modelo=self.modelo_auditoria,
                 registro_id=instance.pk,
                 descripcion=(
                     f"Se desactivó el ámbito de '{instance.usuario.username}' para "
                     f"'{instance.unidad_organizacional.nombre}' en '{instance.periodo.nombre}'."
                 ),
             )
+
+
+class AmbitoRevisionViewSet(AmbitoEvaluacionViewSet):
+    queryset = AmbitoRevision.objects.select_related("usuario", "unidad_organizacional", "periodo").all()
+    serializer_class = AmbitoRevisionSerializer
+    permission_classes = [IsAuthenticated, PermisosAmbitosRevision]
+    modelo_auditoria = "AmbitoRevision"
+    tipo_ambito = "revisión"
+
+    @action(detail=False, methods=["get"])
+    def configuracion(self, request):
+        return Response({"alcance_explicito_activo": settings.AMBITOS_REVISION_EXPLICITOS})

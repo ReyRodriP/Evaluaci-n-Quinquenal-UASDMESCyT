@@ -40,6 +40,7 @@ services:
         condition: service_healthy
     environment: &backend_environment
       - DJANGO_SETTINGS_MODULE=evaluacionQuinquenal.settings
+      - AMBITOS_REVISION_EXPLICITOS=${AMBITOS_REVISION_EXPLICITOS:-False}
       - DEBUG=${DEBUG:-False}
       - SECRET_KEY=${SECRET_KEY:-cambiar-esta-clave-en-produccion}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}

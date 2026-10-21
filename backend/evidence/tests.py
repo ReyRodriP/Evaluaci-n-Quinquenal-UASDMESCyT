@@ -1,8 +1,10 @@
 import csv
 import io
+import os
 import tempfile
 import zipfile
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
@@ -13,7 +15,14 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from auditoria.models import Auditoria
-from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
+from evaluation.models import (
+    Asignacion,
+    Criterio,
+    EstadoAsignacion,
+    HistorialEstado,
+    Indicador,
+    Periodo,
+)
 from organization.models import (
     AmbitoEvaluacion,
     Departamento,
@@ -492,3 +501,254 @@ class EvidenciaViewSetTests(TestCase):
         bulk_zip = zipfile.ZipFile(io.BytesIO(b"".join(bulk_allowed.streaming_content)))
         self.assertIn("manifest.csv", bulk_zip.namelist())
         self.assertIn("errors.csv", bulk_zip.namelist())
+
+
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
+class SubirVersionValidacionTests(TestCase):
+    """Pruebas de validación de archivos en todas las rutas de subida/edición."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.asignacion = _make_asignacion()
+        self.evidencia = Evidencia.objects.create(
+            titulo="Evidencia Validación",
+            descripcion="Para pruebas de validación",
+            asignacion=self.asignacion,
+        )
+        self.media_temp = tempfile.TemporaryDirectory()
+        media_override = override_settings(MEDIA_ROOT=self.media_temp.name)
+        media_override.enable()
+        self.addCleanup(media_override.disable)
+        self.addCleanup(self.media_temp.cleanup)
+
+        self.admin_user = _make_user("admin_val", "admin_val@test.com", is_superuser=True)
+        self.token = RefreshToken.for_user(self.admin_user).access_token
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
+
+    def _archivos_en_media(self):
+        with os.scandir(self.media_temp.name) as entries:
+            return [e.name for e in entries]
+
+    def _ultima_version_payload(self, response):
+        """@brief Extrae el payload de una respuesta DRF valida"""
+        return response.data
+
+    def test_subir_version_valida_crea_version_y_cambia_estado(self):
+        archivo = SimpleUploadedFile("informe.pdf", b"%PDF-1.4 contenido", content_type="application/pdf")
+        response = self.client.post(
+            f"/api/evidencias/{self.evidencia.pk}/subir_version/",
+            {"archivo": archivo, "comentario": "Carga válida"},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(VersionEvidencia.objects.filter(evidencia=self.evidencia).count(), 1)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.EN_PROGRESO)
+        self.assertTrue(HistorialEstado.objects.filter(asignacion=self.asignacion).exists())
+
+    def test_subir_version_extension_invalida_rechaza(self):
+        archivo = SimpleUploadedFile("malware.exe", b"MZ", content_type="application/octet-stream")
+        response = self.client.post(
+            f"/api/evidencias/{self.evidencia.pk}/subir_version/",
+            {"archivo": archivo},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(VersionEvidencia.objects.filter(evidencia=self.evidencia).count(), 0)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.PENDIENTE)
+        self.assertFalse(HistorialEstado.objects.filter(asignacion=self.asignacion).exists())
+        self.assertEqual(self._archivos_en_media(), [])
+
+    def test_subir_version_archivo_vacio_rechaza(self):
+        archivo = SimpleUploadedFile("vacio.pdf", b"", content_type="application/pdf")
+        response = self.client.post(
+            f"/api/evidencias/{self.evidencia.pk}/subir_version/",
+            {"archivo": archivo},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(VersionEvidencia.objects.filter(evidencia=self.evidencia).count(), 0)
+        self.assertEqual(self._archivos_en_media(), [])
+
+    def test_subir_version_tamano_excesivo_rechaza(self):
+        archivo = SimpleUploadedFile("grande.pdf", b"X" * 1024, content_type="application/pdf")
+        with mock.patch("evidence.validators.MAX_FILE_SIZE_BYTES", 10):
+            response = self.client.post(
+                f"/api/evidencias/{self.evidencia.pk}/subir_version/",
+                {"archivo": archivo},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(VersionEvidencia.objects.filter(evidencia=self.evidencia).count(), 0)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.PENDIENTE)
+        self.assertEqual(self._archivos_en_media(), [])
+
+    def test_subir_version_content_type_invalido_rechaza(self):
+        archivo = SimpleUploadedFile("doc.pdf", b"contenido", content_type="application/x-msdownload")
+        response = self.client.post(
+            f"/api/evidencias/{self.evidencia.pk}/subir_version/",
+            {"archivo": archivo},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(VersionEvidencia.objects.filter(evidencia=self.evidencia).count(), 0)
+        self.assertEqual(self._archivos_en_media(), [])
+
+    def test_editar_version_valida_aplica_cambios(self):
+        archivo = SimpleUploadedFile("original.pdf", b"contenido original", content_type="application/pdf")
+        version = VersionEvidencia.objects.create(
+            evidencia=self.evidencia, archivo=archivo, version=1, subido_por=self.admin_user
+        )
+        nuevo = SimpleUploadedFile("editado.pdf", b"contenido editado", content_type="application/pdf")
+
+        response = self.client.patch(
+            f"/api/evidencias/{self.evidencia.pk}/editar_version/",
+            {"archivo": nuevo, "comentario": "Comentario actualizado"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        version.refresh_from_db()
+        self.assertEqual(version.comentario, "Comentario actualizado")
+        self.assertIn("editado", version.archivo.name)
+
+    def test_editar_version_archivo_invalido_rechaza(self):
+        archivo = SimpleUploadedFile("original.pdf", b"contenido original", content_type="application/pdf")
+        version = VersionEvidencia.objects.create(
+            evidencia=self.evidencia, archivo=archivo, version=1, subido_por=self.admin_user
+        )
+        malicioso = SimpleUploadedFile("malware.exe", b"MZ", content_type="application/octet-stream")
+
+        response = self.client.patch(
+            f"/api/evidencias/{self.evidencia.pk}/editar_version/",
+            {"archivo": malicioso},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        version.refresh_from_db()
+        self.assertIn("original", version.archivo.name)
+        self.assertNotIn("malware", version.archivo.name)
+
+
+@override_settings(
+    PASSWORD_HASHERS=[
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    ]
+)
+class ObservacionEstadoTests(TestCase):
+    """Pruebas de la máquina de estados en la creación de observaciones."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.asignacion = _make_asignacion()
+        self.evidencia = Evidencia.objects.create(
+            titulo="Evidencia Estado",
+            descripcion="Para pruebas de estado",
+            asignacion=self.asignacion,
+        )
+        self.version = VersionEvidencia.objects.create(
+            evidencia=self.evidencia,
+            archivo=SimpleUploadedFile("v1.pdf", b"contenido", content_type="application/pdf"),
+            version=1,
+        )
+        self.admin_user = _make_user("admin_est", "admin_est@test.com", is_superuser=True)
+        self.token = RefreshToken.for_user(self.admin_user).access_token
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(self.token))
+
+    def _post_observacion(self):
+        return self.client.post(
+            "/api/observaciones/",
+            {"version": self.version.pk, "comentario": "Observación de prueba"},
+            format="json",
+        )
+
+    def test_observacion_sobre_aprobada_rechaza_y_no_efectos(self):
+        self.asignacion.estado = EstadoAsignacion.APROBADO
+        self.asignacion.save()
+        auditorias_previas = Auditoria.objects.count()
+
+        response = self._post_observacion()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Observacion.objects.filter(version=self.version).count(), 0)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.APROBADO)
+        self.assertFalse(HistorialEstado.objects.filter(asignacion=self.asignacion).exists())
+        self.assertEqual(Auditoria.objects.count(), auditorias_previas)
+
+    def test_observacion_sobre_en_progreso_cambia_estado(self):
+        self.asignacion.estado = EstadoAsignacion.EN_PROGRESO
+        self.asignacion.save()
+
+        response = self._post_observacion()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Observacion.objects.filter(version=self.version).count(), 1)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.OBSERVADA)
+        historial = HistorialEstado.objects.get(asignacion=self.asignacion)
+        self.assertEqual(historial.estado_anterior, EstadoAsignacion.EN_PROGRESO)
+        self.assertEqual(historial.estado_nuevo, EstadoAsignacion.OBSERVADA)
+
+    def test_observacion_sobre_rechazada_rechaza(self):
+        self.asignacion.estado = EstadoAsignacion.RECHAZADO
+        self.asignacion.save()
+
+        response = self._post_observacion()
+
+        self.assertEqual(response.status_code, 400)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.RECHAZADO)
+
+    def test_observacion_sobre_observada_admite_adicionales_sin_duplicar_historial(self):
+        self.asignacion.estado = EstadoAsignacion.OBSERVADA
+        self.asignacion.save()
+
+        response = self._post_observacion()
+
+        self.assertEqual(response.status_code, 201)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.OBSERVADA)
+        self.assertEqual(HistorialEstado.objects.filter(asignacion=self.asignacion).count(), 0)
+
+    def test_observacion_sobre_pendiente_cambia_estado(self):
+        self.asignacion.estado = EstadoAsignacion.PENDIENTE
+        self.asignacion.save()
+
+        response = self._post_observacion()
+
+        self.assertEqual(response.status_code, 201)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.OBSERVADA)
+
+    def test_atomicidad_fallo_auditoria_no_deja_efectos_parciales(self):
+        self.asignacion.estado = EstadoAsignacion.EN_PROGRESO
+        self.asignacion.save()
+
+        with mock.patch(
+            "evidence.views.registrar_auditoria", side_effect=RuntimeError("fallo simulado")
+        ):
+            with self.assertRaises(RuntimeError):
+                self._post_observacion()
+
+        self.assertEqual(Observacion.objects.filter(version=self.version).count(), 0)
+        self.asignacion.refresh_from_db()
+        self.assertEqual(self.asignacion.estado, EstadoAsignacion.EN_PROGRESO)
+        self.assertFalse(HistorialEstado.objects.filter(asignacion=self.asignacion).exists())
+
+    def test_detalle_puede_observar_refleja_maquina(self):
+        self.asignacion.estado = EstadoAsignacion.APROBADO
+        self.asignacion.save()
+        detalle_aprobado = self.client.get(f"/api/evidencias/{self.evidencia.pk}/detalle/")
+
+        self.asignacion.estado = EstadoAsignacion.EN_PROGRESO
+        self.asignacion.save()
+        detalle_en_progreso = self.client.get(f"/api/evidencias/{self.evidencia.pk}/detalle/")
+
+        self.assertFalse(detalle_aprobado.data["puede_observar"])
+        self.assertTrue(detalle_en_progreso.data["puede_observar"])

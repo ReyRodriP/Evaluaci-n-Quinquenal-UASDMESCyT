@@ -272,21 +272,25 @@ export class Evidencias implements OnInit {
 
   onEdit(row: any): void {
     if (!row.evidenciaId) {
-      const payload = new FormData();
-      payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
-      payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
-      payload.append('asignacion', String(row.id));
-      this.evidenciasService.crearEvidencia(payload).subscribe({
-        next: (res) => {
-          const id = res?.id_evidencia ?? res?.id;
-          if (id) this.irADetalle(id);
-          else this.toast.error('No se pudo crear la evidencia');
-        },
-        error: () => this.toast.error('No se pudo crear la evidencia'),
-      });
+      this.crearEvidenciaYIrADetalle(row);
       return;
     }
     this.irADetalle(row.evidenciaId);
+  }
+
+  private crearEvidenciaYIrADetalle(row: any): void {
+    const payload = new FormData();
+    payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
+    payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
+    payload.append('asignacion', String(row.id));
+    this.evidenciasService.crearEvidencia(payload).subscribe({
+      next: (res) => {
+        const id = res?.id_evidencia ?? res?.id;
+        if (id) this.irADetalle(id);
+        else this.toast.error('No se pudo crear la evidencia');
+      },
+      error: () => this.toast.error('No se pudo crear la evidencia'),
+    });
   }
 
   private irADetalle(evidenciaId: number): void {
@@ -297,18 +301,7 @@ export class Evidencias implements OnInit {
 
   openManage(row: any): void {
     if (!row.evidenciaId) {
-      const payload = new FormData();
-      payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
-      payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
-      payload.append('asignacion', String(row.id));
-      this.evidenciasService.crearEvidencia(payload).subscribe({
-        next: (res) => {
-          const id = res?.id_evidencia ?? res?.id;
-          if (id) this.irADetalle(id);
-          else this.toast.error('No se pudo crear la evidencia');
-        },
-        error: () => this.toast.error('No se pudo crear la evidencia'),
-      });
+      this.crearEvidenciaYIrADetalle(row);
       return;
     }
     this.irADetalle(row.evidenciaId);

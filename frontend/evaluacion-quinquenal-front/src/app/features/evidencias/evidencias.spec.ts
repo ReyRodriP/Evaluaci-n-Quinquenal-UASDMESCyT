@@ -70,4 +70,36 @@ describe('Evidencias', () => {
     expect(component.rows[0].evidenciaId).toBe(101);
     expect(component.seleccionadas.size).toBe(0);
   });
+
+  function evidenciasService(): jasmine.SpyObj<EvidenciasService> {
+    return TestBed.inject(EvidenciasService) as unknown as jasmine.SpyObj<EvidenciasService>;
+  }
+
+  it('onEdit sin evidenciaId crea la evidencia y navega al detalle', () => {
+    const service = evidenciasService();
+    const row = { id: 7, indicador_nombre: 'Indicador 7', evidenciaId: null };
+
+    component.onEdit(row);
+
+    expect(service.crearEvidencia).toHaveBeenCalledTimes(1);
+  });
+
+  it('openManage sin evidenciaId reutiliza la creacion compartida', () => {
+    const service = evidenciasService();
+    const row = { id: 8, indicador_nombre: 'Indicador 8', evidenciaId: null };
+
+    component.openManage(row);
+
+    expect(service.crearEvidencia).toHaveBeenCalledTimes(1);
+  });
+
+  it('onEdit y openManage sin evidenciaId llaman al mismo metodo privado una sola vez cada uno', () => {
+    const service = evidenciasService();
+    const row = { id: 9, indicador_nombre: 'Indicador 9', evidenciaId: null };
+
+    component.onEdit(row);
+    component.openManage(row);
+
+    expect(service.crearEvidencia).toHaveBeenCalledTimes(2);
+  });
 });

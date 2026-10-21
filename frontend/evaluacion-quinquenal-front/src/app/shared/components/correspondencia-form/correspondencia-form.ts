@@ -1,12 +1,12 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 import { Correspondencia, CorrespondenciaCreacion } from '../../../core/models/vinculacion.model';
-import { MAX_PAGINAS_LISTADO } from '../../../core/models/seguimiento.model';
 import { VinculacionService } from '../../../core/services/vinculacion.service';
 import { CatalogoService } from '../../../core/services/catalogo.service';
 import { EvaluacionService } from '../../../core/services/evaluacion.service';
-import { SeguimientoResumenService } from '../../../core/services/seguimiento-resumen.service';
 import { PermisosService } from '../../../core/services/permisos.service';
 
 export type NivelDestinoForm = 'dimension' | 'estandar' | 'indicador_marco';
@@ -18,6 +18,8 @@ export interface DestinoFijo {
   version: number;
   codigo?: string;
   texto: string;
+  /** Ruta jerárquica (incluye el propio nodo) armada por el explorador. */
+  ruta?: string[];
 }
 
 export interface OrigenFijo {
@@ -29,10 +31,15 @@ export interface OrigenFijo {
 /**
  * @brief Formulario compartido de propuestas de correspondencia.
  * @details Soporta dos modos: destino fijo (nodo del marco elegido en el
- * explorador EQ-SIDACES + selector de origen operativo) y origen fijo
- * (elemento operativo + cascada de destino en el marco). No usa permisos
- * de escritura del backend por sí mismo: la creación la ejecuta la API
- * y cualquier error (incluido 403) se muestra inline.
+ * explorador EQ-SIDACES + selector de origen operativo, con el destino
+ * editable mediante la cascada jerárquica) y origen fijo (elemento
+ * operativo + cascada de destino en el marco). No usa permisos de
+ * escritura del backend por sí mismo: la creación la ejecuta la API y
+ * cualquier error (incluido 403) se muestra inline.
+ *
+ * Destino admitido por el backend: exactamente uno de dimension,
+ * estandar o indicador_marco (nunca componente ni criterio del marco).
+ * Origen admitido: exactamente uno de criterio_op o indicador_op.
  */
 @Component({
   selector: 'app-correspondencia-form',
@@ -40,7 +47,7 @@ export interface OrigenFijo {
   templateUrl: './correspondencia-form.html',
   styleUrl: './correspondencia-form.css',
 })
-export class CorrespondenciaForm implements OnInit {
+export class CorrespondenciaForm implements OnInit, OnDestroy {
   @Input() destinoFijo: DestinoFijo | null = null;
   @Input() origenFijo: OrigenFijo | null = null;
   @Output() creada = new EventEmitter<Correspondencia>();
@@ -50,8 +57,12 @@ export class CorrespondenciaForm implements OnInit {
   origenes: any[] = [];
   origenesCargando = false;
   origenesTruncado = false;
+  origenTotal = 0;
   filtroOrigen = '';
   origenSeleccionado = '';
+  errorOrigen = '';
+
+  editandoDestino = false;
 
   versiones: any[] = [];
   versionSeleccionada = '';
@@ -73,18 +84,31 @@ export class CorrespondenciaForm implements OnInit {
   errorCreacion = '';
   errorCarga = '';
 
+  private busqueda$ = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
   constructor(
     private vinculacionService: VinculacionService,
     private catalogoService: CatalogoService,
     private evaluacionService: EvaluacionService,
-    private resumenService: SeguimientoResumenService,
     private permisos: PermisosService
   ) {}
 
   ngOnInit(): void {
+    this.busqueda$
+      .pipe(debounceTime(300), takeUntil(this.destroy$))
+      .subscribe((termino) => {
+        if (termino !== this.filtroOrigen.trim()) return;
+        this.recargarOrigenes(termino);
+      });
     if (!this.puedeCrear) return;
     if (this.modo === 'destino') this.cargarOrigenes();
     if (this.modo === 'origen') this.cargarVersiones();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   get modo(): 'destino' | 'origen' | null {
@@ -99,8 +123,14 @@ export class CorrespondenciaForm implements OnInit {
     return this.permisos.esSuperuser || (this.permisos.tienePermiso('vinculacion.add_correspondencia') && rolEscritura);
   }
 
+  get mostrarCascada(): boolean {
+    return this.modo === 'origen' || (this.modo === 'destino' && this.editandoDestino);
+  }
+
   get listo(): boolean {
-    if (this.modo === 'destino') return !!this.origenSeleccionado;
+    if (this.modo === 'destino') {
+      return !!this.origenSeleccionado && (!this.editandoDestino || this.destinoListo);
+    }
     return this.destinoListo;
   }
 
@@ -120,29 +150,65 @@ export class CorrespondenciaForm implements OnInit {
   }
 
   get mostrarFiltroOrigen(): boolean {
-    return this.origenes.length > 12;
+    return this.origenTotal > 12;
+  }
+
+  /** Ruta jerárquica del destino (fijo o en edición) para mostrar antes de enviar. */
+  get rutaDestino(): string[] {
+    if (this.modo === 'destino' && !this.editandoDestino) return this.destinoFijo?.ruta ?? [];
+    if (!this.mostrarCascada) return [];
+    const porId = (lista: any[], valor: string) => lista.find((x) => String(x.id) === valor);
+    const partes: string[] = [];
+    const dim = porId(this.dimensiones, this.dimensionSeleccionada);
+    if (dim) partes.push(this.etiquetaDimension(dim));
+    const comp = porId(this.componentes, this.componenteSeleccionado);
+    if (comp) partes.push(this.etiquetaRama(comp));
+    const crit = porId(this.criteriosMarco, this.criterioSeleccionado);
+    if (crit) partes.push(this.etiquetaRama(crit));
+    if (this.nivelDestino === 'estandar') {
+      const est = porId(this.estandares, this.estandarSeleccionado);
+      if (est) partes.push(this.etiquetaEstandar(est));
+    }
+    if (this.nivelDestino === 'indicador_marco') {
+      const ind = porId(this.indicadoresMarco, this.indicadorMarcoSeleccionado);
+      if (ind) partes.push(this.etiquetaIndicadorMarco(ind));
+    }
+    return partes;
   }
 
   cargarOrigenes(): void {
+    this.filtroOrigen = '';
+    this.origenSeleccionado = '';
+    this.recargarOrigenes('');
+  }
+
+  onFiltroOrigenChange(): void {
+    this.busqueda$.next(this.filtroOrigen.trim());
+  }
+
+  private recargarOrigenes(termino: string): void {
     this.origenesCargando = true;
     this.origenesTruncado = false;
-    this.errorCarga = '';
-    this.origenSeleccionado = '';
-    this.filtroOrigen = '';
+    this.errorOrigen = '';
     const pagina$ =
       this.tipoOrigen === 'criterio'
-        ? (page: number) => this.evaluacionService.listarCriteriosPagina(page)
-        : (page: number) => this.evaluacionService.listarIndicadoresPagina(page);
-    this.resumenService.obtenerPaginas(pagina$, MAX_PAGINAS_LISTADO).subscribe({
+        ? (page: number) => this.evaluacionService.listarCriteriosPagina(page, termino || undefined)
+        : (page: number) => this.evaluacionService.listarIndicadoresPagina(page, termino || undefined);
+    pagina$(1).subscribe({
       next: (resultado) => {
-        this.origenes = resultado.items;
-        this.origenesTruncado = resultado.truncado;
+        this.origenes = resultado.results ?? [];
+        this.origenTotal = resultado.count ?? this.origenes.length;
+        this.origenesTruncado = this.origenTotal > this.origenes.length;
         this.origenesCargando = false;
+        if (this.origenSeleccionado && !this.origenes.some((o) => String(o.id) === this.origenSeleccionado)) {
+          this.origenSeleccionado = '';
+        }
       },
       error: () => {
         this.origenes = [];
+        this.origenTotal = 0;
         this.origenesCargando = false;
-        this.errorCarga =
+        this.errorOrigen =
           this.tipoOrigen === 'criterio'
             ? 'No se pudieron cargar los criterios operativos'
             : 'No se pudieron cargar los indicadores operativos';
@@ -163,24 +229,36 @@ export class CorrespondenciaForm implements OnInit {
     });
   }
 
+  iniciarCambioDestino(): void {
+    if (!this.destinoFijo || this.modo !== 'destino') return;
+    this.editandoDestino = true;
+    this.errorCarga = '';
+    this.versionSeleccionada = String(this.destinoFijo.version);
+    this.nivelDestino = this.destinoFijo.nivel;
+    this.reiniciarCascada();
+    if (this.nivelDestino === 'dimension') this.dimensionSeleccionada = String(this.destinoFijo!.id);
+    this.cargarDimensiones();
+  }
+
+  restaurarDestino(): void {
+    this.editandoDestino = false;
+    this.errorCarga = '';
+    this.reiniciarCascada();
+    this.versionSeleccionada = '';
+  }
+
   onVersionChange(): void {
     this.errorCarga = '';
     this.reiniciarCascada();
     if (!this.versionSeleccionada) return;
-    this.catalogoService.listarDimensiones(this.versionSeleccionada).subscribe({
-      next: (dimensiones) => (this.dimensiones = dimensiones),
-      error: () => (this.errorCarga = 'No se pudieron cargar las dimensiones del marco'),
-    });
+    this.cargarDimensiones();
   }
 
   onNivelChange(): void {
     this.errorCarga = '';
     this.reiniciarCascada();
     if (this.nivelDestino === 'dimension' || !this.versionSeleccionada) return;
-    this.catalogoService.listarDimensiones(this.versionSeleccionada).subscribe({
-      next: (dimensiones) => (this.dimensiones = dimensiones),
-      error: () => (this.errorCarga = 'No se pudieron cargar las dimensiones del marco'),
-    });
+    this.cargarDimensiones();
   }
 
   onDimensionChange(): void {
@@ -239,6 +317,14 @@ export class CorrespondenciaForm implements OnInit {
     });
   }
 
+  private cargarDimensiones(): void {
+    if (!this.versionSeleccionada) return;
+    this.catalogoService.listarDimensiones(this.versionSeleccionada).subscribe({
+      next: (dimensiones) => (this.dimensiones = dimensiones),
+      error: () => (this.errorCarga = 'No se pudieron cargar las dimensiones del marco'),
+    });
+  }
+
   etiquetaDimension(item: any): string {
     return `${item.codigo} — ${item.nombre}`;
   }
@@ -277,19 +363,22 @@ export class CorrespondenciaForm implements OnInit {
     this.creando = true;
     this.errorCreacion = '';
     const payload: CorrespondenciaCreacion = {
-      version_marco: this.modo === 'destino' ? this.destinoFijo!.version : +this.versionSeleccionada,
+      version_marco: 0,
       comentario: this.comentario.trim(),
     };
     if (this.modo === 'destino') {
       if (this.tipoOrigen === 'criterio') payload.criterio_op = +this.origenSeleccionado;
       else payload.indicador_op = +this.origenSeleccionado;
-      payload[this.destinoFijo!.nivel] = this.destinoFijo!.id;
+      if (this.editandoDestino) {
+        this.aplicarDestinoEnEdicion(payload);
+      } else {
+        payload.version_marco = this.destinoFijo!.version;
+        payload[this.destinoFijo!.nivel] = this.destinoFijo!.id;
+      }
     } else {
       if (this.origenFijo!.nivel === 'criterio') payload.criterio_op = this.origenFijo!.id;
       else payload.indicador_op = this.origenFijo!.id;
-      if (this.nivelDestino === 'dimension') payload.dimension = +this.dimensionSeleccionada;
-      if (this.nivelDestino === 'estandar') payload.estandar = +this.estandarSeleccionado;
-      if (this.nivelDestino === 'indicador_marco') payload.indicador_marco = +this.indicadorMarcoSeleccionado;
+      this.aplicarDestinoEnEdicion(payload);
     }
     this.vinculacionService.crearCorrespondencia(payload).subscribe({
       next: (correspondencia) => {
@@ -307,6 +396,13 @@ export class CorrespondenciaForm implements OnInit {
   cerrar(): void {
     if (this.creando) return;
     this.cancelada.emit();
+  }
+
+  private aplicarDestinoEnEdicion(payload: CorrespondenciaCreacion): void {
+    payload.version_marco = +this.versionSeleccionada;
+    if (this.nivelDestino === 'dimension') payload.dimension = +this.dimensionSeleccionada;
+    if (this.nivelDestino === 'estandar') payload.estandar = +this.estandarSeleccionado;
+    if (this.nivelDestino === 'indicador_marco') payload.indicador_marco = +this.indicadorMarcoSeleccionado;
   }
 
   private reiniciarCascada(): void {

@@ -14,6 +14,7 @@ import zipfile
 from io import StringIO
 from pathlib import PurePosixPath
 
+from django.db import transaction
 from django.db.models import Max, OuterRef, Subquery
 from django.http import FileResponse
 from django.utils import timezone
@@ -28,14 +29,16 @@ from accounts.permissions import (
     PuedeDescargarEvidencias,
     es_evaluador_externo,
     filtrar_por_rol,
+    asignacion_revision_permitida,
 )
 from auditoria.utils import registrar_auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado
-from evaluation.services import finalizar_periodos_vencidos
+from evaluation.services import finalizar_periodos_vencidos, transicion_valida
 from notificaciones.utils import crear_notificacion
 
 from .models import Evidencia, Observacion, VersionEvidencia
 from .serializers import EditarVersionSerializer, EvidenciaSerializer, ObservacionSerializer, VersionEvidenciaSerializer
+from .validators import validate_evidence_file
 
 MAX_DESCARGA_EVIDENCIAS = 100
 MAX_TAMANO_DESCARGA = 250 * 1024 * 1024
@@ -261,6 +264,10 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         if asignacion_id:
             finalizar_periodos_vencidos()
             asignacion = Asignacion.objects.filter(pk=asignacion_id).select_related("periodo").first()
+            if asignacion is not None and not asignacion_revision_permitida(
+                request, asignacion.unidad_responsable_id, asignacion.periodo_id
+            ):
+                raise ValidationError({"asignacion": "La asignación está fuera de sus ámbitos de revisión."})
             if asignacion is not None and not asignacion.periodo.activo:
                 return Response(
                     {"asignacion": "Solo se pueden gestionar evidencias del período activo."},
@@ -298,36 +305,47 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         if not archivo:
             return Response({"error": "Debe adjuntar un archivo"}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            validate_evidence_file(archivo)
+        except ValidationError as exc:
+            detalle = exc.detail[0] if isinstance(exc.detail, (list, tuple)) else exc.detail
+            return Response({"error": str(detalle)}, status=status.HTTP_400_BAD_REQUEST)
+
         comentario = request.data.get("comentario", "")
 
-        if evidencia.estado == "cancelada":
-            evidencia.estado = "activa"
-            if not evidencia.subido_por and request.user:
+        with transaction.atomic():
+            if evidencia.estado == "cancelada":
+                evidencia.estado = "activa"
+                if not evidencia.subido_por and request.user:
+                    evidencia.subido_por = request.user
+                evidencia.save()
+            elif not evidencia.subido_por and request.user:
                 evidencia.subido_por = request.user
-            evidencia.save()
-        elif not evidencia.subido_por and request.user:
-            evidencia.subido_por = request.user
-            evidencia.save(update_fields=["subido_por"])
+                evidencia.save(update_fields=["subido_por"])
 
-        ultima_version = evidencia.versiones.aggregate(max_version=Max("version"))["max_version"] or 0
-        nueva_version_num = ultima_version + 1
+            ultima_version = evidencia.versiones.aggregate(max_version=Max("version"))["max_version"] or 0
+            nueva_version_num = ultima_version + 1
 
-        version = VersionEvidencia.objects.create(
-            evidencia=evidencia, archivo=archivo, version=nueva_version_num, comentario=comentario, subido_por=request.user
-        )
-
-        asignacion = evidencia.asignacion
-        if asignacion.estado in [EstadoAsignacion.PENDIENTE, EstadoAsignacion.OBSERVADA, EstadoAsignacion.RECHAZADO]:
-            estado_anterior = asignacion.estado
-            asignacion.estado = EstadoAsignacion.EN_PROGRESO
-            asignacion.save()
-            HistorialEstado.objects.create(
-                asignacion=asignacion,
-                estado_anterior=estado_anterior,
-                estado_nuevo=EstadoAsignacion.EN_PROGRESO,
-                usuario=request.user,
-                comentario=f"Nueva versión subida: {comentario or 'Sin comentario'}",
+            version = VersionEvidencia.objects.create(
+                evidencia=evidencia,
+                archivo=archivo,
+                version=nueva_version_num,
+                comentario=comentario,
+                subido_por=request.user,
             )
+
+            asignacion = evidencia.asignacion
+            if asignacion.estado in [EstadoAsignacion.PENDIENTE, EstadoAsignacion.OBSERVADA, EstadoAsignacion.RECHAZADO]:
+                estado_anterior = asignacion.estado
+                asignacion.estado = EstadoAsignacion.EN_PROGRESO
+                asignacion.save()
+                HistorialEstado.objects.create(
+                    asignacion=asignacion,
+                    estado_anterior=estado_anterior,
+                    estado_nuevo=EstadoAsignacion.EN_PROGRESO,
+                    usuario=request.user,
+                    comentario=f"Nueva versión subida: {comentario or 'Sin comentario'}",
+                )
 
         return Response(VersionEvidenciaSerializer(version).data, status=status.HTTP_201_CREATED)
 
@@ -369,7 +387,11 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         puede_cambiar = request.user.has_perm("evidence.change_evidencia")
 
         puede_modificar = not es_evaluador_externo(request)
-        data["puede_observar"] = data["puede_observar"] and puede_modificar
+        estado_observable = bool(asignacion) and (
+            asignacion.estado == EstadoAsignacion.OBSERVADA
+            or transicion_valida(asignacion.estado, EstadoAsignacion.OBSERVADA)
+        )
+        data["puede_observar"] = data["puede_observar"] and puede_modificar and estado_observable
         data["puede_subir_version"] = puede_modificar and puede_subir and not es_aprobado and periodo_activo
         data["puede_cambiar_estado"] = (
             puede_modificar
@@ -578,50 +600,67 @@ class ObservacionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """@brief Crea una observación y ejecuta acciones secundarias
-        @details Asigna el usuario actual como autor, registra la acción en auditoría,
-        envía notificación al propietario de la evidencia y cambia el estado
-        de la asignación a OBSERVADA.
+        @details Valida que la transición de la asignación a OBSERVADA esté
+        permitida por la máquina de estados compartida. Asigna el usuario
+        actual como autor, registra la acción en auditoría, envía notificación
+        al propietario de la evidencia y cambia el estado de la asignación
+        a OBSERVADA. Toda la persistencia es atómica.
         @param serializer Serializer con los datos validados de la observación"""
 
         finalizar_periodos_vencidos()
-        periodo = serializer.validated_data["version"].evidencia.asignacion.periodo
+        version = serializer.validated_data["version"]
+        periodo = version.evidencia.asignacion.periodo
         periodo.refresh_from_db(fields=["activo"])
         if not periodo.activo:
             raise ValidationError({"version": "Solo se pueden gestionar evidencias del período activo."})
-        observacion = serializer.save(usuario=self.request.user)
 
-        evidencia = observacion.version.evidencia
+        evidencia = version.evidencia
         asignacion = evidencia.asignacion
-
-        registrar_auditoria(
-            usuario=self.request.user,
-            accion="Crear observación",
-            modelo="Observacion",
-            registro_id=observacion.pk,
-            descripcion=(
-                f"Se creó una observación sobre la evidencia '{evidencia.titulo}' "
-                f"(versión {observacion.version.version}): {observacion.comentario}"
-            ),
-        )
-
-        if hasattr(evidencia, "subido_por") and evidencia.subido_por:
-            crear_notificacion(
-                usuario=evidencia.subido_por,
-                titulo="Evidencia observada",
-                mensaje=(f"Tu evidencia '{evidencia.titulo}' ha recibido una observación: {observacion.comentario}"),
+        estado_actual = asignacion.estado
+        if estado_actual != EstadoAsignacion.OBSERVADA and not transicion_valida(
+            estado_actual, EstadoAsignacion.OBSERVADA
+        ):
+            raise ValidationError(
+                {
+                    "version": (
+                        f"No se puede crear una observación sobre una asignación en estado "
+                        f"'{asignacion.get_estado_display()}'."
+                    )
+                }
             )
 
-        estado_anterior = asignacion.estado
-        asignacion.estado = EstadoAsignacion.OBSERVADA
-        asignacion.save()
+        with transaction.atomic():
+            observacion = serializer.save(usuario=self.request.user)
 
-        HistorialEstado.objects.create(
-            asignacion=asignacion,
-            estado_anterior=estado_anterior,
-            estado_nuevo=EstadoAsignacion.OBSERVADA,
-            usuario=self.request.user,
-            comentario=f"Observación creada: {observacion.comentario}",
-        )
+            registrar_auditoria(
+                usuario=self.request.user,
+                accion="Crear observación",
+                modelo="Observacion",
+                registro_id=observacion.pk,
+                descripcion=(
+                    f"Se creó una observación sobre la evidencia '{evidencia.titulo}' "
+                    f"(versión {observacion.version.version}): {observacion.comentario}"
+                ),
+            )
+
+            if hasattr(evidencia, "subido_por") and evidencia.subido_por:
+                crear_notificacion(
+                    usuario=evidencia.subido_por,
+                    titulo="Evidencia observada",
+                    mensaje=(f"Tu evidencia '{evidencia.titulo}' ha recibido una observación: {observacion.comentario}"),
+                )
+
+            if estado_actual != EstadoAsignacion.OBSERVADA:
+                asignacion.estado = EstadoAsignacion.OBSERVADA
+                asignacion.save()
+
+                HistorialEstado.objects.create(
+                    asignacion=asignacion,
+                    estado_anterior=estado_actual,
+                    estado_nuevo=EstadoAsignacion.OBSERVADA,
+                    usuario=self.request.user,
+                    comentario=f"Observación creada: {observacion.comentario}",
+                )
 
     def perform_destroy(self, instance):
         """@brief Realiza un soft delete de una observación

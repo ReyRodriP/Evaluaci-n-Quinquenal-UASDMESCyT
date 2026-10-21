@@ -166,3 +166,41 @@
   padding: 0.4rem 0.7rem;
   margin: 0.5rem 0 0;
 }
+
+.seccion {
+  border: 1px solid var(--border-color, #e6e9ed);
+  border-radius: 8px;
+  padding: 0.75rem 1rem 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.titulo-seccion {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+.aclaracion {
+  font-size: 0.82rem;
+  color: var(--text-color, #707070);
+  margin: 0 0 0.75rem;
+}
+
+.ruta-destino {
+  font-size: 0.85rem;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px dashed var(--border-color, #e6e9ed);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  margin: 0 0 0.75rem;
+  word-break: break-word;
+}
+
+.btn-cambiar-destino,
+.btn-restaurar {
+  margin-bottom: 0.75rem;
+}

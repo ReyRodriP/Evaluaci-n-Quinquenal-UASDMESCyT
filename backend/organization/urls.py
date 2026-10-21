@@ -10,6 +10,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
 	AmbitoEvaluacionViewSet,
+	AmbitoRevisionViewSet,
 	DepartamentoViewSet,
 	FacultadViewSet,
 	PerfilUsuarioViewSet,
@@ -23,6 +24,7 @@ router.register(r"facultades", FacultadViewSet)
 router.register(r"departamentos", DepartamentoViewSet)
 router.register(r"perfiles", PerfilUsuarioViewSet)
 router.register(r"ambitos-evaluacion", AmbitoEvaluacionViewSet)
+router.register(r"ambitos-revision", AmbitoRevisionViewSet)
 router.register(r"tipos-unidad-organizacional", TipoUnidadOrganizacionalViewSet)
 router.register(r"unidades-organizacionales", UnidadOrganizacionalViewSet)
 

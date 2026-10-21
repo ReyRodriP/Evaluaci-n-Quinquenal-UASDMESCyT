@@ -15,6 +15,8 @@ describe('EvidenciaDetalle con contexto EQ-SIDACES', () => {
 
   const evidenciasMock = {
     detalleEvidencia: jasmine.createSpy('detalleEvidencia'),
+    subirVersionEvidencia: jasmine.createSpy('subirVersionEvidencia'),
+    editarVersionEvidencia: jasmine.createSpy('editarVersionEvidencia'),
   };
 
   const evaluacionMock = {
@@ -101,11 +103,15 @@ describe('EvidenciaDetalle con contexto EQ-SIDACES', () => {
 
   beforeEach(async () => {
     evidenciasMock.detalleEvidencia.calls.reset();
+    evidenciasMock.subirVersionEvidencia.calls.reset();
+    evidenciasMock.editarVersionEvidencia.calls.reset();
     evaluacionMock.obtenerIndicador.calls.reset();
     vinculacionMock.contextoIndicador.calls.reset();
     catalogoMock.obtenerIndicadorMarco.calls.reset();
 
     evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia()));
+    evidenciasMock.subirVersionEvidencia.and.returnValue(of({}));
+    evidenciasMock.editarVersionEvidencia.and.returnValue(of({}));
     evaluacionMock.obtenerIndicador.and.returnValue(of({ id: 7, nombre: 'Indicador 7', criterio_nombre: 'Criterio A' }));
     vinculacionMock.contextoIndicador.and.returnValue(
       of({ origen: { nivel: 'indicador', id: 7, texto: 'Indicador 7' }, correspondencias: [corr()] })
@@ -175,5 +181,80 @@ describe('EvidenciaDetalle con contexto EQ-SIDACES', () => {
     expect(texto()).toContain('Memoria anual');
     expect(texto()).toContain('Sin correspondencia confirmada.');
     expect(fixture.nativeElement.querySelectorAll('.marco-badge-confirmada').length).toBe(0);
+  });
+
+  it('rechaza una extension no permitida sin disparar la peticion de subida', () => {
+    evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ puede_subir_version: true })));
+    crear();
+    component.nuevoArchivo = null;
+    component.archivoError = '';
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    const malicious = new File(['MZ'], 'malware.exe', { type: 'application/octet-stream' });
+    Object.defineProperty(input, 'files', { value: [malicious], configurable: true });
+
+    component.onFileChange({ target: input } as unknown as Event);
+
+    expect(component.archivoError).toContain('no permitida');
+    expect(component.nuevoArchivo).toBeFalsy();
+    expect(evidenciasMock.subirVersionEvidencia).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un archivo que supera el limite de tamano sin disparar la peticion de subida', () => {
+    evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ puede_subir_version: true })));
+    crear();
+    component.nuevoArchivo = null;
+    component.archivoError = '';
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    const big = new File(['contenido'], 'grande.pdf', { type: 'application/pdf' });
+    Object.defineProperty(big, 'size', { value: component.MAX_ARCHIVO_MB * 1024 * 1024 + 1, configurable: true });
+    Object.defineProperty(input, 'files', { value: [big], configurable: true });
+
+    component.onFileChange({ target: input } as unknown as Event);
+
+    expect(component.archivoError).toContain('supera el tamaño máximo');
+    expect(component.nuevoArchivo).toBeFalsy();
+    expect(evidenciasMock.subirVersionEvidencia).not.toHaveBeenCalled();
+  });
+
+  it('acepta una extension valida y permite subir la version', () => {
+    evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ puede_subir_version: true })));
+    crear();
+    component.nuevoArchivo = null;
+    component.archivoError = '';
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    const ok = new File(['%PDF-1.4'], 'informe.pdf', { type: 'application/pdf' });
+    Object.defineProperty(input, 'files', { value: [ok], configurable: true });
+
+    component.onFileChange({ target: input } as unknown as Event);
+
+    expect(component.archivoError).toBe('');
+    expect(component.nuevoArchivo).toBeTruthy();
+
+    component.subirVersion();
+    expect(evidenciasMock.subirVersionEvidencia).toHaveBeenCalled();
+  });
+
+  it('rechaza una extension no permitida al editar una version', () => {
+    evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ puede_subir_version: true })));
+    crear();
+    component.versionEditFile = null;
+    component.versionEditFileError = '';
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    const malicious = new File(['MZ'], 'malware.exe', { type: 'application/octet-stream' });
+    Object.defineProperty(input, 'files', { value: [malicious], configurable: true });
+
+    component.onVersionEditFileChange({ target: input } as unknown as Event);
+
+    expect(component.versionEditFileError).toContain('no permitida');
+    expect(component.versionEditFile).toBeFalsy();
+    expect(evidenciasMock.editarVersionEvidencia).not.toHaveBeenCalled();
   });
 });

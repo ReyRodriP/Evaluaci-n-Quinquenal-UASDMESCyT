@@ -8,6 +8,7 @@ para el flujo de revisión, aprobación y rechazo de evidencias.
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import IntegrityError
@@ -19,6 +20,8 @@ from accounts.permissions import (
     filtrar_por_rol,
     periodos_autorizados,
     unidades_organizacionales_permitidas,
+    alcances_revision,
+    revision_con_ambitos,
 )
 from auditoria.utils import registrar_auditoria
 from evidence.models import Evidencia, Observacion
@@ -33,7 +36,7 @@ from .serializers import (
     IndicadorSerializer,
     PeriodoSerializer,
 )
-from .services import finalizar_periodos_vencidos
+from .services import finalizar_periodos_vencidos, transicion_valida
 
 
 class PeriodoViewSet(viewsets.ModelViewSet):
@@ -52,6 +55,8 @@ class PeriodoViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_superuser and "Evaluador Externo" in _grupos_usuario(self.request.user):
             periodos = periodos_autorizados(self.request)
             return Periodo.objects.filter(pk__in=periodos).order_by("-fecha_inicio").distinct()
+        if revision_con_ambitos(self.request):
+            return Periodo.objects.filter(pk__in=[p for p, _ in alcances_revision(self.request)]).order_by("-fecha_inicio")
         return Periodo.objects.all().order_by("-fecha_inicio")
 
     @action(detail=False, methods=["get"], url_path="activo", permission_classes=[IsAuthenticated])
@@ -117,6 +122,11 @@ class CriterioViewSet(viewsets.ModelViewSet):
     queryset = Criterio.objects.all().order_by("nombre")
     serializer_class = CriterioSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+    # Búsqueda opcional (?search=...) para que el explorador de propuestas de
+    # correspondencia pueda localizar orígenes operativos sin recorrer todas
+    # las páginas. Parámetro aditivo: sin 'search' el comportamiento no cambia.
+    filter_backends = [SearchFilter]
+    search_fields = ["nombre"]
 
     def get_queryset(self):
         queryset = Criterio.objects.all().order_by("nombre")
@@ -145,6 +155,10 @@ class IndicadorViewSet(viewsets.ModelViewSet):
     queryset = Indicador.objects.all().order_by("nombre")
     serializer_class = IndicadorSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
+    # Mismo criterio que CriterioViewSet: ?search= es opcional y no altera el
+    # alcance por rol ni los contratos existentes.
+    filter_backends = [SearchFilter]
+    search_fields = ["nombre"]
 
     def get_queryset(self):
         queryset = Indicador.objects.all().order_by("nombre")
@@ -267,19 +281,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @param estado_nuevo Estado al que se desea transicionar.
         @return True si la transición es válida, False de lo contrario.
         """
-        transiciones_validas = {
-            EstadoAsignacion.PENDIENTE: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.OBSERVADA],
-            EstadoAsignacion.EN_PROGRESO: [
-                EstadoAsignacion.APROBADO,
-                EstadoAsignacion.RECHAZADO,
-                EstadoAsignacion.OBSERVADA,
-            ],
-            EstadoAsignacion.OBSERVADA: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.RECHAZADO],
-            EstadoAsignacion.RECHAZADO: [EstadoAsignacion.EN_PROGRESO],
-            EstadoAsignacion.APROBADO: [],
-            EstadoAsignacion.COMPLETADO: [],
-        }
-        return estado_nuevo in transiciones_validas.get(estado_actual, [])
+        return transicion_valida(estado_actual, estado_nuevo)
 
     @action(detail=True, methods=["get"])
     def resumen(self, request, pk=None):

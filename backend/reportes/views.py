@@ -31,10 +31,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import (
+    alcances_revision,
     PuedeVerReportes,
     PuedeVerReportesCompletos,
     departamentos_permitidos,
     facultades_permitidas,
+    filtrar_revision,
+    revision_con_ambitos,
     unidades_organizacionales_permitidas,
 )
 from auditoria.models import Auditoria
@@ -89,12 +92,17 @@ def _base_queryset_observaciones(request):
     if usuario:
         qs = qs.filter(usuario_id=usuario)
 
-    return qs
+    return filtrar_revision(qs, request, "version__evidencia__asignacion")
 
 
 def _periodo_para_reporte(request):
     finalizar_periodos_vencidos()
     periodo_id = request.query_params.get("periodo")
+    if revision_con_ambitos(request):
+        periodos = Periodo.objects.filter(pk__in=[p for p, _ in alcances_revision(request)])
+        if periodo_id:
+            return get_object_or_404(periodos, pk=periodo_id)
+        return periodos.filter(activo=True).first()
     if periodo_id:
         return get_object_or_404(Periodo, pk=periodo_id)
     return Periodo.objects.filter(activo=True).first()
@@ -306,6 +314,7 @@ def _data_general(request):
     if unidades_ids is not None:
         qs = qs.filter(unidad_responsable_id__in=unidades_ids)
     qs = qs.filter(periodo=periodo) if periodo else qs.none()
+    qs = filtrar_revision(qs, request)
 
     total_asignaciones = qs.count()
 
@@ -413,6 +422,7 @@ def _data_por_facultad(request, pk):
     periodo = _periodo_para_reporte(request)
     asignaciones = Asignacion.objects.filter(unidad_responsable__departamento_legacy__in=departamentos)
     asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
+    asignaciones = filtrar_revision(asignaciones, request)
 
     data = {
         "facultad": facultad.nombre,
@@ -424,6 +434,7 @@ def _data_por_facultad(request, pk):
     for departamento in departamentos:
         asignaciones_dep = Asignacion.objects.filter(unidad_responsable__departamento_legacy=departamento)
         asignaciones_dep = asignaciones_dep.filter(periodo=periodo) if periodo else asignaciones_dep.none()
+        asignaciones_dep = filtrar_revision(asignaciones_dep, request)
         data["departamentos"].append(
             {
                 "id": departamento.pk,
@@ -432,6 +443,7 @@ def _data_por_facultad(request, pk):
                 "evidencias": Evidencia.objects.filter(
                     asignacion__unidad_responsable__departamento_legacy=departamento,
                     asignacion__periodo=periodo,
+                    asignacion__in=asignaciones_dep,
                 ).count(),
                 "pendientes": asignaciones_dep.filter(estado=EstadoAsignacion.PENDIENTE).count(),
                 "aprobadas": asignaciones_dep.filter(estado=EstadoAsignacion.APROBADO).count(),
@@ -523,6 +535,7 @@ def _data_por_departamento(request, pk):
         unidad_responsable__departamento_legacy=departamento
     ).select_related("indicador", "unidad_responsable")
     asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
+    asignaciones = filtrar_revision(asignaciones, request)
 
     filas = []
     for asignacion in asignaciones:
@@ -640,7 +653,7 @@ def _base_queryset_evidencias(request):
     if criterio:
         qs = qs.filter(asignacion__indicador__criterio_id=criterio)
 
-    return qs
+    return filtrar_revision(qs, request, "asignacion")
 
 
 def _filas_evidencias(qs):

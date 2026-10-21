@@ -207,6 +207,7 @@ export class Catalogo implements OnInit {
       version,
       codigo: this.codigoDe(item),
       texto: this.textoDe(item),
+      ruta: [...this.pila.slice(1).map((p) => p.etiqueta), this.etiquetaDe(item)],
     };
   }
 

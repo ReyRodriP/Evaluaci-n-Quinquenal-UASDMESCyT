@@ -43,21 +43,33 @@
       <i class="bx bx-sitemap" aria-hidden="true"></i>
       Gestionar ámbitos
     </button>
+    <button modalExtraActions *ngIf="selectedItem && esRevisor(selectedItem) && puedeGestionarAmbitosRevision"
+      type="button" class="modal-scope-action" (click)="abrirAmbitos(selectedItem, 'revision')">
+      <i class="bx bx-sitemap" aria-hidden="true"></i>
+      Ámbitos de revisión
+    </button>
   </app-modal>
 
   <div *ngIf="showAmbitos" class="scope-overlay" role="dialog" aria-modal="true" aria-labelledby="ambitos-title">
     <section class="scope-modal">
       <header class="scope-header">
         <div>
-          <h2 id="ambitos-title">Ámbitos de {{ usuarioAmbitos?.username }}</h2>
-          <p>Asigne cada unidad y período como un ámbito independiente.</p>
+          <h2 id="ambitos-title">Ámbitos de {{ tipoAmbito === 'revision' ? 'revisión' : 'evaluación' }} de {{ usuarioAmbitos?.username }}</h2>
+          <p>Asigne cada unidad y período como un ámbito independiente. Incluye la unidad y sus descendientes.</p>
         </div>
         <button type="button" class="scope-close" aria-label="Cerrar" (click)="cerrarAmbitos()">×</button>
       </header>
 
       <div *ngIf="loadingAmbitos" class="scope-empty">Cargando ámbitos...</div>
-      <div *ngIf="!loadingAmbitos && !ambitosUsuario.length" class="scope-empty">
-        Este evaluador aún no tiene ámbitos asignados.
+      <p *ngIf="errorAmbitos" role="alert">{{ errorAmbitos }}</p>
+      <p *ngIf="tipoAmbito === 'revision' && alcanceRevisionExplicito === false" role="status">
+        Preparación de ámbitos: el alcance explícito todavía no está activado. Se conserva el acceso anterior hasta la puesta en servicio.
+      </p>
+      <p *ngIf="tipoAmbito === 'revision' && alcanceRevisionExplicito === true" role="status">
+        Alcance explícito activo: sin ámbitos activos, el revisor no tiene acceso operativo de revisión.
+      </p>
+      <div *ngIf="!loadingAmbitos && !errorAmbitos && !ambitosUsuario.length" class="scope-empty">
+        Este usuario aún no tiene ámbitos asignados.
       </div>
 
       <div *ngIf="ambitosUsuario.length" class="scope-list">
@@ -69,19 +81,19 @@
           <span class="scope-status" [class.scope-inactive]="!ambito.activo">
             {{ ambito.activo ? 'Activo' : 'Inactivo' }}
           </span>
-          <button type="button" class="scope-toggle-btn" (click)="alternarAmbito(ambito)">
+          <button *ngIf="puedeCambiarAmbitoActual" [disabled]="loadingAmbitos || !!errorAmbitos" type="button" class="scope-toggle-btn" (click)="alternarAmbito(ambito)">
             {{ ambito.activo ? 'Desactivar' : 'Activar' }}
           </button>
         </div>
       </div>
 
-      <form class="scope-form" (ngSubmit)="crearAmbito()">
+      <form *ngIf="puedeCrearAmbitoActual" class="scope-form" (ngSubmit)="crearAmbito()">
         <label>
           Unidad autorizada
           <select name="ambito_unidad" [(ngModel)]="nuevoAmbitoUnidad" required>
             <option value="">Seleccione unidad</option>
-            <option *ngFor="let unidad of unidades" [value]="unidad.id">
-              {{ unitPath(unidad) }} · {{ unidad.tipo_nombre }}
+            <option *ngFor="let unidad of unidadesDelAmbitoActual" [value]="unidad.id">
+              {{ unitPath(unidad, unidadesDelAmbitoActual) }} · {{ unidad.tipo_nombre }}
             </option>
           </select>
         </label>
@@ -89,12 +101,12 @@
           Período autorizado
           <select name="ambito_periodo" [(ngModel)]="nuevoAmbitoPeriodo" required>
             <option value="">Seleccione período</option>
-            <option *ngFor="let periodo of periodos" [value]="periodo.id">
+            <option *ngFor="let periodo of periodosDelAmbitoActual" [value]="periodo.id">
               {{ periodo.nombre }} · {{ periodo.activo ? 'Activo' : 'Finalizado' }}
             </option>
           </select>
         </label>
-        <button type="submit" class="scope-add-btn">Agregar ámbito</button>
+        <button type="submit" class="scope-add-btn" [disabled]="loadingAmbitos || !!errorAmbitos">Agregar ámbito</button>
       </form>
 
       <footer class="scope-footer">

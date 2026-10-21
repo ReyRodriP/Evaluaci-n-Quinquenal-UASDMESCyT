@@ -47,8 +47,10 @@ export class EvaluacionService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/criterios/`));
   }
 
-  listarCriteriosPagina(page = 1): Observable<RespuestaPaginada<any>> {
-    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/criterios/`, { params: { page: String(page) } });
+  listarCriteriosPagina(page = 1, search?: string): Observable<RespuestaPaginada<any>> {
+    let params: Record<string, string> = { page: String(page) };
+    if (search && search.trim()) params = { ...params, search: search.trim() };
+    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/criterios/`, { params });
   }
 
   crearCriterio(payload: any): Observable<any> {
@@ -72,8 +74,10 @@ export class EvaluacionService {
     return this.toList(this.http.get<any>(`${this.apiUrl}/indicadores/`));
   }
 
-  listarIndicadoresPagina(page = 1): Observable<RespuestaPaginada<any>> {
-    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/indicadores/`, { params: { page: String(page) } });
+  listarIndicadoresPagina(page = 1, search?: string): Observable<RespuestaPaginada<any>> {
+    let params: Record<string, string> = { page: String(page) };
+    if (search && search.trim()) params = { ...params, search: search.trim() };
+    return this.http.get<RespuestaPaginada<any>>(`${this.apiUrl}/indicadores/`, { params });
   }
 
   obtenerIndicador(id: number): Observable<any> {

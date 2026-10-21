@@ -6,7 +6,7 @@ y observaciones, incluyendo campos calculados y validaciones."""
 
 from rest_framework import serializers
 
-from accounts.permissions import es_evaluador_externo
+from accounts.permissions import asignacion_revision_permitida, es_evaluador_externo
 
 from .models import Evidencia, Observacion, VersionEvidencia
 from .validators import validate_evidence_file
@@ -35,6 +35,15 @@ class ObservacionSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("El comentario no puede estar vacío.")
         return value
+
+    def validate(self, attrs):
+        version = attrs.get("version", getattr(self.instance, "version", None))
+        request = self.context.get("request")
+        if request and version:
+            asignacion = version.evidencia.asignacion
+            if not asignacion_revision_permitida(request, asignacion.unidad_responsable_id, asignacion.periodo_id):
+                raise serializers.ValidationError({"version": "La versión está fuera de sus ámbitos de revisión."})
+        return attrs
 
 
 class VersionEvidenciaSerializer(serializers.ModelSerializer):
@@ -94,7 +103,12 @@ class EditarVersionSerializer(serializers.Serializer):
     """@class EditarVersionSerializer
     @brief Serializer para la edición de versiones existentes
     @details Serializer no basado en modelo para permitir la actualización
-    parcial del archivo y comentario de una versión."""
+    parcial del archivo y comentario de una versión. Los campos se declaran
+    explícitamente para que validate_archivo se ejecute y validated_data
+    contenga los valores a aplicar."""
+
+    archivo = serializers.FileField(required=False, allow_null=True)
+    comentario = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate_archivo(self, value):
         if value is not None:
@@ -135,6 +149,15 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evidencia
         fields = "__all__"
+
+    def validate(self, attrs):
+        asignacion = attrs.get("asignacion", getattr(self.instance, "asignacion", None))
+        request = self.context.get("request")
+        if request and asignacion and not asignacion_revision_permitida(
+            request, asignacion.unidad_responsable_id, asignacion.periodo_id
+        ):
+            raise serializers.ValidationError({"asignacion": "La asignación está fuera de sus ámbitos de revisión."})
+        return attrs
 
     def get_versiones(self, obj):
         versiones = obj.versiones.order_by("-version", "-pk")

@@ -5,10 +5,11 @@
 y clases de permisos personalizados para el sistema de evaluacion quinquenal.
 """
 
+from django.conf import settings
 from django.db.models import Q
 from rest_framework.permissions import SAFE_METHODS, BasePermission, DjangoModelPermissions
 
-from organization.models import AmbitoEvaluacion, Facultad, PerfilUsuario, UnidadOrganizacional
+from organization.models import AmbitoEvaluacion, AmbitoRevision, Facultad, PerfilUsuario, UnidadOrganizacional
 
 ROLES_SIN_RESTRICCION = {"Administrador General", "Coordinador Quinquenal"}
 
@@ -40,6 +41,53 @@ def ambitos_activos(usuario):
 
 def periodos_autorizados(request):
     return list(ambitos_activos(request.user).values_list("periodo_id", flat=True).distinct())
+
+
+def revision_con_ambitos(request):
+    """Modo explícito interno; conserva la precedencia de los roles existentes."""
+    if not settings.AMBITOS_REVISION_EXPLICITOS or request.user.is_superuser:
+        return False
+    grupos = _grupos_usuario(request.user)
+    return (
+        not (grupos & ROLES_SIN_RESTRICCION)
+        and "Evaluador Externo" not in grupos
+        and "Revisor Institucional" in grupos
+    )
+
+
+def alcances_revision(request):
+    """Parejas (periodo, unidades descendientes), limitadas a esta petición."""
+    if not hasattr(request, "_alcances_revision"):
+        request._alcances_revision = [
+            (ambito.periodo_id, _unidades_del_ambito(ambito.unidad_organizacional_id))
+            for ambito in AmbitoRevision.objects.filter(usuario=request.user, activo=True)
+        ]
+    return request._alcances_revision
+
+
+def filtrar_revision(queryset, request, asignacion_field=""):
+    """Restringe un recurso a asignaciones autorizadas, sin cruzar unidad/período.
+
+    asignacion_field es la ruta hacia Asignacion; vacío si qs ya contiene asignaciones.
+    El subquery evita mezclar filas de relaciones multivaluadas.
+    """
+    if not revision_con_ambitos(request):
+        return queryset
+    from evaluation.models import Asignacion
+
+    alcance = Q(pk__in=[])
+    for periodo_id, unidades in alcances_revision(request):
+        alcance |= Q(periodo_id=periodo_id, unidad_responsable_id__in=unidades)
+    autorizadas = Asignacion.objects.filter(alcance).order_by().values("pk")
+    campo = f"{asignacion_field}__in" if asignacion_field else "pk__in"
+    return queryset.filter(**{campo: autorizadas}).distinct()
+
+
+def asignacion_revision_permitida(request, unidad_id, periodo_id):
+    return not revision_con_ambitos(request) or any(
+        str(periodo_id) == str(periodo) and unidad_id in unidades
+        for periodo, unidades in alcances_revision(request)
+    )
 
 
 def _unidades_del_ambito(unidad_id):
@@ -114,7 +162,8 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
     @details Administrador General y Coordinador Quinquenal ven todo.
     Evaluador Externo solo ve registros aprobados de su unidad y períodos asignados.
     Responsable Departamental solo ve su departamento.
-    Revisor Institucional y Consulta ven toda su facultad.
+    Revisor usa ámbitos explícitos cuando se activa el nuevo modo.
+    Consulta conserva el alcance de su facultad.
     """
     user = request.user
     if user.is_superuser:
@@ -125,6 +174,18 @@ def filtrar_por_rol(queryset, request, dept_field="departamento"):
         return queryset
     if "Evaluador Externo" in grupos:
         return _filtrar_evaluador_externo(queryset, request)
+
+    if revision_con_ambitos(request):
+        rutas = {
+            "evaluation.Asignacion": "",
+            "evaluation.HistorialEstado": "asignacion",
+            "evidence.Evidencia": "asignacion",
+            "evidencias.Evidencia": "asignacion",
+            "evidence.VersionEvidencia": "evidencia__asignacion",
+            "evidence.Observacion": "version__evidencia__asignacion",
+        }
+        if queryset.model._meta.label in rutas:
+            return filtrar_revision(queryset, request, rutas[queryset.model._meta.label])
 
     if "unidad_responsable" in dept_field:
         permitidas = unidades_organizacionales_permitidas(request)
@@ -156,6 +217,14 @@ def unidades_organizacionales_permitidas(request):
         unidades = set()
         for unidad_id in unidades_ambito:
             unidades.update(_unidades_del_ambito(unidad_id))
+        return sorted(unidades)
+
+    if revision_con_ambitos(request):
+        periodo = request.query_params.get("periodo")
+        unidades = set()
+        for periodo_id, permitidas in alcances_revision(request):
+            if not periodo or str(periodo_id) == str(periodo):
+                unidades.update(permitidas)
         return sorted(unidades)
 
     try:
@@ -294,6 +363,17 @@ class CustomModelPermissions(DjangoModelPermissions):
         ):
             return request.method in SAFE_METHODS
         return super().has_permission(request, view)
+
+
+class PermisosAmbitosRevision(CustomModelPermissions):
+    """Gestión interna: no hereda el acceso de lectura especial del externo."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if not request.user.is_superuser and not (_grupos_usuario(request.user) & ROLES_SIN_RESTRICCION):
+            return False
+        return DjangoModelPermissions.has_permission(self, request, view)
 
 
 class PuedeDescargarEvidencias(BasePermission):

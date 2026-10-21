@@ -32,6 +32,8 @@ from accounts.permissions import (
     ROLES_SIN_RESTRICCION,
     _grupos_usuario,
     ambitos_activos,
+    filtrar_revision,
+    revision_con_ambitos,
     unidades_organizacionales_permitidas,
     _unidades_del_ambito,
 )
@@ -79,6 +81,11 @@ def _alcance_correspondencias(queryset, request):
                 & Q(indicador_op__asignaciones__estado="aprobado")
             )
         return queryset.filter(alcance).distinct()
+    if revision_con_ambitos(request):
+        return (
+            filtrar_revision(queryset, request, "criterio_op__indicadores__asignaciones")
+            | filtrar_revision(queryset, request, "indicador_op__asignaciones")
+        ).distinct()
     permitidas = unidades_organizacionales_permitidas(request)
     if permitidas is None:
         return queryset
@@ -107,6 +114,13 @@ def _origen_accesible(request, *, criterio_op=None, indicador_op=None):
             if indicador_op is not None:
                 if Asignacion.objects.filter(indicador=indicador_op, **filtros).exists():
                     return True
+        return False
+    if revision_con_ambitos(request):
+        asignaciones = filtrar_revision(Asignacion.objects.all(), request)
+        if criterio_op is not None:
+            return asignaciones.filter(indicador__criterio=criterio_op).exists()
+        if indicador_op is not None:
+            return asignaciones.filter(indicador=indicador_op).exists()
         return False
     permitidas = unidades_organizacionales_permitidas(request)
     if permitidas is None:

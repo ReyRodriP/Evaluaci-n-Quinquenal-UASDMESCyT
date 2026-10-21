@@ -27,6 +27,10 @@ export class EvidenciaDetalle implements OnInit {
   archivoError = '';
 
   readonly MAX_ARCHIVO_MB = 50;
+  readonly EXTENSIONES_PERMITIDAS = [
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+    '.jpg', '.jpeg', '.png', '.gif', '.txt', '.zip', '.rar',
+  ];
 
   comentarioRevision = '';
   estadoSeleccionado = '';
@@ -81,8 +85,17 @@ export class EvidenciaDetalle implements OnInit {
     });
   }
 
-  private validarTamañoArchivo(file: File | null): string {
+  private validarArchivo(file: File | null): string {
     if (!file) return '';
+    const nombre = file.name || '';
+    const punto = nombre.lastIndexOf('.');
+    const ext = punto >= 0 ? nombre.slice(punto).toLowerCase() : '';
+    if (ext && !this.EXTENSIONES_PERMITIDAS.includes(ext)) {
+      return `Extensión '${ext}' no permitida. Extensiones permitidas: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT, ZIP, RAR.`;
+    }
+    if (file.size === 0) {
+      return 'El archivo está vacío.';
+    }
     const maxBytes = this.MAX_ARCHIVO_MB * 1024 * 1024;
     return file.size > maxBytes
       ? `El archivo supera el tamaño máximo permitido de ${this.MAX_ARCHIVO_MB} MB.`
@@ -92,7 +105,7 @@ export class EvidenciaDetalle implements OnInit {
   onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
-    this.archivoError = this.validarTamañoArchivo(file);
+    this.archivoError = this.validarArchivo(file);
     if (this.archivoError) {
       this.nuevoArchivo = null;
       input.value = '';
@@ -248,7 +261,7 @@ export class EvidenciaDetalle implements OnInit {
   onVersionEditFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
-    this.versionEditFileError = this.validarTamañoArchivo(file);
+    this.versionEditFileError = this.validarArchivo(file);
     if (this.versionEditFileError) {
       this.versionEditFile = null;
       input.value = '';

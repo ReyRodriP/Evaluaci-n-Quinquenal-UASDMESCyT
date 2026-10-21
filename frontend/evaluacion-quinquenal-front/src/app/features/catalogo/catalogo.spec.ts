@@ -559,4 +559,21 @@ describe('Catalogo', () => {
     );
     expect(enlaces.some((href: string) => href.includes('/indicadores/90/detalle'))).toBeTrue();
   });
+
+  it('incluye la ruta jerárquica del destino al abrir la propuesta desde una dimensión', () => {
+    conPermisosVinculacion();
+    fixture.detectChanges();
+    resolverVersiones();
+    component.seleccionar({ id: 1, slug: 'eq-sidaces-2019-res27-2019', activo: false });
+    httpMock
+      .expectOne((r) => r.url === `${base}/dimensiones/`)
+      .flush({ results: [{ id: 15, codigo: 'VI', nombre: 'PERSONAL ACADÉMICO' }] });
+    fixture.detectChanges();
+
+    botonProponer()!.click();
+    fixture.detectChanges();
+
+    expect(component.formPropuesta?.ruta).toEqual(['VI — PERSONAL ACADÉMICO']);
+    resolverOrigenesDelFormulario();
+  });
 });
