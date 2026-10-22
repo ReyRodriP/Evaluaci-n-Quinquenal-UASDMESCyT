@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { forkJoin, Observable, Subscription } from 'rxjs';
 import { DocumentosService } from '../../../core/services/documentos.service';
 
@@ -8,16 +9,12 @@ import { DocumentosService } from '../../../core/services/documentos.service';
   selector: 'app-documentos-asignacion',
   imports: [CommonModule, FormsModule],
   templateUrl: './documentos-asignacion.html',
-  styles: `
-    section { margin-block: 1rem; padding: 1rem; border: 1px solid #d1d5db; border-radius: .5rem; }
-    article { border-top: 1px solid #d1d5db; padding-block: 1rem; overflow-wrap: anywhere; }
-    label { display: block; margin-block: .5rem; } input:not([type=file]), textarea { display: block; width: 100%; max-width: 45rem; }
-    button { margin: .3rem; } .error { color: #b91c1c; } li { margin-block: .5rem; }
-  `,
+  styleUrls: ['../../evidencias/evidencia-detalle/evidencia-detalle.css', './documentos-asignacion.css'],
 })
 export class DocumentosAsignacion implements OnChanges, OnDestroy {
   @Input({ required: true }) asignacionId = 0;
-  @Output() actualizado = new EventEmitter<void>();
+  @Input() solicitudId = 0;
+  @Output() actualizado = new EventEmitter<number>();
   contexto: any = null;
   solicitudes: any[] = [];
   cargando = false;
@@ -28,12 +25,30 @@ export class DocumentosAsignacion implements OnChanges, OnDestroy {
   editando: number | null = null;
   archivos: Record<number, File | undefined> = {};
   comentarios: Record<number, string> = {};
+  seleccionadaId = 0;
+  mostrarFormulario = false;
+  readonly MAX_ARCHIVO_MB = 50;
+  archivoErrores: Record<number, string> = {};
+  previewAbierto = false;
+  previewNombre = '';
+  previewCargando = false;
+  previewError = '';
+  previewTipo = '';
+  previewUrl: SafeResourceUrl | null = null;
+  previewImagen = '';
+  previewTexto = '';
+  private previewBlobUrl = '';
+  private previewConsulta?: Subscription;
   private consulta?: Subscription;
   private operacion?: Subscription;
 
-  constructor(private documentos: DocumentosService) {}
+  constructor(private documentos: DocumentosService, private sanitizer: DomSanitizer) {}
   ngOnChanges(): void { this.cargar(); }
-  ngOnDestroy(): void { this.consulta?.unsubscribe(); this.operacion?.unsubscribe(); }
+  ngOnDestroy(): void { this.consulta?.unsubscribe(); this.operacion?.unsubscribe(); this.cerrarPreview(); }
+
+  get solicitudActiva(): any { return this.solicitudes.find(s => s.id === this.seleccionadaId) ?? null; }
+
+  seleccionarDocumento(id: number): void { this.seleccionadaId = id; this.cerrarPreview(); }
 
   cargar(): void {
     this.consulta?.unsubscribe();
@@ -43,7 +58,11 @@ export class DocumentosAsignacion implements OnChanges, OnDestroy {
     if (!this.asignacionId) return;
     this.cargando = true;
     this.consulta = forkJoin({ contexto: this.documentos.contexto(this.asignacionId), solicitudes: this.documentos.listar(this.asignacionId) }).subscribe({
-      next: ({ contexto, solicitudes }) => { this.contexto = contexto; this.solicitudes = solicitudes; this.cargando = false; },
+      next: ({ contexto, solicitudes }) => {
+        this.contexto = contexto; this.solicitudes = solicitudes; this.cargando = false;
+        const preferida = this.solicitudId || this.seleccionadaId;
+        this.seleccionadaId = solicitudes.find(s => s.id === preferida)?.id ?? solicitudes[0]?.id ?? 0;
+      },
       error: () => { this.error = 'No se pudo consultar la documentación o perdió el acceso.'; this.cargando = false; },
     });
   }
@@ -53,7 +72,7 @@ export class DocumentosAsignacion implements OnChanges, OnDestroy {
     this.ocupada = true;
     this.error = '';
     this.operacion = operacion.subscribe({
-      next: () => { this.ocupada = false; this.actualizado.emit(); },
+      next: () => { this.ocupada = false; this.actualizado.emit(this.seleccionadaId); },
       error: (err) => {
         this.ocupada = false;
         this.error = typeof err.error === 'string' ? err.error : JSON.stringify(err.error ?? 'No se pudo realizar la operación.');
@@ -69,10 +88,14 @@ export class DocumentosAsignacion implements OnChanges, OnDestroy {
       : this.documentos.crear(this.asignacionId, this.titulo, this.descripcion));
   }
 
-  editar(solicitud: any): void { this.editando = solicitud.id; this.titulo = solicitud.titulo; this.descripcion = solicitud.descripcion; }
+  editar(solicitud: any): void { this.mostrarFormulario = true; this.editando = solicitud.id; this.titulo = solicitud.titulo; this.descripcion = solicitud.descripcion; }
   cancelarEdicion(): void { this.editando = null; this.titulo = ''; this.descripcion = ''; }
   eliminar(id: number): void { this.ejecutar(this.documentos.eliminar(id)); }
-  seleccionar(id: number, event: Event): void { this.archivos[id] = (event.target as HTMLInputElement).files?.[0]; }
+  seleccionar(id: number, event: Event): void {
+    const archivo = (event.target as HTMLInputElement).files?.[0];
+    this.archivoErrores[id] = archivo && archivo.size > this.MAX_ARCHIVO_MB * 1024 * 1024 ? `El archivo supera el tamaño máximo de ${this.MAX_ARCHIVO_MB} MB.` : '';
+    this.archivos[id] = this.archivoErrores[id] ? undefined : archivo;
+  }
   subir(id: number): void {
     const archivo = this.archivos[id];
     if (archivo) this.ejecutar(this.documentos.subir(id, archivo, this.comentarios[id] || ''));
@@ -92,5 +115,34 @@ export class DocumentosAsignacion implements OnChanges, OnDestroy {
       },
       error: () => { this.error = 'No se pudo descargar el documento.'; },
     });
+  }
+
+  abrirPreview(solicitud: any, version: any): void {
+    this.cerrarPreview();
+    this.previewAbierto = true; this.previewCargando = true; this.previewNombre = version.nombre_archivo;
+    this.previewConsulta = this.documentos.descargar(solicitud.id, version.id).subscribe({
+      next: async (blob) => {
+        const extension = (version.nombre_archivo || '').split('.').pop()?.toLowerCase();
+        this.previewTipo = extension === 'pdf' ? 'pdf' : ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension) ? 'imagen' : extension === 'txt' ? 'texto' : 'otro';
+        if (this.previewTipo === 'texto') {
+          const texto = await blob.text();
+          if (!this.previewAbierto || this.previewNombre !== version.nombre_archivo) return;
+          this.previewTexto = texto;
+        } else if (this.previewTipo !== 'otro') {
+          this.previewBlobUrl = URL.createObjectURL(blob);
+          this.previewImagen = this.previewBlobUrl;
+          this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.previewBlobUrl);
+        }
+        this.previewCargando = false;
+      },
+      error: () => { this.previewCargando = false; this.previewError = 'No se pudo cargar la vista previa.'; },
+    });
+  }
+
+  cerrarPreview(): void {
+    this.previewConsulta?.unsubscribe();
+    if (this.previewBlobUrl) URL.revokeObjectURL(this.previewBlobUrl);
+    this.previewBlobUrl = ''; this.previewUrl = null; this.previewImagen = ''; this.previewTexto = '';
+    this.previewAbierto = false; this.previewError = ''; this.previewTipo = '';
   }
 }

@@ -1,49 +1,114 @@
-<section aria-label="Documentos solicitados" [attr.aria-busy]="cargando || ocupada">
-  <h3>Documentos solicitados</h3>
-  <p *ngIf="cargando" role="status">Cargando documentación…</p>
-  <p *ngIf="error" class="error" role="alert">{{ error }}</p>
-  <button *ngIf="!contexto && !cargando" type="button" (click)="cargar()">Reintentar</button>
+<section class="document-workspace" aria-label="Documentos solicitados" [attr.aria-busy]="cargando || ocupada">
+  <div *ngIf="cargando" class="state-msg" role="status"><i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i> Cargando documentación…</div>
+  <div *ngIf="error" class="state-msg error" role="alert">{{ error }}</div>
+  <button *ngIf="!contexto && !cargando" class="secondary-btn" type="button" (click)="cargar()">Reintentar</button>
+
   <ng-container *ngIf="contexto">
-    <p *ngIf="contexto.gestion_documental">{{ contexto.aprobadas }} de {{ contexto.total }} documentos aprobados. Todas las solicitudes son obligatorias.</p>
-    <p *ngIf="!contexto.gestion_documental && !contexto.puede_definir">Esta asignación conserva su flujo de evidencia única o aún no tiene solicitudes documentales.</p>
-    <p *ngIf="contexto.puede_definir && !contexto.gestion_documental">La primera solicitud inicia el flujo de documentos independientes para esta asignación.</p>
-    <form *ngIf="contexto.puede_definir" (ngSubmit)="guardar()">
-      <h4>{{ editando ? 'Editar solicitud sin entregas' : 'Nueva solicitud obligatoria' }}</h4>
-      <label>Título <input name="titulo" [(ngModel)]="titulo" maxlength="255" required [disabled]="ocupada"></label>
-      <label>Documento requerido <textarea name="descripcion" [(ngModel)]="descripcion" required [disabled]="ocupada"></textarea></label>
-      <button type="submit" [disabled]="ocupada || !titulo.trim() || !descripcion.trim()">Guardar solicitud</button>
-      <button *ngIf="editando" type="button" (click)="cancelarEdicion()">Cancelar edición</button>
-    </form>
-    <article *ngFor="let solicitud of solicitudes">
-      <h4>{{ solicitud.titulo }}</h4>
-      <p>{{ solicitud.descripcion }}</p>
-      <p><strong>Estado del documento:</strong> {{ solicitud.estado_display || solicitud.estado }}</p>
-      <ng-container *ngIf="contexto.puede_definir && !solicitud.versiones.length">
-        <button type="button" (click)="editar(solicitud)" [disabled]="ocupada">Editar solicitud</button>
-        <button type="button" (click)="eliminar(solicitud.id)" [disabled]="ocupada">Eliminar solicitud sin entregas</button>
-      </ng-container>
-      <ng-container *ngIf="contexto.puede_aportar && ['pendiente', 'borrador', 'observada'].includes(solicitud.estado)">
-        <label>Archivo para {{ solicitud.titulo }} <input type="file" (change)="seleccionar(solicitud.id, $event)" [disabled]="ocupada"></label>
-        <label>Comentario de la nueva versión <textarea [(ngModel)]="comentarios[solicitud.id]" [disabled]="ocupada"></textarea></label>
-        <button type="button" (click)="subir(solicitud.id)" [disabled]="ocupada || !archivos[solicitud.id]">Subir nueva versión</button>
-        <button *ngIf="solicitud.estado === 'borrador'" type="button" (click)="enviar(solicitud.id)" [disabled]="ocupada">Enviar documento a revisión</button>
-      </ng-container>
-      <ng-container *ngIf="contexto.puede_revisar && solicitud.estado === 'en_revision'">
-        <label>Comentario de revisión <textarea [(ngModel)]="comentarios[solicitud.id]" [disabled]="ocupada"></textarea></label>
-        <button type="button" (click)="revisar(solicitud, 'aprobar')" [disabled]="ocupada">Aprobar esta versión</button>
-        <button type="button" (click)="revisar(solicitud, 'solicitar_cambios')" [disabled]="ocupada || !comentarios[solicitud.id]?.trim()">Solicitar cambios</button>
-      </ng-container>
-      <details *ngIf="solicitud.versiones.length">
-        <summary>Versiones e historial de este documento</summary>
-        <ul><li *ngFor="let version of solicitud.versiones">
-          <strong>Versión {{ version.numero }}</strong> — {{ version.nombre_archivo }} — {{ version.fecha_subida | date:'short' }}
-          <button type="button" (click)="descargar(solicitud, version)" [disabled]="ocupada">Descargar versión {{ version.numero }}</button>
-          <p>{{ version.comentario }}</p>
-          <p *ngFor="let revision of version.revisiones">{{ revision.decision }} — {{ revision.usuario_nombre }} — {{ revision.fecha | date:'short' }}: {{ revision.comentario }}</p>
-        </li></ul>
-      </details>
+    <div class="card info-card document-summary">
+      <div class="info-header">
+        <div>
+          <h3><i class="bx bx-folder-open" aria-hidden="true"></i> Evidencias de la asignación</h3>
+          <p *ngIf="contexto.gestion_documental" class="descripcion">{{ contexto.aprobadas }} de {{ contexto.total }} documentos aprobados. Todas las solicitudes son obligatorias.</p>
+          <p *ngIf="!contexto.gestion_documental" class="descripcion">{{ contexto.puede_definir ? 'La primera solicitud inicia el flujo de documentos independientes para esta asignación.' : 'Esta asignación conserva su flujo de evidencia única o aún no tiene solicitudes documentales.' }}</p>
+        </div>
+        <button *ngIf="contexto.puede_definir" type="button" class="secondary-btn" (click)="mostrarFormulario = !mostrarFormulario"><i class="bx bx-plus" aria-hidden="true"></i> Nueva solicitud obligatoria</button>
+      </div>
+      <form *ngIf="contexto.puede_definir && (mostrarFormulario || !solicitudes.length)" class="edit-version-form" (ngSubmit)="guardar()">
+        <h4>{{ editando ? 'Editar solicitud sin entregas' : 'Nueva solicitud obligatoria' }}</h4>
+        <div class="field-group"><label for="documento-titulo">Título</label><input id="documento-titulo" name="titulo" [(ngModel)]="titulo" maxlength="255" required [disabled]="ocupada"></div>
+        <div class="field-group"><label for="documento-descripcion">Documento requerido</label><textarea id="documento-descripcion" name="descripcion" [(ngModel)]="descripcion" rows="3" required [disabled]="ocupada"></textarea></div>
+        <div class="edit-info-actions">
+          <button type="submit" class="primary-btn" [disabled]="ocupada || !titulo.trim() || !descripcion.trim()">Guardar solicitud</button>
+          <button *ngIf="editando" type="button" class="secondary-btn" (click)="cancelarEdicion()">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+
+    <div *ngIf="solicitudes.length" class="document-tabs" role="tablist" aria-label="Seleccionar evidencia">
+      <button *ngFor="let documento of solicitudes; let i = index" type="button" role="tab" class="document-tab" [class.active]="seleccionadaId === documento.id" [attr.aria-selected]="seleccionadaId === documento.id" [attr.aria-controls]="'documento-panel-' + documento.id" [id]="'documento-tab-' + documento.id" (click)="seleccionarDocumento(documento.id)">
+        <span class="document-number"><i class="bx bx-file" aria-hidden="true"></i> Evidencia {{ i + 1 }}</span>
+        <strong>{{ documento.titulo }}</strong>
+        <span>{{ documento.estado_display || documento.estado }} · {{ documento.versiones.length ? 'Versión ' + documento.versiones[0].numero : 'Sin archivo' }}</span>
+      </button>
+    </div>
+
+    <article *ngIf="solicitudActiva as solicitud" role="tabpanel" [id]="'documento-panel-' + solicitud.id" [attr.aria-labelledby]="'documento-tab-' + solicitud.id">
+      <div class="card info-card">
+        <div class="info-header">
+          <div>
+            <h3>{{ solicitud.titulo }}</h3><p class="descripcion">{{ solicitud.descripcion }}</p>
+            <div *ngIf="contexto.puede_definir && !solicitud.versiones.length" class="edit-info-actions">
+              <button type="button" class="secondary-btn" (click)="editar(solicitud)" [disabled]="ocupada">Editar solicitud</button>
+              <button type="button" class="secondary-btn" (click)="eliminar(solicitud.id)" [disabled]="ocupada">Eliminar solicitud sin entregas</button>
+            </div>
+          </div>
+          <span class="status-badge" [class.pending]="solicitud.estado === 'pendiente'" [class.uploaded]="['borrador', 'en_revision'].includes(solicitud.estado)" [class.observed]="solicitud.estado === 'observada'" [class.approved]="solicitud.estado === 'aprobada'">{{ solicitud.estado_display || solicitud.estado }}</span>
+        </div>
+        <div class="info-grid">
+          <div class="info-item"><span>Versiones</span><strong>{{ solicitud.versiones.length }}</strong></div>
+          <div class="info-item"><span>Última actualización</span><strong>{{ solicitud.versiones.length ? (solicitud.versiones[0].fecha_subida | date:'dd/MM/yyyy HH:mm') : '--' }}</strong></div>
+          <div class="info-item"><span>Archivo actual</span><strong>{{ solicitud.versiones[0]?.nombre_archivo || 'Sin archivo' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="card versiones-card">
+          <div class="card-title"><h3><i class="bx bx-history" aria-hidden="true"></i> Historial de Versiones</h3></div>
+          <div *ngIf="!solicitud.versiones.length" class="state-msg">No existen versiones registradas para esta evidencia.</div>
+          <div *ngFor="let version of solicitud.versiones; let i = index" class="version-item">
+            <div class="version-header">
+              <div><strong>Versión {{ version.numero }} <span *ngIf="i === 0" class="latest-badge">(última)</span></strong><span class="fecha">{{ version.fecha_subida | date:'dd/MM/yyyy HH:mm' }} · {{ version.subido_por_nombre }}</span></div>
+              <div class="version-actions">
+                <button type="button" class="secondary-btn preview-btn" (click)="abrirPreview(solicitud, version)" [disabled]="ocupada"><i class="bx bx-show" aria-hidden="true"></i> Vista previa</button>
+                <button type="button" class="secondary-btn" (click)="descargar(solicitud, version)" [disabled]="ocupada"><i class="bx bx-download" aria-hidden="true"></i> {{ version.nombre_archivo || 'Descargar' }}</button>
+              </div>
+            </div>
+            <div *ngIf="version.comentario" class="comentario"><i class="bx bx-message-rounded-detail" aria-hidden="true"></i> {{ version.comentario }}</div>
+            <div *ngIf="version.revisiones.length" class="observaciones-list">
+              <h4><i class="bx bx-comment-detail" aria-hidden="true"></i> Revisión de esta versión</h4>
+              <div *ngFor="let revision of version.revisiones" class="observacion-item">
+                <div class="obs-header"><strong><i class="bx bx-user-circle" aria-hidden="true"></i> {{ revision.usuario_nombre }}</strong><span class="fecha">{{ revision.fecha | date:'dd/MM/yyyy HH:mm' }}</span></div>
+                <p><strong>{{ revision.decision === 'aprobada' ? 'Aprobada' : 'Cambios solicitados' }}</strong></p><p>{{ revision.comentario }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card actions-card">
+          <div class="card-title"><h3><i class="bx bx-cog" aria-hidden="true"></i> Acciones</h3></div>
+          <div *ngIf="solicitud.estado === 'aprobada'" class="action-section locked-section"><h4><i class="bx bx-lock-alt" aria-hidden="true"></i> Evidencia aprobada</h4><p class="locked-msg">Esta evidencia conserva su archivo e historial de revisión.</p></div>
+          <div *ngIf="contexto.puede_aportar && ['pendiente', 'borrador', 'observada'].includes(solicitud.estado)" class="action-section">
+            <h4><i class="bx bx-cloud-upload" aria-hidden="true"></i> Nueva versión</h4>
+            <div class="field-group"><label [for]="'archivo-doc-' + solicitud.id">Archivo</label><input [id]="'archivo-doc-' + solicitud.id" type="file" (change)="seleccionar(solicitud.id, $event)" [disabled]="ocupada"><small class="file-limit">Tamaño máximo permitido: {{ MAX_ARCHIVO_MB }} MB</small><div *ngIf="archivoErrores[solicitud.id]" class="file-error" role="alert">{{ archivoErrores[solicitud.id] }}</div></div>
+            <div class="field-group"><label [for]="'comentario-doc-' + solicitud.id">Comentario</label><textarea [id]="'comentario-doc-' + solicitud.id" rows="4" [(ngModel)]="comentarios[solicitud.id]" placeholder="Describe brevemente qué cambió en esta nueva versión..." [disabled]="ocupada"></textarea></div>
+            <button type="button" class="primary-btn" (click)="subir(solicitud.id)" [disabled]="ocupada || !archivos[solicitud.id]"><i class="bx bx-cloud-upload" aria-hidden="true"></i> {{ ocupada ? 'Guardando...' : 'Subir versión' }}</button>
+          </div>
+          <div *ngIf="contexto.puede_aportar && solicitud.estado === 'borrador'" class="action-section"><h4>Enviar a revisión</h4><p class="locked-msg">El archivo está guardado. Envíalo para que el revisor pueda tomar una decisión.</p><button type="button" class="primary-btn" (click)="enviar(solicitud.id)" [disabled]="ocupada">Enviar documento a revisión</button></div>
+          <div *ngIf="solicitud.estado === 'en_revision' && !contexto.puede_revisar" class="action-section locked-section"><h4><i class="bx bx-time-five" aria-hidden="true"></i> En revisión</h4><p class="locked-msg">El archivo enviado está disponible para el revisor institucional.</p></div>
+          <div *ngIf="contexto.puede_revisar && solicitud.estado === 'en_revision'" class="action-section">
+            <h4><i class="bx bx-check-shield" aria-hidden="true"></i> Revisar evidencia</h4>
+            <div class="field-group"><label [for]="'revision-doc-' + solicitud.id">Observación</label><textarea [id]="'revision-doc-' + solicitud.id" rows="5" [(ngModel)]="comentarios[solicitud.id]" placeholder="Escriba una observación para el responsable..." [disabled]="ocupada"></textarea></div>
+            <div class="review-actions"><button type="button" class="primary-btn" (click)="revisar(solicitud, 'aprobar')" [disabled]="ocupada"><i class="bx bx-check" aria-hidden="true"></i> Aprobar esta versión</button><button type="button" class="secondary-btn" (click)="revisar(solicitud, 'solicitar_cambios')" [disabled]="ocupada || !comentarios[solicitud.id]?.trim()">Solicitar cambios</button></div>
+          </div>
+          <p *ngIf="!contexto.puede_aportar && !contexto.puede_revisar && solicitud.estado !== 'aprobada'" class="locked-msg">Consulta del archivo y su historial.</p>
+        </div>
+      </div>
     </article>
-    <p *ngIf="contexto.puede_aprobar_global">Todos los documentos están aprobados. Falta la decisión global explícita del revisor.</p>
-    <button *ngIf="contexto.puede_aprobar_global" type="button" (click)="aprobarGlobal()" [disabled]="ocupada">Aprobar globalmente la asignación</button>
+
+    <div *ngIf="contexto.puede_aprobar_global" class="card global-approval"><div><h3><i class="bx bx-check-shield" aria-hidden="true"></i> Cierre de la asignación</h3><p class="descripcion">Todos los documentos están aprobados. Falta la decisión global explícita del revisor.</p></div><button type="button" class="primary-btn" (click)="aprobarGlobal()" [disabled]="ocupada">Aprobar globalmente la asignación</button></div>
   </ng-container>
 </section>
+
+<div *ngIf="previewAbierto" class="preview-overlay" (click)="cerrarPreview()" (keydown.escape)="cerrarPreview()">
+  <div class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="documento-preview-titulo" (click)="$event.stopPropagation()">
+    <div class="preview-header"><h3 id="documento-preview-titulo"><i class="bx bx-show" aria-hidden="true"></i> Vista Previa: {{ previewNombre }}</h3><button type="button" class="close-btn" aria-label="Cerrar vista previa" (click)="cerrarPreview()"><i class="bx bx-x" aria-hidden="true"></i></button></div>
+    <div class="preview-body">
+      <div *ngIf="previewCargando" class="preview-loading" role="status">Cargando vista previa...</div>
+      <div *ngIf="previewError" class="preview-error" role="alert">{{ previewError }}</div>
+      <iframe *ngIf="previewTipo === 'pdf' && previewUrl && !previewCargando" [src]="previewUrl" title="Vista previa del documento PDF" class="preview-iframe"></iframe>
+      <div *ngIf="previewTipo === 'imagen' && !previewCargando" class="preview-imagen-container"><img [src]="previewImagen" [alt]="previewNombre" class="preview-imagen"></div>
+      <div *ngIf="previewTipo === 'texto' && !previewCargando" class="preview-texto-container"><pre class="preview-texto">{{ previewTexto }}</pre></div>
+      <div *ngIf="previewTipo === 'otro' && !previewCargando" class="preview-excel-msg"><i class="bx bx-file" aria-hidden="true"></i><p>La vista previa de este formato no está disponible. Utilice Descargar para abrir el archivo.</p></div>
+    </div>
+  </div>
+</div>

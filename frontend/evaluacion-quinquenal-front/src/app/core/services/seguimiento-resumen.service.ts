@@ -227,7 +227,8 @@ export class SeguimientoResumenService {
     return cache.asignaciones.map((asignacion: any) => {
       const evidencia = evPorAsignacion.get(asignacion.id) ?? null;
       const documental = asignacion.gestion_documental ? asignacion.documentos_resumen : null;
-      const claveRevision = documental?.observados > 0 ? 'observada' : this.claveDeRevision(
+      const pendienteCierre = documental?.solicitados > 0 && documental.aprobados === documental.solicitados && !['aprobado', 'completado'].includes(asignacion.estado);
+      const claveRevision = pendienteCierre ? 'pendiente_cierre' : documental?.observados > 0 ? 'observada' : this.claveDeRevision(
         evidencia || (documental?.entregados > 0 ? { estado: 'activa' } : null), asignacion.estado);
       const esMarco = asignacion.tipo_origen === 'marco';
       const rutaMarco = asignacion.ruta_marco ?? undefined;

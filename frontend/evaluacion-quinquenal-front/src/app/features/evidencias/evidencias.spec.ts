@@ -3,10 +3,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ToastrModule } from 'ngx-toastr';
 import { of } from 'rxjs';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 
 import { EvidenciasService } from '../../core/services/evidencias.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { Evidencias } from './evidencias';
+import { DocumentosService } from '../../core/services/documentos.service';
 
 describe('Evidencias', () => {
   let component: Evidencias;
@@ -15,6 +17,8 @@ describe('Evidencias', () => {
   beforeEach(async () => {
     const evidenciasService = jasmine.createSpyObj<EvidenciasService>('EvidenciasService', ['listarEvidencias', 'crearEvidencia', 'subirVersionEvidencia', 'actualizarEvidencia', 'descargarMasiva']);
     const evaluacionService = jasmine.createSpyObj<EvaluacionService>('EvaluacionService', ['listarPeriodos', 'listarAsignaciones', 'periodoActivo']);
+    const documentosService = jasmine.createSpyObj<DocumentosService>('DocumentosService', ['listarPeriodo', 'descargar']);
+    documentosService.listarPeriodo.and.returnValue(of([]));
     evidenciasService.listarEvidencias.and.returnValue(of([
       { id_evidencia: 100, asignacion: 1, versiones: [{ id_version: 501, nombre_archivo: 'a.pdf' }] },
       { id_evidencia: 101, asignacion: 2, versiones: [{ id_version: 502, nombre_archivo: 'b.pdf' }] },
@@ -40,6 +44,7 @@ describe('Evidencias', () => {
       providers: [
         { provide: EvidenciasService, useValue: evidenciasService },
         { provide: EvaluacionService, useValue: evaluacionService },
+        { provide: DocumentosService, useValue: documentosService },
       ],
     }).compileComponents();
 
@@ -101,5 +106,43 @@ describe('Evidencias', () => {
     component.openManage(row);
 
     expect(service.crearEvidencia).toHaveBeenCalledTimes(2);
+  });
+
+  function cargarDocumentos(): void {
+    const evaluacion = TestBed.inject(EvaluacionService) as jasmine.SpyObj<EvaluacionService>;
+    const documentos = TestBed.inject(DocumentosService) as jasmine.SpyObj<DocumentosService>;
+    evaluacion.listarAsignaciones.and.returnValue(of([{ id: 27, gestion_documental: true, indicador_nombre: 'Gestión de riesgos', estado: 'en_progreso', periodo_nombre: 'Período actual' }]));
+    documentos.listarPeriodo.and.returnValue(of([
+      { id: 3, asignacion: 27, titulo: 'Metodología', estado: 'en_revision', estado_display: 'En revisión', versiones: [{ id: 8, numero: 1, nombre_archivo: 'metodologia.pdf', revisiones: [] }] },
+      { id: 4, asignacion: 27, titulo: 'Acta', estado: 'en_revision', estado_display: 'En revisión', versiones: [{ id: 10, numero: 1, nombre_archivo: 'acta.png', revisiones: [] }] },
+    ]));
+    component.loadData(); fixture.detectChanges();
+  }
+
+  it('muestra dos entregas con sus archivos después de volver al listado', () => {
+    cargarDocumentos();
+    component.loadData(); fixture.detectChanges();
+    expect(component.rows.map(row => row.archivoNombre)).toEqual(['metodologia.pdf', 'acta.png']);
+    expect(component.rows.map(row => row.solicitudId)).toEqual([3, 4]);
+    const texto = (fixture.nativeElement as HTMLElement).textContent || '';
+    expect(texto).toContain('metodologia.pdf'); expect(texto).toContain('acta.png');
+    expect(texto).toContain('En revisión'); expect(texto).not.toContain('Sin archivo');
+  });
+
+  it('permite abrir ambos documentos al revisor sin permiso de subir evidencias', () => {
+    cargarDocumentos();
+    expect(component.puedeSubir).toBeFalse();
+    const botones = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).filter(b => b.textContent?.trim() === 'Ver detalle');
+    expect(botones.length).toBe(2);
+    const navegar = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    botones[1].click();
+    expect(navegar).toHaveBeenCalledWith(['/asignaciones', 27, 'detalle'], { queryParams: { periodo: '10', documento: 4 } });
+    expect(evidenciasService().crearEvidencia).not.toHaveBeenCalled();
+  });
+
+  it('busca cada documento por su título', () => {
+    cargarDocumentos();
+    component.onSearch('Acta');
+    expect(component.rowsFiltrados.map(row => row.solicitudId)).toEqual([4]);
   });
 });

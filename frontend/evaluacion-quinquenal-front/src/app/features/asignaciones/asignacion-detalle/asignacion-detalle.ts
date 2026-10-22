@@ -10,11 +10,12 @@ import { DocumentosAsignacion } from '../documentos-asignacion/documentos-asigna
   selector: 'app-asignacion-detalle',
   imports: [CommonModule, RouterLink, MarcoRelacionado, RutaMarco, DocumentosAsignacion],
   templateUrl: './asignacion-detalle.html',
-  styleUrl: './asignacion-detalle.css',
+  styleUrls: ['../../evidencias/evidencia-detalle/evidencia-detalle.css', './asignacion-detalle.css'],
 })
 export class AsignacionDetalle implements OnInit {
   asignacionId = 0;
   periodoId = '';
+  documentoId = 0;
   asignacion: any = null;
   cargando = false;
   errorCarga = '';
@@ -27,6 +28,7 @@ export class AsignacionDetalle implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     this.periodoId = this.route.snapshot.queryParamMap.get('periodo') || '';
+    this.documentoId = Number(this.route.snapshot.queryParamMap.get('documento')) || 0;
     this.asignacionId = id ? +id : 0;
     if (!this.asignacionId) {
       this.errorCarga = 'Identificador de asignación no válido';
@@ -56,5 +58,10 @@ export class AsignacionDetalle implements OnInit {
 
   get periodoConsulta(): { periodo: string } | Record<string, never> {
     return this.asignacion?.periodo ? { periodo: String(this.asignacion.periodo) } : {};
+  }
+
+  actualizarDocumento(id: number): void {
+    this.documentoId = id;
+    this.cargar();
   }
 }

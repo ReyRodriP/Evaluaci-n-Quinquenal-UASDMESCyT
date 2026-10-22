@@ -193,3 +193,8 @@
   background: #fee2e2;
   color: #991b1b;
 }
+.document-title {
+  display: block;
+  margin-bottom: .35rem;
+  color: var(--text-title-color);
+}

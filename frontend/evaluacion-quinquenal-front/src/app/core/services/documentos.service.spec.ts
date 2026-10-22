@@ -36,6 +36,13 @@ describe('DocumentosService', () => {
     global.flush({});
   });
 
+  it('consulta los documentos por período al reconstruir el listado de evidencias', () => {
+    let resultado: any[] = [];
+    service.listarPeriodo('2').subscribe(items => resultado = items);
+    http.expectOne(`${environment.apiUrl}/solicitudes-documentales/?periodo=2`).flush({ results: [{ id: 3, asignacion: 27 }], next: null });
+    expect(resultado).toEqual([{ id: 3, asignacion: 27 }]);
+  });
+
   it('cuenta una asignación con dos documentos como una sola con evidencia', () => {
     const fila = { asignacionId: 26, evidenciaId: null, claveRevision: 'en_revision', documentosResumen: { solicitados: 2, entregados: 2, aprobados: 1, observados: 0 } } as FilaSeguimiento;
     const metricas = calcularMetricas([fila], false);

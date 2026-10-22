@@ -21,6 +21,7 @@ import {
   ResultadoPaginas,
   ResultadoSeguimiento,
   calcularMetricas,
+  tieneEvidencia,
 } from '../../core/models/seguimiento.model';
 
 export const COLUMNAS_EXPORTACION = [
@@ -48,6 +49,9 @@ export interface OpcionFiltro {
   styleUrl: './seguimiento.css',
 })
 export class Seguimiento implements OnInit {
+  tieneEvidencia = tieneEvidencia;
+
+  get tieneDocumentos(): boolean { return this.filasFiltradas.some(fila => fila.documentosResumen); }
   periodos: any[] = [];
   periodoActivo: any = null;
   periodoSeleccionadoId = '';
@@ -439,7 +443,7 @@ export class Seguimiento implements OnInit {
     this.exportando = true;
     try {
       const filasCsv = [
-        COLUMNAS_EXPORTACION,
+        [...COLUMNAS_EXPORTACION, ...(this.tieneDocumentos ? ['Documentos solicitados', 'Documentos entregados', 'Documentos aprobados'] : [])],
         ...this.filasFiltradas.map((fila) => this.filaCsv(fila)),
       ];
       const contenido =
@@ -487,11 +491,12 @@ export class Seguimiento implements OnInit {
       fila.criterioNombre,
       fila.indicadorNombre,
       fila.estadoDisplay,
-      fila.evidenciaId != null ? 'Sí' : 'No',
+      tieneEvidencia(fila) ? 'Sí' : 'No',
       fila.estadoRevision,
       this.etiquetaCorrespondencia(fila.correspondenciaEstado),
       fila.codigoDestino,
       fila.versionMarco,
+      ...(this.tieneDocumentos ? [fila.documentosResumen?.solicitados, fila.documentosResumen?.entregados, fila.documentosResumen?.aprobados].map(valor => valor == null ? '' : String(valor)) : []),
     ];
   }
 

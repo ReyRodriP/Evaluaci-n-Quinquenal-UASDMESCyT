@@ -48,6 +48,7 @@ export class CrudTable {
       'criterio': 'criterio_nombre',
       'periodo': 'periodo_nombre',
       'período': 'periodo_nombre',
+      'versión del marco': 'version_marco_nombre',
       'indicadores': 'indicadores',
       'obligatorio': 'obligatorio',
       'estado': 'estado',

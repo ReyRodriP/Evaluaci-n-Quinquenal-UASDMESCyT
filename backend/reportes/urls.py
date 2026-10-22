@@ -8,8 +8,11 @@ y exportación del sistema.
 from django.urls import path
 
 from . import views
+from .marco import marco, marco_exportar
 
 urlpatterns = [
+    path('reportes/marco/', marco, name='reporte-marco'),
+    path('reportes/marco/exportar/', marco_exportar, name='reporte-marco-exportar'),
     path("reportes/general/", views.general, name="reporte-general"),
     path("reportes/general/exportar/", views.general_exportar, name="reporte-general-exportar"),
     path("reportes/facultad/<int:pk>/", views.por_facultad, name="reporte-facultad"),

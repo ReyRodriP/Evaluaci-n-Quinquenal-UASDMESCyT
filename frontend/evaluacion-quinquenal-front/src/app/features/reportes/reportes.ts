@@ -10,8 +10,10 @@ import { OrganizacionService } from '../../core/services/organizacion.service';
 import { PermisosService } from '../../core/services/permisos.service';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Pagination } from '../../shared/components/CRUD/pagination/pagination';
+import { ReporteMarco } from './reporte-marco/reporte-marco';
 
 type Pestana =
+  | 'marco'
   | 'general'
   | 'facultad'
   | 'departamento'
@@ -22,7 +24,7 @@ type Pestana =
 
 @Component({
   selector: 'app-reportes',
-  imports: [CommonModule, FormsModule, CrudTable, Pagination],
+  imports: [CommonModule, FormsModule, CrudTable, Pagination, ReporteMarco],
   templateUrl: './reportes.html',
   styleUrl: './reportes.css',
 })
@@ -102,6 +104,7 @@ export class Reportes implements OnInit, OnDestroy {
   private debounceTimer: any;
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('reporte') === 'marco') this.pestanaActiva = 'marco';
     this.loadSelectores();
   }
 

@@ -8,7 +8,7 @@ describe('DocumentosAsignacion', () => {
   let component: DocumentosAsignacion;
   let service: jasmine.SpyObj<DocumentosService>;
   beforeEach(async () => {
-    service = jasmine.createSpyObj('DocumentosService', ['contexto', 'listar', 'crear', 'subir', 'accion', 'aprobarGlobal']);
+    service = jasmine.createSpyObj('DocumentosService', ['contexto', 'listar', 'crear', 'subir', 'accion', 'aprobarGlobal', 'descargar']);
     service.contexto.and.returnValue(of({ gestion_documental: true, puede_aportar: true, puede_definir: false, puede_revisar: false, puede_aprobar_global: false, total: 2, aprobadas: 1 }));
     service.listar.and.returnValue(of([
       { id: 1, titulo: 'Documento A', descripcion: 'Requisito A', estado: 'aprobada', versiones: [{ id: 11, numero: 1, nombre_archivo: 'a.pdf', revisiones: [] }] },
@@ -60,5 +60,38 @@ describe('DocumentosAsignacion', () => {
     component.archivos = { 1: a, 2: b };
     component.subir(2);
     expect(service.subir).toHaveBeenCalledWith(2, b, '');
+  });
+
+  it('abre el documento elegido desde el listado con historial y acciones del estilo de evidencia', () => {
+    fixture.componentRef.setInput('solicitudId', 2); fixture.detectChanges();
+    expect(component.solicitudActiva.id).toBe(2);
+    expect(fixture.nativeElement.querySelector('.content-grid .versiones-card')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.content-grid .actions-card')).toBeTruthy();
+    expect(texto(fixture)).toContain('b.pdf');
+    expect(texto(fixture)).toContain('Enviar documento a revisión');
+    expect(fixture.nativeElement.querySelector('article').textContent).not.toContain('a.pdf');
+  });
+
+  it('el revisor ve el archivo enviado y puede aprobar la versión del documento activo', () => {
+    service.contexto.and.returnValue(of({ gestion_documental: true, puede_revisar: true, puede_aportar: false, total: 2, aprobadas: 0 }));
+    service.listar.and.returnValue(of([{ id: 4, titulo: 'Acta', estado: 'en_revision', versiones: [{ id: 2, numero: 1, nombre_archivo: 'express.png', revisiones: [] }] }]));
+    service.accion.and.returnValue(of({}));
+    component.cargar(); fixture.detectChanges();
+    expect(texto(fixture)).toContain('express.png');
+    const boton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(b => b.textContent?.includes('Aprobar esta versión'));
+    expect(boton).toBeTruthy(); boton?.click();
+    expect(service.accion).toHaveBeenCalledWith(4, 'aprobar', 2, '');
+  });
+
+  it('muestra y libera la vista previa del archivo del documento elegido', () => {
+    service.descargar.and.returnValue(of(new Blob(['imagen'], { type: 'image/png' })));
+    const crear = spyOn(URL, 'createObjectURL').and.returnValue('blob:prueba');
+    const liberar = spyOn(URL, 'revokeObjectURL');
+    component.abrirPreview({ id: 4 }, { id: 2, nombre_archivo: 'express.png' }); fixture.detectChanges();
+    expect(service.descargar).toHaveBeenCalledWith(4, 2);
+    expect(crear).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.preview-imagen').getAttribute('src')).toBe('blob:prueba');
+    component.cerrarPreview();
+    expect(liberar).toHaveBeenCalledWith('blob:prueba');
   });
 });

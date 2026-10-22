@@ -30,6 +30,14 @@ describe('CatalogoService', () => {
     expect(resultado).toEqual([{ id: 1, slug: 'eq' }]);
   });
 
+  it('recupera versiones inactivas de páginas posteriores para la selección explícita del período', () => {
+    let resultado: any[] = [];
+    service.listarVersionesCompletas().subscribe(data => resultado = data);
+    httpMock.expectOne(`${base}/versiones/`).flush({ results: [{ id: 1, activo: true }], next: `${base}/versiones/?page=2` });
+    httpMock.expectOne(`${base}/versiones/?page=2`).flush({ results: [{ id: 2, activo: false }], next: null });
+    expect(resultado).toEqual([{ id: 1, activo: true }, { id: 2, activo: false }]);
+  });
+
   it('listarDimensiones envia el filtro version', () => {
     let resultado: any[] = [];
     service.listarDimensiones('eq-sidaces-2019-res27-2019').subscribe((d) => (resultado = d));

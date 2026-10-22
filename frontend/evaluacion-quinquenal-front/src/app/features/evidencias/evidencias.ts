@@ -6,6 +6,7 @@ import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { EvidenciasService } from '../../core/services/evidencias.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
+import { DocumentosService } from '../../core/services/documentos.service';
 import { SearchBar } from '../../shared/components/CRUD/search-bar/search-bar';
 import { CrudTable } from '../../shared/components/CRUD/crud-table/crud-table';
 import { Modal } from '../../shared/components/CRUD/modal/modal';
@@ -69,7 +70,8 @@ export class Evidencias implements OnInit {
     private permisos: PermisosService,
     private toast: ToastrService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private documentosService: DocumentosService
   ) {}
 
   ngOnInit(): void {
@@ -137,26 +139,30 @@ export class Evidencias implements OnInit {
     forkJoin({
       asignaciones: this.evaluacionService.listarAsignaciones(this.periodoSeleccionadoId),
       evidencias: this.evidenciasService.listarEvidencias(this.periodoSeleccionadoId),
+      documentos: this.documentosService.listarPeriodo(this.periodoSeleccionadoId),
     }).subscribe({
-      next: ({ asignaciones, evidencias }) => {
-        this.rows = asignaciones.map((asignacion: any) => {
+      next: ({ asignaciones, evidencias, documentos }) => {
+        this.rows = asignaciones.flatMap((asignacion: any) => {
+          if (asignacion.gestion_documental) {
+            const solicitudes = documentos.filter((item: any) => Number(item.asignacion) === Number(asignacion.id));
+            return solicitudes.length ? solicitudes.map((solicitud: any) => this.filaDocumental(asignacion, solicitud))
+              : [this.filaDocumental(asignacion, null)];
+          }
           const evidencia = (evidencias || []).find((item: any) => {
             const evidenciaAsignacion = typeof item.asignacion === 'number' ? item.asignacion : item.asignacion?.id ?? item.asignacion;
             return evidenciaAsignacion === asignacion.id;
           });
 
           const versiones = evidencia?.versiones || [];
-          const ultimaVersion = versiones.length ? versiones[versiones.length - 1] : null;
+          const ultimaVersion = evidencia?.ultima_version || [...versiones].sort((a: any, b: any) => (b.version ?? 0) - (a.version ?? 0))[0] || null;
           const obs = evidencia?.ultima_observacion;
 
-          return {
+          return [{
             ...asignacion,
             unidad_responsable: asignacion.unidad_responsable_nombre || asignacion.departamento_nombre || asignacion.unidad_responsable,
             evidenciaId: evidencia?.id_evidencia ?? null,
             evidencia,
-            estado: asignacion.gestion_documental
-              ? `Documentos: ${asignacion.documentos_resumen?.aprobados ?? 0}/${asignacion.documentos_resumen?.solicitados ?? 0} aprobados`
-              : evidencia
+            estado: evidencia
               ? (evidencia.estado === 'cancelada' ? 'Cancelada' : (evidencia.asignacion_estado_display || 'Subida'))
               : 'Pendiente',
             estadoWorkflow: evidencia?.asignacion_estado,
@@ -164,12 +170,14 @@ export class Evidencias implements OnInit {
             ultimaVersion,
             observacionesTexto: obs ? obs.comentario : '',
             ultimaObsUsuario: obs ? obs.usuario_nombre : '',
-          };
+          }];
         });
         this.applySearch();
         this.loading = false;
       },
       error: () => {
+        this.rows = [];
+        this.applySearch();
         this.toast.error('No se pudieron cargar las evidencias del período');
         this.loading = false;
       },
@@ -189,6 +197,7 @@ export class Evidencias implements OnInit {
       this.rowsFiltrados = this.rows.filter((row) => {
         const campos = [
           row.indicador_nombre,
+          row.documentoTitulo,
           row.unidad_responsable_nombre || row.departamento_nombre,
           row.periodo_nombre,
           row.archivoNombre,
@@ -311,9 +320,27 @@ export class Evidencias implements OnInit {
     this.irADetalle(row.evidenciaId);
   }
 
+  private filaDocumental(asignacion: any, solicitud: any): any {
+    const ultima = [...(solicitud?.versiones || [])].sort((a: any, b: any) => b.numero - a.numero)[0] || null;
+    const revision = ultima?.revisiones?.[0];
+    const estados: Record<string, string> = { pendiente: 'Pendiente de entrega', borrador: 'Subida · sin enviar a revisión', en_revision: 'En revisión', observada: 'Con cambios solicitados', aprobada: 'Aprobada' };
+    return {
+      ...asignacion,
+      unidad_responsable: asignacion.unidad_responsable_nombre || asignacion.departamento_nombre || asignacion.unidad_responsable,
+      evidenciaId: null, evidencia: null, solicitudId: solicitud?.id ?? null,
+      documentoTitulo: solicitud?.titulo || 'Sin documentos solicitados',
+      estado: solicitud ? (solicitud.estado_display || estados[solicitud.estado] || solicitud.estado) : 'Sin documentos solicitados',
+      estadoWorkflow: asignacion.estado, estadoDocumento: solicitud?.estado,
+      archivoNombre: ultima?.nombre_archivo || 'Sin archivo', ultimaVersion: ultima,
+      observacionesTexto: revision?.comentario || '', ultimaObsUsuario: revision?.usuario_nombre || '',
+    };
+  }
+
   private irADocumentos(row: any): boolean {
     if (!row.gestion_documental) return false;
-    void this.router.navigate(['/asignaciones', row.id, 'detalle'], { queryParams: { periodo: this.periodoSeleccionadoId } });
+    void this.router.navigate(['/asignaciones', row.id, 'detalle'], {
+      queryParams: { periodo: this.periodoSeleccionadoId, ...(row.solicitudId ? { documento: row.solicitudId } : {}) },
+    });
     return true;
   }
 
@@ -341,6 +368,18 @@ export class Evidencias implements OnInit {
 
   descargarUltimoArchivo(row: any): void {
     const v = row.ultimaVersion;
+    if (row.solicitudId && v?.id) {
+      this.documentosService.descargar(row.solicitudId, v.id).subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const enlace = document.createElement('a');
+          enlace.href = url; enlace.download = v.nombre_archivo || 'archivo'; enlace.click();
+          URL.revokeObjectURL(url);
+        },
+        error: () => this.toast.error('No se pudo descargar el documento'),
+      });
+      return;
+    }
     if (!v?.id_version) {
       this.toast.error('No hay archivo disponible para descargar');
       return;
@@ -359,6 +398,7 @@ export class Evidencias implements OnInit {
   }
 
   verHistorial(row: any): void {
+    if (this.irADocumentos(row)) return;
     if (!row.evidenciaId) return;
     this.evidenciasService.obtenerHistorial(row.evidenciaId, this.periodoSeleccionadoId).subscribe({
       next: (versiones: any[]) => {

@@ -14,7 +14,15 @@ export class DocumentosService {
   }
 
   listar(asignacion: number): Observable<any[]> {
-    return this.http.get<any>(`${this.url}/`, { params: { asignacion } }).pipe(
+    return this.listarConParametros({ asignacion: String(asignacion) });
+  }
+
+  listarPeriodo(periodo: number | string): Observable<any[]> {
+    return this.listarConParametros({ periodo: String(periodo) });
+  }
+
+  private listarConParametros(params: Record<string, string>): Observable<any[]> {
+    return this.http.get<any>(`${this.url}/`, { params }).pipe(
       expand((pagina) => pagina.next ? this.http.get<any>(pagina.next) : EMPTY),
       reduce((todos: any[], pagina: any) => todos.concat(Array.isArray(pagina) ? pagina : pagina.results ?? []), [])
     );

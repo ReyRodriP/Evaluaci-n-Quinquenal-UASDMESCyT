@@ -174,6 +174,24 @@ describe('Seguimiento', () => {
     return nuevo;
   };
 
+  it('muestra evidencia y progreso documental en tabla y CSV sin identificador de evidencia antigua', () => {
+    data.asignaciones = [{ id: 27, indicador_marco: 7, tipo_origen: 'marco', indicador_nombre: 'Indicador documental',
+      unidad_responsable: 7, unidad_responsable_nombre: 'Unidad documental', periodo: 10, periodo_nombre: 'Período actual',
+      estado: 'en_progreso', gestion_documental: true, documentos_resumen: { solicitados: 2, entregados: 2, aprobados: 2, observados: 0 } }];
+    data.evidencias = [];
+    recargar();
+    const fila = fixture.nativeElement.querySelector('tbody tr');
+    expect(fila.querySelector('.ev-si').textContent.trim()).toBe('Sí');
+    expect(fila.textContent).toContain('2/2 entregados');
+    expect(fila.textContent).toContain('pendiente de cierre global');
+    const descargar = spyOn(component, 'descargar');
+    component.exportarCsv();
+    const contenido = descargar.calls.mostRecent().args[0];
+    expect(contenido).toContain('Documentos solicitados,Documentos entregados,Documentos aprobados');
+    expect(contenido).toContain('Sí');
+    expect(contenido).toContain(',2,2,2');
+  });
+
   beforeEach(async () => {
     data = baseData();
     evaluacionService = jasmine.createSpyObj<EvaluacionService>(

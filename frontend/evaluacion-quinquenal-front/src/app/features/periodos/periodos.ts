@@ -6,6 +6,7 @@ import { Modal } from '../../shared/components/CRUD/modal/modal';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
+import { CatalogoService } from '../../core/services/catalogo.service';
 
 @Component({
   selector: 'app-periodos',
@@ -14,7 +15,8 @@ import { PermisosService } from '../../core/services/permisos.service';
   styleUrl: './periodos.css',
 })
 export class Periodos implements OnInit {
-  columnas: string[] = ['Nombre', 'Fecha Inicio', 'Fecha Fin', 'Estado'];
+  columnas: string[] = ['Nombre', 'Fecha Inicio', 'Fecha Fin', 'Versión del marco', 'Estado'];
+  versiones: any[] | null = null;
 
   datos: any[] = [];
   datosFiltrados: any[] = [];
@@ -51,19 +53,33 @@ export class Periodos implements OnInit {
   constructor(
     private evaluacionService: EvaluacionService,
     private permisos: PermisosService,
-    private toast: ToastrService
+    private toast: ToastrService,
+    private catalogo: CatalogoService
   ) {}
 
   ngOnInit() {
     this.loadPeriodos();
+    this.catalogo.listarVersionesCompletas().subscribe({
+      next: versiones => { this.versiones = versiones; if (!this.showModal) this.configurarVersiones(); },
+      error: () => this.toast.error('No se pudieron consultar las versiones del marco; se conserva la selección existente de cada período'),
+    });
+  }
+
+  private configurarVersiones(): void {
+    if (this.versiones === null) return;
+    this.periodoFields = this.periodoFields.filter(campo => campo.name !== 'version_marco');
+    this.periodoFields.splice(3, 0, { label: 'Versión del marco', name: 'version_marco', type: 'select', allowClear: true,
+      options: this.versiones.map(v => ({ value: v.id, label: `${v.nombre}${v.activo ? ' · Activa globalmente' : ' · Inactiva globalmente'}` })), defaultValue: null });
   }
 
   openNew() {
+    this.configurarVersiones();
     this.selectedItem = null;
     this.showModal = true;
   }
 
   openEdit(item: any) {
+    this.configurarVersiones();
     this.selectedItem = {
       ...item,
       estado: item.activo ? 'Activo' : 'Inactivo',
@@ -149,6 +165,8 @@ export class Periodos implements OnInit {
       fecha_inicio: saved.fecha_inicio,
       fecha_fin: saved.fecha_fin,
       activo: saved.estado === 'Activo',
+      ...(this.periodoFields.some(campo => campo.name === 'version_marco') && Object.prototype.hasOwnProperty.call(saved, 'version_marco')
+        ? { version_marco: saved.version_marco ? Number(saved.version_marco) : null } : {}),
     };
 
     if (this.selectedItem && this.selectedItem.id) {
@@ -160,7 +178,7 @@ export class Periodos implements OnInit {
         },
         error: (err) => {
           console.error('Error actualizando período', err);
-          this.toast.error('Error al actualizar el período');
+          this.toast.error(err?.error ? Object.values(err.error).flat().map(String).join(' ') : 'Error al actualizar el período');
         }
       });
     } else {
@@ -172,7 +190,7 @@ export class Periodos implements OnInit {
         },
         error: (err) => {
           console.error('Error creando período', err);
-          this.toast.error('Error al crear el período');
+          this.toast.error(err?.error ? Object.values(err.error).flat().map(String).join(' ') : 'Error al crear el período');
         }
       });
     }

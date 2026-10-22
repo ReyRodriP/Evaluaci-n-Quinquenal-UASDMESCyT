@@ -11,10 +11,11 @@ import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { OrganizacionService } from '../../core/services/organizacion.service';
 import { ToastrService } from 'ngx-toastr';
 import { PermisosService } from '../../core/services/permisos.service';
+import { NuevaAsignacionMarco } from './nueva-asignacion-marco/nueva-asignacion-marco';
 
 @Component({
   selector: 'app-asignaciones',
-  imports: [CommonModule, FormsModule, CrudTable, SearchBar, Pagination, Modal, RouterLink],
+  imports: [CommonModule, FormsModule, CrudTable, SearchBar, Pagination, Modal, RouterLink, NuevaAsignacionMarco],
   templateUrl: './asignaciones.html',
   styleUrl: './asignaciones.css',
 })
@@ -35,6 +36,7 @@ export class Asignaciones implements OnInit {
   periodoSeleccionadoId = '';
 
   showModal: boolean = false;
+  showMarco = false;
   selectedItem: any = null;
 
   asignacionFields: any[] = [
@@ -52,6 +54,18 @@ export class Asignaciones implements OnInit {
 
   get puedeCrear(): boolean {
     return this.periodoSeleccionadoEsActivo && this.permisos.tieneAlgunPermiso(['evaluation.add_asignacion']);
+  }
+
+  get puedeCrearMarco(): boolean {
+    return this.puedeCrear && (this.permisos.esSuperuser || this.permisos.tieneGrupo('Administrador General') || this.permisos.tieneGrupo('Coordinador Quinquenal'));
+  }
+
+  abrirMarco(): void { if (this.puedeCrearMarco) { this.showModal = false; this.showMarco = true; } }
+
+  asignacionMarcoCreada(asignacion: any): void {
+    this.showMarco = false;
+    this.toast.success('Asignación del marco creada correctamente');
+    void this.router.navigate(['/asignaciones', asignacion.id, 'detalle'], { queryParams: { periodo: asignacion.periodo } });
   }
 
   get ocultarAcciones(): string[] {
@@ -86,6 +100,7 @@ export class Asignaciones implements OnInit {
   openNew() {
     if (!this.periodoSeleccionadoEsActivo) return;
     this.selectedItem = null;
+    this.showMarco = false;
     this.showModal = true;
   }
 
@@ -251,6 +266,8 @@ export class Asignaciones implements OnInit {
   }
 
   onPeriodoChange(periodoId: string): void {
+    this.showMarco = false;
+    this.showModal = false;
     this.periodoSeleccionadoId = periodoId;
     this.actualizarPeriodoUrl();
     this.loadAsignaciones();

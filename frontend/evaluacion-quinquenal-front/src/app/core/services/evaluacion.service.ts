@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { RespuestaPaginada } from '../models/vinculacion.model';
+import { ContextoAsignacionMarco } from '../models/contexto-asignacion-marco.model';
 
 @Injectable({
   providedIn: 'root',
@@ -101,6 +102,12 @@ export class EvaluacionService {
   }
 
   // Asignaciones
+  contextoAsignacionMarco(periodo: string, unidad?: string): Observable<ContextoAsignacionMarco> {
+    const params: Record<string, string> = { periodo };
+    if (unidad) params['unidad'] = unidad;
+    return this.http.get<ContextoAsignacionMarco>(`${this.apiUrl}/asignaciones/contexto-marco/`, { params });
+  }
+
   listarAsignaciones(periodoId?: number | string | null): Observable<any[]> {
     const params: Record<string, string> = {};
     if (periodoId) params['periodo'] = String(periodoId);

@@ -11,6 +11,7 @@ export type ClaveRevision =
   | 'aprobada'
   | 'rechazada'
   | 'sin_enviar'
+  | 'pendiente_cierre'
   | 'completada';
 
 export type EstadoCorrespondenciaFila = 'confirmada' | 'pendiente' | 'sin' | 'desconocida' | 'directa';
@@ -47,6 +48,7 @@ export interface Metricas {
   conConfirmada: number | null;
   sinConfirmada: number | null;
   conAsignacionDirecta?: number;
+  pendientesCierre?: number;
 }
 
 export interface ResultadoPaginas<T> {
@@ -72,6 +74,7 @@ export const ETIQUETAS_REVISION: Record<ClaveRevision, string> = {
   rechazada: 'Rechazada',
   sin_enviar: 'Sin enviar a revisión',
   completada: 'Completada',
+  pendiente_cierre: 'Documentos aprobados · pendiente de cierre global',
 };
 
 export const ETIQUETAS_CORRESPONDENCIA: Record<EstadoCorrespondenciaFila, string> = {
@@ -82,13 +85,20 @@ export const ETIQUETAS_CORRESPONDENCIA: Record<EstadoCorrespondenciaFila, string
   directa: 'Asignación directa al marco',
 };
 
+export function tieneEvidencia(fila: FilaSeguimiento): boolean {
+  return fila.evidenciaId != null || (fila.documentosResumen?.entregados ?? 0) > 0;
+}
+
 export function calcularMetricas(filas: FilaSeguimiento[], correspondenciasDisponibles: boolean): Metricas {
   const total = filas.length;
-  const conEvidencia = filas.filter((fila) => fila.evidenciaId != null || (fila.documentosResumen?.entregados ?? 0) > 0).length;
+  const conEvidencia = filas.filter(tieneEvidencia).length;
   const pendientesRevision = filas.filter((fila) => fila.claveRevision === 'en_revision').length;
   const observadas = filas.filter((fila) => fila.claveRevision === 'observada').length;
   const directas = filas.filter(fila => fila.tipoOrigen === 'marco').length;
-  const metricasDirectas = directas ? { conAsignacionDirecta: directas } : {};
+  const metricasDirectas = {
+    ...(directas ? { conAsignacionDirecta: directas } : {}),
+    ...(filas.some(fila => fila.documentosResumen) ? { pendientesCierre: filas.filter(fila => fila.claveRevision === 'pendiente_cierre').length } : {}),
+  };
   if (!correspondenciasDisponibles) {
     return {
       total,

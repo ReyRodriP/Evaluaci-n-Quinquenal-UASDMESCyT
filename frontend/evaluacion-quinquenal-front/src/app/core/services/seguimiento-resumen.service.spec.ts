@@ -124,6 +124,24 @@ describe('SeguimientoResumenService', () => {
     expect(rutaCoincideConMarco(directa.rutaMarco, { dimension: '5', estandar: '21' })).toBeFalse();
   });
 
+  it('separa documentos aprobados del cierre global y cuenta una sola asignación con evidencia', () => {
+    const evaluacion = TestBed.inject(EvaluacionService) as jasmine.SpyObj<EvaluacionService>;
+    const evidencias = TestBed.inject(EvidenciasService) as jasmine.SpyObj<EvidenciasService>;
+    evaluacion.listarAsignacionesPagina.and.returnValue(of(pagina([
+      { id: 27, tipo_origen: 'marco', indicador_marco: 7, gestion_documental: true, estado: 'en_progreso', documentos_resumen: { solicitados: 2, entregados: 2, aprobados: 2, observados: 0 } },
+    ])));
+    evaluacion.listarIndicadoresPagina.and.returnValue(of(pagina([])));
+    evidencias.listarEvidenciasPagina.and.returnValue(of(pagina([])));
+    vinculacion.listarCorrespondencias.and.returnValue(of(pagina([])));
+    service.cargar('2').subscribe(resultado => {
+      expect(resultado.filas[0].evidenciaId).toBeNull();
+      expect(resultado.filas[0].claveRevision).toBe('pendiente_cierre');
+      expect(resultado.metricas.conEvidencia).toBe(1);
+      expect(resultado.metricas.pendientesCierre).toBe(1);
+      expect(resultado.metricas.pendientesRevision).toBe(0);
+    });
+  });
+
   it('conserva el contexto directo aunque la consulta de correspondencias falle', () => {
     const evaluacion = TestBed.inject(EvaluacionService) as jasmine.SpyObj<EvaluacionService>;
     const evidencias = TestBed.inject(EvidenciasService) as jasmine.SpyObj<EvidenciasService>;

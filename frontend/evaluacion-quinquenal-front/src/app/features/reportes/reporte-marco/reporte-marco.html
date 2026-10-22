@@ -1,0 +1,47 @@
+<section class="reporte-section" aria-label="Resultados del marco EQ-SIDACES" [attr.aria-busy]="cargando">
+  <h3>Resultados del marco EQ-SIDACES</h3>
+  <p class="reporte-nota">Asignaciones vinculadas directamente al marco, dentro del período y alcance autorizados. La aprobación de documentos y el cierre global se cuentan por separado.</p>
+  <div class="reporte-filtros">
+    <label>Período<select aria-label="Período de resultados del marco" [ngModel]="periodoId" (ngModelChange)="periodoChange.emit($event)"><option *ngIf="!periodoId" value="">Sin período seleccionado</option><option *ngFor="let p of periodos" [value]="p.id">{{ p.nombre }} · {{ p.activo ? 'Activo' : 'Finalizado' }}</option></select></label>
+    <label>Agrupar por<select aria-label="Agrupar resultados del marco" [(ngModel)]="filtros.agrupar" (ngModelChange)="cargar()"><option value="dimension">Dimensión</option><option value="estandar">Estándar</option></select></label>
+    <label>Unidad responsable<select aria-label="Unidad de resultados del marco" [ngModel]="filtros.unidad" (ngModelChange)="cambiarUnidad($event)"><option value="">Todas las unidades autorizadas</option><option *ngFor="let unidad of unidades" [value]="unidad.id">{{ unidad.nombre }}</option></select></label>
+    <label>Dimensión<select aria-label="Dimensión de resultados del marco" [ngModel]="filtros.dimension" (ngModelChange)="cambiarDimension($event)" [disabled]="cargando"><option value="">Todas las dimensiones</option><option *ngFor="let d of datos?.opciones?.dimensiones" [value]="d.id">{{ d.codigo }} — {{ d.nombre }}</option></select></label>
+    <label>Estándar<select aria-label="Estándar de resultados del marco" [(ngModel)]="filtros.estandar" (ngModelChange)="cargar()" [disabled]="cargando"><option value="">Todos los estándares</option><option *ngFor="let e of estandaresDisponibles" [value]="e.id">{{ e.codigo }} — {{ e.nombre }}</option></select></label>
+    <button type="button" class="btn-limpiar" (click)="limpiar()">Limpiar filtros</button>
+  </div>
+  <div *ngIf="cargando" class="state-message" role="status">Cargando resultados del marco...</div>
+  <div *ngIf="error" class="state-message error-marco" role="alert">{{ error }} <button type="button" class="btn-limpiar" (click)="cargar()">Reintentar</button></div>
+  <div *ngIf="!periodoId && !cargando" class="state-message">Seleccione un período para consultar los resultados.</div>
+  <ng-container *ngIf="datos as reporte">
+    <p class="reporte-nota"><strong>Versión seleccionada en el período:</strong> {{ reporte.version_periodo?.nombre || 'Sin versión seleccionada' }}</p>
+    <div class="reporte-resumen">
+      <div class="resumen-item"><span class="resumen-valor">{{ reporte.resumen.asignaciones }}</span><span class="resumen-etiqueta">Asignaciones</span></div>
+      <div class="resumen-item"><span class="resumen-valor">{{ reporte.resumen.con_archivos }}</span><span class="resumen-etiqueta">Asignaciones con archivos</span></div>
+      <div class="resumen-item"><span class="resumen-valor">{{ reporte.resumen.aprobadas_globalmente }}</span><span class="resumen-etiqueta">Aprobadas globalmente</span></div>
+      <div class="resumen-item"><span class="resumen-valor">{{ reporte.resumen.pendientes_cierre }}</span><span class="resumen-etiqueta">Pendientes de cierre global</span></div>
+      <div class="resumen-item"><span class="resumen-valor">{{ reporte.resumen.documentos_entregados }}/{{ reporte.resumen.documentos_solicitados }}</span><span class="resumen-etiqueta">Documentos entregados</span></div>
+      <div class="resumen-item"><span class="resumen-valor">{{ reporte.resumen.documentos_aprobados }}</span><span class="resumen-etiqueta">Documentos aprobados</span></div>
+    </div>
+    <div *ngIf="reporte.rows.length" class="marco-table-wrapper">
+      <table class="marco-table"><caption class="sr-only">Resultados por {{ reporte.agrupar === 'dimension' ? 'dimensión' : 'estándar' }} del marco</caption>
+        <thead><tr><th scope="col">Dimensión / estándar</th><th scope="col">Asignaciones</th><th scope="col">Con archivos</th><th scope="col">Aprobadas globalmente</th><th scope="col">Pendientes de cierre</th><th scope="col">Docs. entregados / solicitados</th><th scope="col">Docs. aprobados</th><th scope="col">Docs. en revisión</th><th scope="col">Docs. observados</th><th scope="col">Aprobación global</th></tr></thead>
+        <tbody><tr *ngFor="let fila of reporte.rows"><th scope="row"><strong>{{ fila.estandar?.codigo || fila.dimension.codigo }}</strong><span>{{ fila.estandar?.nombre || fila.dimension.nombre }}</span><small *ngIf="fila.estandar">Dimensión {{ fila.dimension.codigo }}</small></th><td>{{ fila.asignaciones }}</td><td>{{ fila.con_archivos }}</td><td>{{ fila.aprobadas_globalmente }}</td><td>{{ fila.pendientes_cierre }}</td><td>{{ fila.documentos_entregados }}/{{ fila.documentos_solicitados }}</td><td>{{ fila.documentos_aprobados }}</td><td>{{ fila.documentos_en_revision }}</td><td>{{ fila.documentos_observados }}</td><td>{{ fila.aprobacion_global_porcentaje }} %</td></tr></tbody>
+      </table>
+    </div>
+    <app-pagination *ngIf="reporte.total" [total]="reporte.total" [pageSize]="pageSize" [currentPage]="pagina" (pageChange)="cargar($event)"></app-pagination>
+    <div *ngIf="!reporte.total" class="state-message">No hay asignaciones directas al marco con los filtros y el alcance seleccionados.</div>
+    <div class="reporte-exportar" *ngIf="reporte.total">
+      <button type="button" class="btn-exportar csv" (click)="exportar('csv')" [disabled]="exportando">Exportar CSV</button>
+      <button type="button" class="btn-exportar excel" (click)="exportar('xlsx')" [disabled]="exportando">Exportar Excel</button>
+      <button type="button" class="btn-exportar pdf" (click)="exportar('pdf')" [disabled]="exportando">Exportar PDF</button>
+    </div>
+    <details class="definiciones-marco"><summary>Definición de los resultados</summary><ul>
+      <li>Cada asignación se cuenta una vez, aunque tenga varios documentos o versiones.</li>
+      <li>Un documento se cuenta como entregado si tiene al menos una versión con archivo; sus correcciones no aumentan el número de documentos.</li>
+      <li>El progreso documental corresponde al flujo de solicitudes múltiples. Los archivos del flujo anterior también cuentan en «Asignaciones con archivos».</li>
+      <li>«Pendientes de cierre» identifica asignaciones abiertas con todas sus solicitudes aprobadas; todavía requieren la decisión global del revisor.</li>
+      <li>La aprobación global es el porcentaje de asignaciones globalmente aprobadas sobre las asignaciones visibles tras los filtros. No es una ponderación ni calificación oficial del marco completo.</li>
+      <li>Las exportaciones incluyen todos los grupos autorizados con los mismos filtros, no solo la página visible.</li>
+    </ul></details>
+  </ng-container>
+</section>

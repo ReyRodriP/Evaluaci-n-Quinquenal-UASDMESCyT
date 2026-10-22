@@ -149,6 +149,11 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
 
     def get_queryset(self):
         qs = SolicitudDocumental.objects.filter(asignacion__in=asignaciones_visibles(self.request))
+        periodo = self.request.query_params.get('periodo')
+        if periodo is not None:
+            if not str(periodo).isdigit() or int(periodo) < 1:
+                raise ValidationError({'periodo': 'Debe ser un identificador entero positivo.'})
+            qs = qs.filter(asignacion__periodo_id=periodo)
         asignacion = self.request.query_params.get('asignacion')
         if asignacion is not None:
             if not str(asignacion).isdigit():

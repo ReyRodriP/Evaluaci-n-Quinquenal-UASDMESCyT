@@ -8,6 +8,7 @@ import { ToastrModule } from 'ngx-toastr';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
+import { PermisosService } from '../../core/services/permisos.service';
 
 describe('Asignaciones', () => {
   let component: Asignaciones;
@@ -47,5 +48,26 @@ describe('Asignaciones', () => {
     expect(component.showModal).toBeFalse();
     expect(navegar).toHaveBeenCalledWith(['/asignaciones', 2, 'detalle'], { queryParams: { periodo: '1' } });
     expect(actualizar).not.toHaveBeenCalled();
+  });
+
+  it('abre el alta directa para coordinación y navega a su gestión al guardar', () => {
+    const permisos = TestBed.inject(PermisosService);
+    spyOn(permisos, 'tieneAlgunPermiso').and.returnValue(true);
+    spyOn(permisos, 'tieneGrupo').and.callFake(rol => rol === 'Coordinador Quinquenal');
+    component.periodos = [{ id: 2, activo: true }]; component.periodoSeleccionadoId = '2';
+    component.abrirMarco(); expect(component.showMarco).toBeTrue();
+    const navegar = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    component.asignacionMarcoCreada({ id: 30, periodo: 2 });
+    expect(navegar).toHaveBeenCalledWith(['/asignaciones', 30, 'detalle'], { queryParams: { periodo: 2 } });
+    expect(component.showMarco).toBeFalse();
+  });
+
+  it('no ofrece el alta del marco en un período finalizado ni a roles de revisión', () => {
+    const permisos = TestBed.inject(PermisosService);
+    spyOn(permisos, 'tieneAlgunPermiso').and.returnValue(true);
+    spyOn(permisos, 'tieneGrupo').and.returnValue(false);
+    component.periodos = [{ id: 2, activo: true }]; component.periodoSeleccionadoId = '2';
+    expect(component.puedeCrearMarco).toBeFalse();
+    component.periodos[0].activo = false; component.abrirMarco(); expect(component.showMarco).toBeFalse();
   });
 });

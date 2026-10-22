@@ -2,6 +2,7 @@
   <h2 class="page-title">Reportes</h2>
 
   <div class="reportes-tabs" role="tablist" aria-label="Tipos de reporte">
+    <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'marco'" [class.active]="pestanaActiva === 'marco'" (click)="cambiarPestana('marco')"><i class="bx bx-book" aria-hidden="true"></i> Marco EQ-SIDACES</button>
     <button class="tab" role="tab" [attr.aria-selected]="pestanaActiva === 'general'" [class.active]="pestanaActiva === 'general'" (click)="cambiarPestana('general')">
       <i class="bx bx-line-chart" aria-hidden="true"></i> General
     </button>
@@ -420,7 +421,9 @@
     </div>
   </section>
 
-  <div class="reporte-exportar">
+  <app-reporte-marco *ngIf="pestanaActiva === 'marco'" [periodoId]="genFiltros.periodo" [periodos]="periodos" [unidades]="unidades" (periodoChange)="onPeriodoChange($event)"></app-reporte-marco>
+
+  <div class="reporte-exportar" *ngIf="pestanaActiva !== 'marco'">
     <button class="btn-exportar preview" (click)="previsualizar()">
       <i class="bx bx-show"></i> Vista previa
     </button>

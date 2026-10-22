@@ -185,16 +185,18 @@
           <span class="kpi-label">Asignadas directamente al marco</span>
         </div>
       </div>
+      <div class="kpi-card" *ngIf="metricas.pendientesCierre !== undefined"><div class="kpi-icon indigo"><i class="bx bx-check-shield" aria-hidden="true"></i></div><div class="kpi-body"><span class="kpi-value">{{ metricas.pendientesCierre }}</span><span class="kpi-label">Pendientes de cierre global</span></div></div>
     </div>
 
     <details class="metricas-definiciones">
       <summary>Definición de las métricas</summary>
       <ul>
         <li><strong>Total asignaciones</strong>: asignaciones visibles para el período y el ámbito del usuario, después de aplicar los filtros.</li>
-        <li><strong>Con evidencia</strong>: asignaciones con un registro de evidencia asociado (una sola por asignación, sin importar el número de versiones).</li>
+        <li><strong>Con evidencia</strong>: asignaciones con un registro de evidencia del flujo anterior o al menos un documento entregado del flujo documental. Cada asignación se cuenta una vez, sin importar el número de documentos o versiones.</li>
         <li><strong>Sin evidencia</strong>: total menos las asignaciones con evidencia.</li>
         <li><strong>Pendientes de revisión</strong>: asignaciones con evidencia activa cuyo estado es «En progreso» (enviadas y esperando revisión).</li>
         <li><strong>Observadas</strong>: asignaciones con evidencia activa cuyo estado es «Observada».</li>
+        <li *ngIf="tieneDocumentos"><strong>Pendientes de cierre global</strong>: asignaciones abiertas con todos sus documentos aprobados, que requieren la decisión global explícita del revisor.</li>
         <li *ngIf="correspondenciasDisponibles"><strong>Con correspondencia confirmada</strong>: asignaciones cuyo indicador tiene al menos una correspondencia confirmada con el catálogo (las propuestas no cuentan).</li>
         <li *ngIf="correspondenciasDisponibles"><strong>Sin correspondencia confirmada</strong>: asignaciones operativas sin correspondencia confirmada; las asignaciones directas al marco se cuentan por separado.</li>
         <li *ngIf="metricas.conAsignacionDirecta"><strong>Asignadas directamente al marco</strong>: responsabilidades vinculadas a un indicador del catálogo, sin requerir una correspondencia.</li>
@@ -212,6 +214,7 @@
             <th scope="col">Indicador</th>
             <th scope="col">Estado de la asignación</th>
             <th scope="col">Existencia de evidencia</th>
+            <th scope="col" *ngIf="tieneDocumentos">Progreso documental</th>
             <th scope="col">Estado de revisión de la evidencia</th>
             <th scope="col">Estado de la correspondencia</th>
             <th scope="col">Detalle</th>
@@ -225,10 +228,11 @@
             <td>{{ fila.indicadorNombre }}<small *ngIf="fila.tipoOrigen === 'marco'"> · Marco EQ-SIDACES</small></td>
             <td><span class="badge" [ngClass]="'estado-' + fila.estado">{{ fila.estadoDisplay }}</span></td>
             <td>
-              <span class="badge" [ngClass]="fila.evidenciaId ? 'ev-si' : 'ev-no'">
-                {{ fila.evidenciaId ? 'Sí' : 'No' }}
+              <span class="badge" [ngClass]="tieneEvidencia(fila) ? 'ev-si' : 'ev-no'">
+                {{ tieneEvidencia(fila) ? 'Sí' : 'No' }}
               </span>
             </td>
+            <td *ngIf="tieneDocumentos"><ng-container *ngIf="fila.documentosResumen as documentos; else sinFlujoDocumental"><span>{{ documentos.entregados }}/{{ documentos.solicitados }} entregados</span><br><small>{{ documentos.aprobados }}/{{ documentos.solicitados }} aprobados</small></ng-container><ng-template #sinFlujoDocumental>Flujo anterior</ng-template></td>
             <td><span class="badge" [ngClass]="'rev-' + fila.claveRevision">{{ fila.estadoRevision }}</span></td>
             <td>
               <span class="badge" [ngClass]="'corr-' + fila.correspondenciaEstado">
@@ -237,6 +241,7 @@
             </td>
             <td class="enlaces">
               <a [routerLink]="['/asignaciones', fila.asignacionId, 'detalle']" [queryParams]="{ periodo: periodoSeleccionadoId }">Asignación</a>
+              <a *ngIf="fila.documentosResumen" [routerLink]="['/asignaciones', fila.asignacionId, 'detalle']" [queryParams]="{ periodo: periodoSeleccionadoId }">Documentos</a>
               <a *ngIf="fila.evidenciaId" [routerLink]="['/evidencias', fila.evidenciaId, 'detalle']"
                 [queryParams]="{ periodo: periodoSeleccionadoId }">Evidencia</a>
               <a *ngIf="fila.tipoOrigen !== 'marco'" [routerLink]="['/indicadores', fila.indicadorId, 'detalle']">Correspondencias</a>

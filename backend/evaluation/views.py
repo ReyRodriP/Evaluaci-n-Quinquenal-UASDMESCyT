@@ -192,6 +192,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
     serializer_class = AsignacionSerializer
     permission_classes = [IsAuthenticated, CustomModelPermissions]
 
+    @action(detail=False, methods=['get'], url_path='contexto-marco', permission_classes=[IsAuthenticated])
+    def contexto_marco(self, request):
+        from .contexto_marco import opciones_alta_marco
+
+        return Response(opciones_alta_marco(request))
+
     def get_queryset(self):
         finalizar_periodos_vencidos()
         qs = Asignacion.objects.select_related(

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { EMPTY, Observable } from 'rxjs';
+import { expand, map, reduce } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -18,6 +18,13 @@ export class CatalogoService {
 
   listarVersiones(): Observable<any[]> {
     return this.toList(this.http.get<any>(`${this.apiUrl}/catalogo/versiones/`));
+  }
+
+  listarVersionesCompletas(): Observable<any[]> {
+    return this.http.get<any>(`${this.apiUrl}/catalogo/versiones/`).pipe(
+      expand(pagina => pagina.next ? this.http.get<any>(pagina.next) : EMPTY),
+      reduce((todas: any[], pagina: any) => todas.concat(Array.isArray(pagina) ? pagina : pagina.results ?? []), [])
+    );
   }
 
   listarDimensiones(versionSlug: string): Observable<any[]> {

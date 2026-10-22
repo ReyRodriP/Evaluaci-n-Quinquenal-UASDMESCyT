@@ -12,6 +12,8 @@
         <span *ngIf="periodoSeleccionadoId && !periodoSeleccionadoEsActivo">Solo consulta histórica</span>
       </div>
     </app-search-bar>
+    <div class="marco-create-bar" *ngIf="puedeCrearMarco"><button type="button" class="marco-create-btn" (click)="abrirMarco()"><i class="bx bx-book" aria-hidden="true"></i> Asignar indicador del marco</button></div>
+    <app-nueva-asignacion-marco *ngIf="showMarco && puedeCrearMarco" [periodoId]="periodoSeleccionadoId" (cerrar)="showMarco = false" (creada)="asignacionMarcoCreada($event)"></app-nueva-asignacion-marco>
     <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" [plantillasCelda]="{ 'Indicadores': plantillaIndicadores }" (edit)="openEdit($event)" (remove)="onRemove($event)">
       <ng-template #plantillaIndicadores let-row>
         <div class="indicadores-list">

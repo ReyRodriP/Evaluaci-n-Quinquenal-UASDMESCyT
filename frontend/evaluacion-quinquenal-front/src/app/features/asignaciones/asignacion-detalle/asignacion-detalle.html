@@ -1,8 +1,8 @@
-<section class="asignacion-detalle">
-  <header class="detalle-header">
+<section class="asignacion-detalle detalle-page">
+  <header class="detalle-header page-header">
     <div>
-      <a routerLink="/asignaciones" [queryParams]="periodoConsulta" class="btn-volver">Volver a asignaciones</a>
-      <h2>Asignación</h2>
+      <a [routerLink]="asignacion?.gestion_documental ? '/evidencias' : '/asignaciones'" [queryParams]="periodoConsulta" class="back-link"><i class="bx bx-arrow-from-right-stroke" aria-hidden="true"></i> {{ asignacion?.gestion_documental ? 'Volver a evidencias' : 'Volver a asignaciones' }}</a>
+      <h2>{{ asignacion?.gestion_documental ? 'Detalle de Evidencias' : 'Asignación' }}</h2>
     </div>
   </header>
 
@@ -14,10 +14,10 @@
   </div>
 
   <ng-container *ngIf="asignacion && !cargando">
-    <div class="card asignacion-card">
-      <div class="asignacion-cabecera">
+    <div class="card info-card asignacion-card">
+      <div class="asignacion-cabecera info-header">
         <h3>{{ asignacion.indicador_nombre }}</h3>
-        <span class="estado-badge" [attr.data-estado]="asignacion.estado">
+        <span class="estado-badge status-badge" [class.pending]="asignacion.estado === 'pendiente'" [class.uploaded]="asignacion.estado === 'en_progreso'" [class.approved]="asignacion.estado === 'aprobado'" [class.observed]="asignacion.estado === 'observada'" [class.rejected]="asignacion.estado === 'rechazado'" [attr.data-estado]="asignacion.estado">
           {{ asignacion.estado_display || asignacion.estado }}
         </span>
       </div>
@@ -30,7 +30,7 @@
     </div>
 
     <app-ruta-marco *ngIf="asignacion.tipo_origen === 'marco'" [ruta]="asignacion.ruta_marco"></app-ruta-marco>
-    <app-documentos-asignacion *ngIf="asignacion.tipo_origen === 'marco'" [asignacionId]="asignacion.id" (actualizado)="cargar()"></app-documentos-asignacion>
+    <app-documentos-asignacion *ngIf="asignacion.tipo_origen === 'marco'" [asignacionId]="asignacion.id" [solicitudId]="documentoId" (actualizado)="actualizarDocumento($event)"></app-documentos-asignacion>
 
     <app-marco-relacionado
       *ngIf="asignacion.indicador"

@@ -40,16 +40,25 @@
     <app-crud-table
       [columnas]="['Selección', 'Unidad responsable', 'Indicador', 'Período', 'Estado', 'Archivo', 'Observaciones']"
       [datos]="rowsPaginados"
-      [plantillasCelda]="{ 'Selección': plantillaSeleccion }"
+      [plantillasCelda]="{ 'Selección': plantillaSeleccion, 'Indicador': plantillaIndicador }"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
       <ng-template #plantillaSeleccion let-row>
         <input class="evidence-select-checkbox" type="checkbox" [checked]="filaSeleccionada(row)" [disabled]="!row.evidenciaId || !puedeDescargarMasivo"
           [attr.aria-label]="'Seleccionar evidencia ' + row.indicador_nombre"
           (change)="cambiarSeleccionFila(row, $event)" />
       </ng-template>
+      <ng-template #plantillaIndicador let-row>
+        <strong *ngIf="row.documentoTitulo" class="document-title">{{ row.documentoTitulo }}</strong>
+        <span>{{ row.indicador_nombre }}</span>
+      </ng-template>
       <ng-template #acciones let-row>
         <div class="action-group">
-          <button *ngIf="!row.evidenciaId && puedeSubir" type="button" class="action-btn action-primary" (click)="openManage(row)">
+          <button *ngIf="row.gestion_documental" type="button" class="action-btn action-secondary" (click)="openManage(row)">
+            {{ row.ultimaVersion ? 'Ver detalle' : (puedeSubir ? 'Subir evidencia' : 'Ver solicitud') }}
+          </button>
+          <button *ngIf="row.solicitudId && row.ultimaVersion" type="button" class="action-btn action-secondary" (click)="descargarUltimoArchivo(row)">Descargar</button>
+          <button *ngIf="row.solicitudId && row.ultimaVersion" type="button" class="action-btn action-secondary" (click)="verHistorial(row)">Ver historial</button>
+          <button *ngIf="!row.gestion_documental && !row.evidenciaId && puedeSubir" type="button" class="action-btn action-primary" (click)="openManage(row)">
             Subir evidencia
           </button>
           <button *ngIf="row.evidenciaId" type="button" class="action-btn action-secondary" (click)="openManage(row)">

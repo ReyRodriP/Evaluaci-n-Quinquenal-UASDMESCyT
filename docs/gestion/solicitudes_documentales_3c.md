@@ -1,8 +1,10 @@
 # 3C — Solicitudes documentales y revisión por documento
 
-Estado: implementación verificada automáticamente, después de la validación
-manual de 3B. Migraciones generadas y pendientes de puesta en servicio autorizada
-en desarrollo. La prueba interactiva de 3C todavía no se ha realizado.
+Estado: implementación verificada automáticamente y puesta en servicio autorizada
+en desarrollo, después de la validación manual de 3B. Ambas migraciones están
+aplicadas y la muestra de dos documentos está preparada en la asignación 27.
+El usuario confirmó que el flujo funciona totalmente bien y que la interfaz se ve
+bien tras la corrección de presentación y acceso. Se da por validada manualmente 3C.
 
 ## Objetivo acordado
 
@@ -119,7 +121,7 @@ Las bases PostgreSQL temporales se destruyeron al terminar. Los fallos simulados
 de auditoría en los logs verifican rollback de datos y limpieza del archivo recién
 subido; no son errores de las suites.
 
-## API y esquema pendiente de desarrollo
+## API y esquema aplicado en desarrollo
 
 - `evaluation.0008_gestion_documental`: añade la marca de incorporación al flujo.
 - `evidence.0003_gestion_documental`: crea solicitudes, versiones y revisiones.
@@ -133,27 +135,118 @@ subido; no son errores de las suites.
 - `/api/asignaciones/<id>/aprobar/`: decisión global explícita, restringida a
   revisores autorizados para el flujo documental.
 
-Se consultó el historial de migraciones de desarrollo: ambas migraciones 3C siguen
-sin aplicar. La asignación 26 quedó aprobada durante la validación manual de 3B y
-conserva su evidencia ID 16; 27, 28 y 29 seguían pendientes al inventariarlas.
+Tras la autorización del usuario se aplicó `migrate evidence
+0003_gestion_documental`, que incluye la dependencia
+`evaluation.0008_gestion_documental`. Ambas quedaron confirmadas en
+`django_migrations` de PostgreSQL `evaluacion_quinquenal`; `manage.py check` no
+reportó incidencias. Se iniciaron backend y Angular con el esquema actualizado.
 
-## Puesta en servicio y prueba manual siguientes
+## Muestra técnica preparada
 
-Tras autorizar el despliegue de este incremento:
+- Asignación **27**, indicador interno `8.4.1.1-IND-01`, estándar de gestión de
+  riesgos, período **2025–2030** (2).
+- Unidad: **Unidad de Postgrado- UASD Barahona** (23). Encargado: **`usuario1`**.
+- Revisor de la muestra: **`jorge`**, con ámbito activo en Recinto Barahona (19),
+  período 2. Se mantiene el modo explícito de ámbitos.
+- `gestion_documental=True`; asignación y solicitudes pendientes, sin versiones.
 
-1. Aplicar ambas migraciones y reiniciar el backend antes de iniciar la prueba.
-   El código actualizado requiere esas columnas y tablas; hasta aplicarlas no debe
-   iniciarse otra prueba manual contra el servidor de desarrollo autorecargado.
-2. Elegir una asignación pendiente sin evidencias dentro del ámbito de Barahona o
-   crear una asignación técnica adicional con un indicador disponible. La 26
-   conserva su aprobación e historial de evidencia única.
-3. Con `MrRey`, abrir el detalle y definir dos solicitudes claramente identificadas
-   como muestra técnica, con título y descripción. Ambas serán obligatorias.
-4. Con el encargado autorizado, cargar y enviar los dos documentos. Comprobar que
-   ambos comienzan con versión 1.
-5. Con `jorge`, aprobar A y solicitar cambios en B. Con el encargado, corregir B y
-   reenviarlo: A conserva versión 1 y B pasa a versión 2 con su historial anterior.
-6. Aprobar B y comprobar que la asignación continúa en progreso. Ejecutar después
-   «Aprobar globalmente la asignación» y verificar el cierre y los bloqueos de edición.
-7. Verificar lectura histórica, descargas individuales, aislamiento por ámbitos,
-   progreso en seguimiento/dashboard y filas documentales en el reporte de evidencias.
+| Documento | Solicitud | Título |
+|---|---|---|
+| A | 3 | [Muestra 3C] Metodología documentada de gestión de riesgos |
+| B | 4 | [Muestra 3C] Acta de revisión de la metodología de riesgos |
+
+Ambas solicitudes son obligatorias y sus descripciones aclaran el carácter ficticio
+y la asociación documental técnica, no oficial. Se crearon por API interna con la
+cuenta `MrRey`, con auditoría de alta y «Preparar muestra 3C». Primero se verificó
+la preparación mediante una transacción revertida; por eso los IDs 1 y 2 no son
+los definitivos. La transacción confirmada produjo los IDs **3 y 4**.
+
+Se compararon las otras asignaciones, las evidencias activas y los historiales
+antes y después de la preparación y conservaron sus campos. En particular, la
+asignación **26** sigue aprobada, con su evidencia **16** y flujo anterior.
+
+### Comprobaciones HTTP del servidor efectivo
+
+| Cuenta | Consulta de solicitudes 3/4 | Definir | Aportar | Revisar |
+|---|---|---|---|---|
+| `MrRey` | 200 | Sí | Sí | Sí |
+| `usuario1` | 200 | No | Sí | No |
+| `jorge` | 200 | No | No | Sí |
+| `sosua` | 404; listado vacío | Fuera de alcance | Fuera de alcance | Fuera de alcance |
+| `mrPopoMaster` | 404; listado vacío | Fuera de alcance | Fuera de alcance | Fuera de alcance |
+| `revisor` (externo) | 404; listado vacío | No | No | No |
+
+El contexto informa dos documentos y cero aprobados. Ninguna de las tres cuentas
+autorizadas tiene habilitada la aprobación global mientras faltan las entregas.
+Se comprobaron respuestas 200 en resumen y avance por criterio del dashboard y en
+el reporte de evidencias. Angular compiló en modo desarrollo y respondió 200 en
+`http://localhost:4200/`. Backend: `http://127.0.0.1:8000/`.
+
+Las comprobaciones HTTP de puesta en servicio fueron de lectura: los documentos
+quedaron sin archivos ni decisiones para la prueba del usuario.
+
+## Prueba manual pendiente
+
+1. Abrir `http://localhost:4200/asignaciones/27/detalle?periodo=2` con **`usuario1`**.
+   Comprobar los documentos A y B y que no aparecen controles para crear solicitudes.
+2. Cargar un archivo de prueba en A y otro en B. Pulsar **Enviar documento a revisión**
+   en cada uno. Ambos deben comenzar con versión 1.
+3. Con **`jorge`**, abrir el mismo detalle, aprobar A y solicitar cambios en B con
+   un comentario. La asignación todavía no debe poder aprobarse globalmente.
+4. Con **`usuario1`**, cargar una corrección de B y reenviarla. A conserva versión 1;
+   B tiene versión 2, con la observación y el archivo anterior en su historial.
+5. Con **`jorge`**, aprobar B. Comprobar que la asignación continúa en progreso y
+   ahora aparece **Aprobar globalmente la asignación**.
+6. Ejecutar la aprobación global y comprobar el cierre, las notificaciones y los
+   bloqueos de edición. Revisar descargas de las versiones de ambos documentos.
+7. Con **`MrRey`**, consultar Seguimiento, Dashboard y el reporte de evidencias:
+   la cobertura cuenta una asignación y el reporte incorpora sus dos documentos.
+
+El usuario confirmó el funcionamiento después de este recorrido y de la corrección
+de interfaz descrita abajo. La fase 3C queda validada manualmente; sus archivos,
+decisiones e historiales se conservan al avanzar al siguiente incremento.
+
+## Corrección de presentación y acceso desde Evidencias (22/10/2026)
+
+El usuario reportó que el panel documental no conservaba el diseño de evidencia
+individual y que, después de subir los archivos, el listado parecía vacío y el
+revisor no encontraba cómo abrirlos.
+
+El inventario confirmó que la asignación 27 estaba en progreso y las solicitudes
+3 y 4 estaban en revisión, con sus archivos guardados. El problema era de
+integración: el listado consultaba solo evidencias del flujo anterior y sus botones
+dependían de `evidenciaId`, que no identifica una solicitud documental.
+
+Correcciones:
+
+- El listado consulta las solicitudes por período y muestra una fila por documento,
+  con título, archivo, estado documental y observación de revisión. El acceso al
+  detalle está disponible para el revisor aunque no tenga permiso de carga.
+- «Ver detalle» abre el documento seleccionado mediante `documento=<id>`. Descargar
+  utiliza el identificador de solicitud y versión correspondientes; el historial
+  abre el detalle documental. La búsqueda incluye el título del documento.
+- El panel y la cabecera reutilizan el CSS de la evidencia individual: tarjetas,
+  indicadores de estado, historial a la izquierda y acciones a la derecha. Las
+  pestañas permiten seleccionar cada evidencia y mantener independientes sus archivos,
+  versiones y decisiones. La selección se conserva tras guardar o revisar.
+- Se incorpora vista previa de imágenes, PDF y texto, con descarga para los otros
+  formatos. La disposición pasa a una columna en pantallas pequeñas.
+- Se conserva el filtro de permisos por asignación en el nuevo filtro de período.
+
+Verificación de la corrección:
+
+| Comprobación | Resultado |
+|---|---|
+| Suite frontend completa | 265 pruebas satisfactorias |
+| Suite documental PostgreSQL aislada | 18 pruebas satisfactorias |
+| Build Angular | Satisfactorio |
+| Ruff en módulo documental y pruebas | Satisfactorio |
+| `git diff --check` | Sin errores |
+| Navegador Edge con la cuenta `jorge` | Dos filas con archivos y acceso al detalle; ambos documentos muestran controles de revisión |
+| Estilos efectivos en navegador | Tarjetas y botones del detalle individual, distribución de historial/acciones |
+| Vista previa real | Imagen del documento B cargada correctamente |
+| Pantalla de 390 px | Una columna, sin desbordamiento horizontal |
+
+La comprobación en navegador fue de consulta: no ejecutó aprobaciones ni alteró los
+archivos enviados. El usuario puede continuar la revisión desde Evidencias con
+los documentos que ya cargó; no necesita volver a subirlos.

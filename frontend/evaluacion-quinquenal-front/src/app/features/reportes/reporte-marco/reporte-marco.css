@@ -1,0 +1,17 @@
+:host { display: block; min-width: 0; }
+h3 { color: var(--text-title-color); margin: 0 0 12px; }
+.reporte-nota { color: var(--text-color); line-height: 1.6; margin: 0 0 18px; }
+.marco-table-wrapper { max-width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 20px; }
+.marco-table { width: 100%; border-collapse: collapse; min-width: 1050px; background: var(--table-bg); color: var(--text-color); }
+.marco-table th, .marco-table td { padding: 14px; border-bottom: 1px solid var(--border-color); text-align: center; }
+.marco-table thead { background: var(--background-selected); color: var(--text-title-color); }
+.marco-table tbody th { text-align: left; min-width: 260px; max-width: 420px; }
+.marco-table tbody th span, .marco-table tbody th small { display: block; margin-top: 6px; font-weight: 400; }
+.marco-table tbody tr:hover { background: var(--background-hover); }
+.btn-exportar.csv { background: var(--primary-color); }
+.btn-exportar:disabled { opacity: .6; cursor: not-allowed; }
+.definiciones-marco { margin-top: 20px; color: var(--text-color); line-height: 1.6; }
+.definiciones-marco summary { cursor: pointer; font-weight: 600; color: var(--text-title-color); }
+.error-marco { color: var(--danger-color, #dc2626); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+@media (max-width: 700px) { .reporte-exportar { flex-wrap: wrap; } }

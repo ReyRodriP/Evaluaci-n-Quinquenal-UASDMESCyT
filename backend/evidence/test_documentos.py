@@ -139,6 +139,21 @@ class DocumentosTests(EscenarioDocumental, TestCase):
         self.assertEqual(self.subir(pk).status_code, 400)
         self.assertEqual(self.cliente(self.responsable).get(f'/api/solicitudes-documentales/{pk}/').status_code, 200)
 
+    def test_listado_por_periodo_incluye_entregas_para_revisor_y_conserva_ambitos(self):
+        pk = self.solicitar()
+        self.assertEqual(self.subir(pk).status_code, 201)
+        self.enviar(pk)
+        r = self.cliente(self.revisor).get('/api/solicitudes-documentales/', {'periodo': self.periodo.pk})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual([s['id'] for s in r.data['results']], [pk])
+        self.assertEqual(r.data['results'][0]['estado'], 'en_revision')
+        self.assertTrue(r.data['results'][0]['versiones'][0]['nombre_archivo'])
+        for periodo, usuario in ((self.historico.pk, self.revisor), (self.periodo.pk, self.otro)):
+            r = self.cliente(usuario).get('/api/solicitudes-documentales/', {'periodo': periodo})
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.data['results'], [])
+        self.assertEqual(self.cliente(self.revisor).get('/api/solicitudes-documentales/', {'periodo': 'invalido'}).status_code, 400)
+
     def test_no_reclasifica_entregas_existentes_ni_asignaciones_operativas(self):
         evidencia = Evidencia.objects.create(asignacion=self.asignacion, titulo='Histórica', descripcion='Conservar')
         r = self.cliente().post('/api/solicitudes-documentales/', {'asignacion': self.asignacion.pk, 'titulo': 'Nueva', 'descripcion': 'Prueba'}, format='json')
