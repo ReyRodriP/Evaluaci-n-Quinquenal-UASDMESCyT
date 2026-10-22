@@ -10,6 +10,7 @@ import { OrganizacionService } from '../../../../core/services/organizacion.serv
 import { PermisosService } from '../../../../core/services/permisos.service';
 import { SeguimientoResumenService } from '../../../../core/services/seguimiento-resumen.service';
 import { CatalogoService } from '../../../../core/services/catalogo.service';
+import { rutaCoincideConMarco } from '../../../../core/models/asignacion-marco.model';
 import { FilaSeguimiento, ResultadoSeguimiento, calcularMetricas } from '../../../../core/models/seguimiento.model';
 import ApexCharts from 'apexcharts';
 
@@ -373,6 +374,9 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private filaPerteneceAlMarco(fila: FilaSeguimiento): boolean {
+    if (fila.tipoOrigen === 'marco') return rutaCoincideConMarco(fila.rutaMarco, {
+      dimension: this.dimensionSeleccionadaId, componente: this.componenteSeleccionadoId, estandar: this.estandarSeleccionadoId,
+    });
     if (this.marcoOrigenesIndicador.has(Number(fila.indicadorId))) return true
     if (fila.criterioId != null && this.marcoOrigenesCriterio.has(Number(fila.criterioId))) return true
     return false

@@ -1,8 +1,40 @@
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from auditoria.utils import registrar_auditoria
 
 from .models import EstadoAsignacion, Periodo
+
+
+def relaciones_indicador(prefijo=""):
+    return tuple(prefijo + ruta for ruta in (
+        "indicador__criterio",
+        "indicador_marco__version_marco",
+        "indicador_marco__estandar__criterio_marco__componente__dimension",
+    ))
+
+
+def validar_referencia_marco(indicador, periodo):
+    if not periodo.version_marco_id:
+        raise ValidationError({"periodo": "Seleccione explícitamente una versión del marco para el período."})
+    estandar = indicador.estandar
+    criterio = estandar.criterio_marco
+    componente = criterio.componente
+    dimension = componente.dimension
+    if any(nodo.version_marco_id != periodo.version_marco_id for nodo in (indicador, estandar, criterio, componente, dimension)):
+        raise ValidationError({"indicador_marco": "El indicador y todos sus ancestros deben pertenecer a la versión del período."})
+
+
+def validar_encargado(encargado, unidad):
+    from organization.models import PerfilUsuario
+
+    if encargado is None:
+        raise ValidationError({"encargado": "Seleccione un encargado para la asignación del marco."})
+    if not encargado.is_active or not PerfilUsuario.objects.filter(usuario=encargado, unidad_organizacional=unidad).exists():
+        raise ValidationError({"encargado": "El encargado debe estar activo y pertenecer a la unidad responsable."})
+    permisos = ["evaluation.view_asignacion", "evidence.view_evidencia", "evidence.add_evidencia"]
+    if encargado.groups.filter(name="Evaluador Externo").exists() or not encargado.has_perms(permisos):
+        raise ValidationError({"encargado": "El encargado debe estar autorizado para consultar y aportar evidencias."})
 
 TRANSICIONES_ESTADO = {
     EstadoAsignacion.PENDIENTE: [EstadoAsignacion.EN_PROGRESO, EstadoAsignacion.OBSERVADA],

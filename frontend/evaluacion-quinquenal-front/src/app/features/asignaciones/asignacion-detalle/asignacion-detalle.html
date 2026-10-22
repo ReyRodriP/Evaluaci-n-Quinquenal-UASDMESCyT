@@ -24,9 +24,13 @@
       <div class="asignacion-datos">
         <p><strong>Unidad responsable:</strong> {{ asignacion.unidad_responsable_nombre }}</p>
         <p><strong>Período:</strong> {{ asignacion.periodo_nombre }}</p>
+        <p *ngIf="asignacion.encargado_nombre"><strong>Encargado:</strong> {{ asignacion.encargado_nombre }}</p>
         <p *ngIf="asignacion.departamento_nombre"><strong>Departamento:</strong> {{ asignacion.departamento_nombre }}</p>
       </div>
     </div>
+
+    <app-ruta-marco *ngIf="asignacion.tipo_origen === 'marco'" [ruta]="asignacion.ruta_marco"></app-ruta-marco>
+    <app-documentos-asignacion *ngIf="asignacion.tipo_origen === 'marco'" [asignacionId]="asignacion.id" (actualizado)="cargar()"></app-documentos-asignacion>
 
     <app-marco-relacionado
       *ngIf="asignacion.indicador"

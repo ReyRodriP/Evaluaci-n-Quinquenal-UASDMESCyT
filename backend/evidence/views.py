@@ -33,7 +33,8 @@ from accounts.permissions import (
 )
 from auditoria.utils import registrar_auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado
-from evaluation.services import finalizar_periodos_vencidos, transicion_valida
+from evaluation.services import finalizar_periodos_vencidos, relaciones_indicador, transicion_valida
+from evaluation.filtros import filtrar_por_marco
 from notificaciones.utils import crear_notificacion
 
 from .models import Evidencia, Observacion, VersionEvidencia
@@ -72,12 +73,13 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         @return QuerySet filtrado por departamento de la asignación"""
 
         finalizar_periodos_vencidos()
-        qs = Evidencia.objects.all()
+        qs = Evidencia.objects.select_related("asignacion__periodo", *relaciones_indicador("asignacion__"))
         periodo_id = self.request.query_params.get("periodo")
         if periodo_id:
             qs = qs.filter(asignacion__periodo_id=periodo_id)
         elif self.request.method in ("GET", "HEAD", "OPTIONS") and not es_evaluador_externo(self.request):
             qs = qs.filter(asignacion__periodo__activo=True)
+        qs = filtrar_por_marco(qs, self.request.query_params, "asignacion__")
         return filtrar_por_rol(qs, self.request, dept_field="asignacion__unidad_responsable")
 
     @action(
@@ -108,7 +110,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
             .select_related(
                 "asignacion__periodo",
                 "asignacion__unidad_responsable",
-                "asignacion__indicador__criterio",
+                *relaciones_indicador("asignacion__"),
             )
             .prefetch_related("versiones")
         )
@@ -154,7 +156,10 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
             with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
                 for evidencia in evidencias:
                     asignacion = evidencia.asignacion
-                    indicador = asignacion.indicador
+                    indicador_nombre = asignacion.indicador_nombre
+                    criterio_nombre = asignacion.criterio_nombre
+                    indicador_archivo = asignacion.indicador_marco.codigo_completo if asignacion.indicador_marco_id else indicador_nombre
+                    criterio_archivo = asignacion.indicador_marco.estandar.criterio_marco.codigo_completo if asignacion.indicador_marco_id else criterio_nombre
                     version = versiones[evidencia.pk]
                     nombre_original = PurePosixPath(version.archivo.name).name if version and version.archivo else ""
                     if version is None or not version.archivo:
@@ -163,7 +168,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
                         errores_count += 1
                         manifest_writer.writerow(
                             [evidencia.pk, asignacion.pk, asignacion.periodo.nombre, asignacion.unidad_responsable.nombre,
-                             indicador.criterio.nombre, indicador.nombre, "", "", 0, "SIN_ARCHIVO"]
+                             criterio_nombre, indicador_nombre, "", "", 0, "SIN_ARCHIVO"]
                         )
                         continue
 
@@ -171,14 +176,14 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
                         _nombre_zip_seguro(segmento)
                         for segmento in (
                             asignacion.periodo.nombre,
-                            indicador.criterio.nombre,
+                            criterio_archivo,
                             asignacion.unidad_responsable.nombre,
-                            indicador.nombre,
+                            indicador_archivo,
                         )
                     )
                     nombre_archivo = _nombre_zip_seguro(nombre_original)
                     destino = (
-                        f"{carpeta}/EVID-{evidencia.pk}_IND-{_nombre_zip_seguro(indicador.nombre)}_"
+                        f"{carpeta}/EVID-{evidencia.pk}_IND-{_nombre_zip_seguro(indicador_archivo)}_"
                         f"v{version.version}_{nombre_archivo}"
                     )
 
@@ -200,7 +205,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
                         errores_count += 1
                         manifest_writer.writerow(
                             [evidencia.pk, asignacion.pk, asignacion.periodo.nombre, asignacion.unidad_responsable.nombre,
-                             indicador.criterio.nombre, indicador.nombre, version.version, nombre_original,
+                             criterio_nombre, indicador_nombre, version.version, nombre_original,
                              tamano_archivo, "ERROR_ARCHIVO"]
                         )
                         continue
@@ -211,7 +216,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
                     bytes_incluidos += tamano_archivo
                     manifest_writer.writerow(
                         [evidencia.pk, asignacion.pk, asignacion.periodo.nombre, asignacion.unidad_responsable.nombre,
-                         indicador.criterio.nombre, indicador.nombre, version.version, destino, tamano_archivo, "INCLUIDO"]
+                          criterio_nombre, indicador_nombre, version.version, destino, tamano_archivo, "INCLUIDO"]
                     )
 
                 zip_file.writestr("manifest.csv", manifest.getvalue().encode("utf-8-sig"))
@@ -264,6 +269,8 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         if asignacion_id:
             finalizar_periodos_vencidos()
             asignacion = Asignacion.objects.filter(pk=asignacion_id).select_related("periodo").first()
+            if asignacion is not None and asignacion.gestion_documental:
+                raise ValidationError({'asignacion': 'La asignación utiliza solicitudes documentales; gestione cada documento por separado.'})
             if asignacion is not None and not asignacion_revision_permitida(
                 request, asignacion.unidad_responsable_id, asignacion.periodo_id
             ):

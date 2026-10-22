@@ -4,9 +4,11 @@
 criterios, indicadores, asignaciones y el historial de estados de las asignaciones.
 """
 
+import re
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 
 class Periodo(models.Model):
@@ -20,6 +22,10 @@ class Periodo(models.Model):
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
     activo = models.BooleanField(default=True)
+    version_marco = models.ForeignKey(
+        "catalogo.VersionMarcoEvaluacion", on_delete=models.PROTECT,
+        null=True, blank=True, related_name="periodos",
+    )
 
     class Meta:
         constraints = [
@@ -41,8 +47,23 @@ class Periodo(models.Model):
             errors["fecha_fin"] = "La fecha de fin debe ser posterior a la fecha de inicio."
         if self.activo and Periodo.objects.exclude(pk=self.pk).filter(activo=True).exists():
             errors["activo"] = "Ya existe otro período activo. Desactívelo antes de activar este período."
+        if self.pk:
+            anterior = Periodo.objects.filter(pk=self.pk).values_list("version_marco_id", flat=True).first()
+            if anterior != self.version_marco_id and self.asignaciones.filter(indicador_marco__isnull=False).exists():
+                errors["version_marco"] = "El período ya tiene asignaciones del marco; no puede sustituir su versión."
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            return super().save(*args, **kwargs)
+        with transaction.atomic():
+            anterior = Periodo.objects.select_for_update().get(pk=self.pk)
+            campos = kwargs.get("update_fields")
+            if campos is None or "version_marco" in campos or "version_marco_id" in campos:
+                if anterior.version_marco_id != self.version_marco_id and self.asignaciones.filter(indicador_marco__isnull=False).exists():
+                    raise ValidationError({"version_marco": "El período ya tiene asignaciones del marco; no puede sustituir su versión."})
+            return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombre
@@ -103,7 +124,15 @@ class Asignacion(models.Model):
     actual de la asignación y garantiza unicidad por la tripleta de claves foráneas.
     """
 
-    indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE, related_name="asignaciones")
+    indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE, related_name="asignaciones", null=True, blank=True)
+    indicador_marco = models.ForeignKey(
+        "catalogo.IndicadorMarco", on_delete=models.PROTECT,
+        null=True, blank=True, related_name="asignaciones",
+    )
+    encargado = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="asignaciones_encargadas",
+    )
     unidad_responsable = models.ForeignKey(
         "organization.UnidadOrganizacional",
         on_delete=models.CASCADE,
@@ -111,12 +140,97 @@ class Asignacion(models.Model):
     )
     periodo = models.ForeignKey(Periodo, on_delete=models.CASCADE, related_name="asignaciones")
     estado = models.CharField(max_length=20, choices=EstadoAsignacion.choices, default=EstadoAsignacion.PENDIENTE)
+    gestion_documental = models.BooleanField(default=False, editable=False)
 
     class Meta:
         unique_together = ("indicador", "unidad_responsable", "periodo")
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(indicador__isnull=False, indicador_marco__isnull=True)
+                    | models.Q(indicador__isnull=True, indicador_marco__isnull=False)
+                ),
+                name="asignacion_origen_unico",
+            ),
+            models.UniqueConstraint(
+                fields=["indicador_marco", "unidad_responsable", "periodo"],
+                condition=models.Q(indicador_marco__isnull=False),
+                name="asignacion_marco_unidad_periodo_unica",
+            ),
+        ]
+
+    @property
+    def tipo_origen(self):
+        return "marco" if self.indicador_marco_id else "operativo"
+
+    @property
+    def indicador_nombre(self):
+        return self.indicador_marco.redaccion_oficial if self.indicador_marco_id else self.indicador.nombre
+
+    @property
+    def criterio_nombre(self):
+        return self.indicador_marco.estandar.criterio_marco.nombre if self.indicador_marco_id else self.indicador.criterio.nombre
+
+    @property
+    def ruta_marco(self):
+        if not self.indicador_marco_id:
+            return None
+        indicador = self.indicador_marco
+        estandar = indicador.estandar
+        criterio = estandar.criterio_marco
+        componente = criterio.componente
+        dimension = componente.dimension
+        return {
+            "version": {"id": indicador.version_marco_id, "nombre": indicador.version_marco.nombre, "slug": indicador.version_marco.slug, "activo": indicador.version_marco.activo},
+            "dimension": {"id": dimension.pk, "codigo": dimension.codigo, "nombre": dimension.nombre},
+            "componente": {"id": componente.pk, "codigo": componente.codigo_completo, "nombre": componente.nombre},
+            "criterio": {"id": criterio.pk, "codigo": criterio.codigo_completo, "nombre": criterio.nombre},
+            "estandar": {"id": estandar.pk, "codigo": estandar.codigo_completo, "nombre": estandar.redaccion},
+            "indicador": {"id": indicador.pk, "codigo": indicador.codigo_completo, "nombre": indicador.redaccion_oficial, "orden": indicador.orden, "codigo_sintetico": bool(re.fullmatch(r".+-IND-\d{2}", indicador.codigo or ""))},
+        }
+
+    def clean(self):
+        super().clean()
+        if bool(self.indicador_id) == bool(self.indicador_marco_id):
+            raise ValidationError({"indicador_marco": "Indique exactamente un indicador: operativo o del marco."})
+        if self.indicador_marco_id and self.periodo_id:
+            from .services import validar_encargado, validar_referencia_marco
+
+            validar_referencia_marco(self.indicador_marco, self.periodo)
+            if self._state.adding:
+                validar_encargado(self.encargado, self.unidad_responsable)
+                if not self.indicador_marco.activo or not self.unidad_responsable.activa:
+                    raise ValidationError("El indicador y la unidad responsable deben estar activos.")
+                if self.estado != EstadoAsignacion.PENDIENTE:
+                    raise ValidationError({"estado": "La asignación del marco debe crearse pendiente de entrega y revisión."})
+
+    def save(self, *args, **kwargs):
+        if not self.indicador_marco_id:
+            return super().save(*args, **kwargs)
+        # Comparte el bloqueo del período con su actualización de versión.
+        with transaction.atomic():
+            periodo = Periodo.objects.select_for_update().get(pk=self.periodo_id)
+            from .services import validar_referencia_marco
+
+            if not self._state.adding:
+                anterior = Asignacion.objects.select_for_update().get(pk=self.pk)
+                if anterior.gestion_documental:
+                    self.gestion_documental = True
+                    if any(getattr(anterior, campo) != getattr(self, campo) for campo in (
+                        'indicador_id', 'indicador_marco_id', 'unidad_responsable_id', 'periodo_id'
+                    )):
+                        raise ValidationError('La asignación con gestión documental conserva su origen, unidad y período.')
+            validar_referencia_marco(self.indicador_marco, periodo)
+            if self.gestion_documental and self.estado == EstadoAsignacion.APROBADO:
+                from evidence.documentos import validar_cierre_documental
+
+                validar_cierre_documental(self)
+            if self._state.adding:
+                self.clean()
+            return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.indicador} - {self.unidad_responsable} ({self.periodo})"
+        return f"{self.indicador_nombre} - {self.unidad_responsable} ({self.periodo})"
 
 
 class HistorialEstado(models.Model):

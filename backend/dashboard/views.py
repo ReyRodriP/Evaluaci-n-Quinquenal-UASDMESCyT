@@ -29,7 +29,10 @@ from accounts.permissions import (
 )
 from evaluation.models import Asignacion, Criterio, EstadoAsignacion, Indicador, Periodo
 from evaluation.services import finalizar_periodos_vencidos
+from evaluation.services import relaciones_indicador
+from catalogo.models import CriterioMarco
 from evidence.models import Evidencia as EvidenciaVersionada
+from evidence.models import VersionDocumento
 from evidencias.models import Evidencia as EvidenciaLegada
 from organization.models import Departamento, Facultad, UnidadOrganizacional
 
@@ -108,7 +111,7 @@ def _asignaciones_dashboard(request, periodo, departamento_id=None):
 def _metricas_asignaciones(qs):
     tiene_evidencia = Exists(EvidenciaVersionada.objects.filter(asignacion_id=OuterRef("pk"))) | Exists(
         EvidenciaLegada.objects.filter(asignacion_id=OuterRef("pk"))
-    )
+    ) | Exists(VersionDocumento.objects.filter(solicitud__asignacion_id=OuterRef('pk')))
     agrupado = qs.annotate(_tiene_evidencia=tiene_evidencia).aggregate(
         total=Count("pk", distinct=True),
         con_evidencia=Count("pk", filter=Q(_tiene_evidencia=True), distinct=True),
@@ -119,6 +122,7 @@ def _metricas_asignaciones(qs):
         rechazadas=Count("pk", filter=Q(estado=EstadoAsignacion.RECHAZADO), distinct=True),
         completadas=Count("pk", filter=Q(estado=EstadoAsignacion.COMPLETADO), distinct=True),
         indicadores=Count("indicador_id", distinct=True),
+        indicadores_marco=Count("indicador_marco_id", distinct=True),
         unidades=Count("unidad_responsable_id", distinct=True),
         departamentos=Count(
             "unidad_responsable__departamento_legacy_id",
@@ -131,7 +135,11 @@ def _metricas_asignaciones(qs):
     aprobadas = agrupado["aprobadas"] or 0
     return {
         "asignaciones": total,
-        "indicadores": agrupado["indicadores"] or 0,
+        "indicadores": (agrupado["indicadores"] or 0) + (agrupado["indicadores_marco"] or 0),
+        **({
+            "indicadores_operativos": agrupado["indicadores"] or 0,
+            "indicadores_marco": agrupado["indicadores_marco"],
+        } if agrupado["indicadores_marco"] else {}),
         "unidades": agrupado["unidades"] or 0,
         "departamentos": agrupado["departamentos"] or 0,
         "evidencias": con_evidencia,
@@ -270,6 +278,12 @@ def avance(request):
             resultado.append(
                 {"nombre": criterio.nombre, "porcentaje": metricas["cumplimiento_porcentaje"], **metricas}
             )
+        criterios_marco = CriterioMarco.objects.filter(
+            pk__in=asignaciones_base.values_list("indicador_marco__estandar__criterio_marco_id", flat=True)
+        ).order_by("pk")
+        for criterio in criterios_marco:
+            metricas = _metricas_asignaciones(asignaciones_base.filter(indicador_marco__estandar__criterio_marco=criterio))
+            resultado.append({"nombre": criterio.nombre, "tipo_origen": "marco", "criterio_marco": criterio.pk, "porcentaje": metricas["cumplimiento_porcentaje"], **metricas})
     elif agrupar == "unidad":
         unidades_ids = asignaciones_base.values_list("unidad_responsable_id", flat=True).distinct()
         unidades = UnidadOrganizacional.objects.filter(pk__in=unidades_ids).order_by("pk")
@@ -343,7 +357,7 @@ def pendientes(request):
         return Response([])
 
     queryset = _asignaciones_dashboard(request, periodo).filter(estado__in=estados).select_related(
-        "indicador__criterio", "unidad_responsable", "periodo"
+        *relaciones_indicador(), "unidad_responsable", "periodo"
     ).order_by("estado", "pk")[:50]
 
     rows = []
@@ -352,8 +366,9 @@ def pendientes(request):
         rows.append({
             "asignacion_id": asignacion.pk,
             "evidencia_id": evidencia.pk if evidencia else None,
-            "indicador": asignacion.indicador.nombre,
-            "criterio": asignacion.indicador.criterio.nombre,
+            "indicador": asignacion.indicador_nombre,
+            "criterio": asignacion.criterio_nombre,
+            "tipo_origen": asignacion.tipo_origen,
             "unidad": asignacion.unidad_responsable.nombre,
             "periodo": asignacion.periodo.nombre,
             "periodo_id": asignacion.periodo_id,
@@ -389,6 +404,7 @@ def periodo_dashboard(request, pk):
 
     indicadores_ids = asignaciones.values("indicador").distinct()
     total_indicadores = Indicador.objects.filter(pk__in=indicadores_ids, activo=True).count()
+    total_indicadores += asignaciones.filter(indicador_marco__activo=True).values("indicador_marco_id").distinct().count()
 
     metricas = _metricas_asignaciones(asignaciones)
 

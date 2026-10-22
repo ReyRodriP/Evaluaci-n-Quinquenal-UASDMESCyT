@@ -119,8 +119,10 @@ export class EvaluacionService {
     );
   }
 
-  obtenerAsignacion(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/asignaciones/${id}/`);
+  obtenerAsignacion(id: number, periodoId?: string | number): Observable<any> {
+    const params: Record<string, string> = {};
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get(`${this.apiUrl}/asignaciones/${id}/`, { params });
   }
 
   crearAsignacion(payload: any): Observable<any> {

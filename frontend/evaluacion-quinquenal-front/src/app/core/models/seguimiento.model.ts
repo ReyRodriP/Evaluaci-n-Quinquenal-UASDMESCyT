@@ -1,3 +1,5 @@
+import { RutaMarcoAsignacion } from './asignacion-marco.model';
+
 export const MAX_PAGINAS_LISTADO = 20;
 export const MAX_PAGINAS_CORRESPONDENCIAS = 10;
 
@@ -11,7 +13,7 @@ export type ClaveRevision =
   | 'sin_enviar'
   | 'completada';
 
-export type EstadoCorrespondenciaFila = 'confirmada' | 'pendiente' | 'sin' | 'desconocida';
+export type EstadoCorrespondenciaFila = 'confirmada' | 'pendiente' | 'sin' | 'desconocida' | 'directa';
 
 export interface FilaSeguimiento {
   asignacionId: number;
@@ -30,6 +32,10 @@ export interface FilaSeguimiento {
   correspondenciaEstado: EstadoCorrespondenciaFila;
   codigoDestino: string;
   versionMarco: string;
+  tipoOrigen?: 'operativo' | 'marco';
+  indicadorMarcoId?: number;
+  rutaMarco?: RutaMarcoAsignacion;
+  documentosResumen?: { solicitados: number; entregados: number; aprobados: number; observados: number };
 }
 
 export interface Metricas {
@@ -40,6 +46,7 @@ export interface Metricas {
   observadas: number;
   conConfirmada: number | null;
   sinConfirmada: number | null;
+  conAsignacionDirecta?: number;
 }
 
 export interface ResultadoPaginas<T> {
@@ -72,13 +79,16 @@ export const ETIQUETAS_CORRESPONDENCIA: Record<EstadoCorrespondenciaFila, string
   pendiente: 'Pendiente de validación',
   sin: 'Sin correspondencia confirmada',
   desconocida: 'No disponible',
+  directa: 'Asignación directa al marco',
 };
 
 export function calcularMetricas(filas: FilaSeguimiento[], correspondenciasDisponibles: boolean): Metricas {
   const total = filas.length;
-  const conEvidencia = filas.filter((fila) => fila.evidenciaId != null).length;
+  const conEvidencia = filas.filter((fila) => fila.evidenciaId != null || (fila.documentosResumen?.entregados ?? 0) > 0).length;
   const pendientesRevision = filas.filter((fila) => fila.claveRevision === 'en_revision').length;
   const observadas = filas.filter((fila) => fila.claveRevision === 'observada').length;
+  const directas = filas.filter(fila => fila.tipoOrigen === 'marco').length;
+  const metricasDirectas = directas ? { conAsignacionDirecta: directas } : {};
   if (!correspondenciasDisponibles) {
     return {
       total,
@@ -88,6 +98,7 @@ export function calcularMetricas(filas: FilaSeguimiento[], correspondenciasDispo
       observadas,
       conConfirmada: null,
       sinConfirmada: null,
+      ...metricasDirectas,
     };
   }
   const conConfirmada = filas.filter((fila) => fila.correspondenciaEstado === 'confirmada').length;
@@ -98,6 +109,7 @@ export function calcularMetricas(filas: FilaSeguimiento[], correspondenciasDispo
     pendientesRevision,
     observadas,
     conConfirmada,
-    sinConfirmada: total - conConfirmada,
+    sinConfirmada: total - conConfirmada - directas,
+    ...metricasDirectas,
   };
 }

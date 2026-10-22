@@ -42,8 +42,10 @@ from accounts.permissions import (
 )
 from auditoria.models import Auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado, Periodo
-from evaluation.services import finalizar_periodos_vencidos
+from evaluation.services import finalizar_periodos_vencidos, relaciones_indicador
+from evaluation.filtros import filtrar_por_marco
 from evidence.models import Evidencia, Observacion, VersionEvidencia
+from evidence.models import SolicitudDocumental
 from organization.models import Departamento, Facultad, PerfilUsuario, UnidadOrganizacional
 
 Usuario = get_user_model()
@@ -71,6 +73,7 @@ def _base_queryset_observaciones(request):
         "version__evidencia__asignacion__indicador",
         "version__evidencia__asignacion__unidad_responsable",
         "version__evidencia__asignacion__periodo",
+        *relaciones_indicador("version__evidencia__asignacion__"),
     )
 
     unidades_ids = unidades_organizacionales_permitidas(request)
@@ -117,7 +120,7 @@ def _filas_observaciones(qs):
         filas.append(
             [
                 obs.version.evidencia.titulo,
-                asignacion.indicador.nombre,
+                asignacion.indicador_nombre,
                 asignacion.unidad_responsable.nombre,
                 asignacion.periodo.nombre,
                 obs.version.version,
@@ -330,7 +333,7 @@ def _data_general(request):
             if total_asignaciones
             else (len(unidades_ids) if unidades_ids is not None else UnidadOrganizacional.objects.count())
         ),
-        "total_indicadores": qs.values("indicador_id").distinct().count(),
+        "total_indicadores": qs.aggregate(total=Count("indicador_id", distinct=True) + Count("indicador_marco_id", distinct=True))["total"],
         "total_asignaciones": total_asignaciones,
         "pendientes": qs.filter(estado=EstadoAsignacion.PENDIENTE).count(),
         "en_revision": qs.filter(estado=EstadoAsignacion.EN_PROGRESO).count(),
@@ -511,7 +514,7 @@ def por_facultad_exportar(request, pk=None):
 # ============================================================
 def _responsable_departamento(departamento):
     perfiles = (
-        PerfilUsuario.objects.filter(departamento=departamento)
+        PerfilUsuario.objects.filter(unidad_organizacional__departamento_legacy=departamento)
         .select_related("usuario")
         .prefetch_related("usuario__groups")
     )
@@ -533,7 +536,7 @@ def _data_por_departamento(request, pk):
     periodo = _periodo_para_reporte(request)
     asignaciones = Asignacion.objects.filter(
         unidad_responsable__departamento_legacy=departamento
-    ).select_related("indicador", "unidad_responsable")
+    ).select_related(*relaciones_indicador(), "unidad_responsable", "encargado")
     asignaciones = asignaciones.filter(periodo=periodo) if periodo else asignaciones.none()
     asignaciones = filtrar_revision(asignaciones, request)
 
@@ -547,10 +550,10 @@ def _data_por_departamento(request, pk):
 
         filas.append(
             {
-                "indicador": asignacion.indicador.nombre,
+                "indicador": asignacion.indicador_nombre,
                 "estado": asignacion.estado,
                 "fecha_modificacion": (_formato_fecha(ultimo_historial.fecha) if ultimo_historial else ""),
-                "responsable": _responsable_departamento(departamento),
+                "responsable": asignacion.encargado.username if asignacion.encargado_id else _responsable_departamento(departamento),
                 "ultima_version": ultima_version.version if ultima_version else None,
             }
         )
@@ -623,11 +626,12 @@ def por_departamento_exportar(request, pk=None):
 # ============================================================
 # Reporte 4: Evidencias
 # ============================================================
-def _base_queryset_evidencias(request):
-    qs = Evidencia.objects.select_related(
+def _base_queryset_evidencias(request, modelo=Evidencia):
+    qs = modelo.objects.select_related(
         "asignacion__indicador__criterio",
         "asignacion__unidad_responsable",
         "asignacion__periodo",
+        *relaciones_indicador("asignacion__"),
     )
 
     unidades_ids = unidades_organizacionales_permitidas(request)
@@ -653,6 +657,7 @@ def _base_queryset_evidencias(request):
     if criterio:
         qs = qs.filter(asignacion__indicador__criterio_id=criterio)
 
+    qs = filtrar_por_marco(qs, request.query_params, "asignacion__")
     return filtrar_revision(qs, request, "asignacion")
 
 
@@ -663,16 +668,21 @@ def _filas_evidencias(qs):
         asignacion = evidencia.asignacion
         filas.append(
             [
-                asignacion.indicador.nombre,
+                asignacion.indicador_nombre,
                 evidencia.titulo,
                 asignacion.unidad_responsable.nombre,
-                asignacion.indicador.criterio.nombre,
+                asignacion.criterio_nombre,
                 asignacion.periodo.nombre,
                 asignacion.estado,
                 _formato_fecha(ultima_version.fecha_subida) if ultima_version else "",
             ]
         )
     return filas
+
+
+def _filas_documentales(request):
+    qs = _base_queryset_evidencias(request, SolicitudDocumental).filter(versiones__isnull=False).distinct()
+    return _filas_evidencias(qs)
 
 
 @api_view(["GET"])
@@ -685,7 +695,7 @@ def evidencias(request):
     @return Response con evidencias paginadas.
     """
     qs = _base_queryset_evidencias(request)
-    filas_completas = _filas_evidencias(qs)
+    filas_completas = _filas_evidencias(qs) + _filas_documentales(request)
     filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
 
     filas_json = [
@@ -720,7 +730,7 @@ def evidencias_exportar(request):
     @return HttpResponse con el archivo generado.
     """
     qs = _base_queryset_evidencias(request)
-    filas = _filas_evidencias(qs)
+    filas = _filas_evidencias(qs) + _filas_documentales(request)
     return _responder_exportacion(
         "Reporte de Evidencias",
         ["Indicador", "Evidencia", "Departamento", "Criterio", "Periodo", "Estado", "Fecha"],

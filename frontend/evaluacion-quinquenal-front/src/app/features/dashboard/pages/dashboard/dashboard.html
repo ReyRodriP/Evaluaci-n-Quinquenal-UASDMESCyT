@@ -177,7 +177,7 @@
             El detalle, los filtros y la exportación están en Seguimiento.
           </p>
           <p class="resumen-segu-contexto" *ngIf="filtroMarcoActivo && contextoMarco">
-            Ámbito del marco: <strong>{{ contextoMarco }}</strong> · Solo correspondencias confirmadas.
+            Ámbito del marco: <strong>{{ contextoMarco }}</strong> · Asignaciones directas y correspondencias confirmadas.
           </p>
         </div>
         <a class="resumen-segu-enlace" routerLink="/seguimiento"
@@ -286,6 +286,13 @@
             <div class="kpi-body">
               <span class="kpi-value">{{ res.metricas.sinConfirmada ?? 0 }}</span>
               <span class="kpi-label">Sin correspondencia confirmada</span>
+            </div>
+          </a>
+          <a class="kpi-card kpi-enlace" *ngIf="res.metricas.conAsignacionDirecta" routerLink="/seguimiento"
+            [queryParams]="queryParamsCorrespondencia('directa')" aria-label="Ver asignaciones directas al marco">
+            <div class="kpi-body">
+              <span class="kpi-value">{{ res.metricas.conAsignacionDirecta }}</span>
+              <span class="kpi-label">Asignadas directamente al marco</span>
             </div>
           </a>
         </div>

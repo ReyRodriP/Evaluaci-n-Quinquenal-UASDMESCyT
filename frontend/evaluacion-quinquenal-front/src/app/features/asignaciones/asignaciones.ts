@@ -90,6 +90,10 @@ export class Asignaciones implements OnInit {
   }
 
   openEdit(item: any) {
+    if (item.tipo_origen === 'marco') {
+      void this.router.navigate(['/asignaciones', item.id, 'detalle'], { queryParams: { periodo: this.periodoSeleccionadoId } });
+      return;
+    }
     const indicadoresIds = Array.isArray(item.indicadores)
       ? item.indicadores.map((indicador: any) => indicador.id ?? indicador.value ?? indicador)
       : [item.indicadorId ?? item.indicador];
@@ -208,7 +212,8 @@ export class Asignaciones implements OnInit {
     this.evaluacionService.listarAsignaciones(this.periodoSeleccionadoId).subscribe({
       next: (data) => {
         const grouped = data.reduce((acc: any, item: any) => {
-          const key = `${item.unidad_responsable}_${item.periodo}_${item.estado}`;
+          const tipoOrigen = item.tipo_origen ?? 'operativo';
+          const key = `${tipoOrigen}_${item.unidad_responsable}_${item.periodo}_${item.estado}${tipoOrigen === 'marco' ? '_' + item.id : ''}`;
           const indicadorNombre = item.indicador_nombre || '';
           const indicadorId = item.indicador;
 
@@ -217,6 +222,7 @@ export class Asignaciones implements OnInit {
               ids: [],
               asignaciones: [],
               id: item.id,
+              tipo_origen: tipoOrigen,
               unidad_responsable: item.unidad_responsable_nombre || '',
               unidadResponsableId: item.unidad_responsable,
               periodo: item.periodo_nombre || '',
@@ -229,8 +235,8 @@ export class Asignaciones implements OnInit {
           }
 
           acc[key].ids.push(item.id);
-          acc[key].asignaciones.push({ id: item.id, indicador: indicadorId });
-          acc[key].indicadores.push({ id: indicadorId, nombre: indicadorNombre });
+          acc[key].asignaciones.push({ id: item.id, indicador: indicadorId, indicador_marco: item.indicador_marco ?? null });
+          acc[key].indicadores.push({ id: indicadorId, indicador_marco: item.indicador_marco ?? null, nombre: indicadorNombre });
           return acc;
         }, {} as Record<string, any>);
 
@@ -307,6 +313,7 @@ export class Asignaciones implements OnInit {
   }
 
   onModalSave(saved: any) {
+    if (this.selectedItem?.tipo_origen === 'marco') return;
     if (!this.periodoSeleccionadoEsActivo) {
       this.toast.error('No se pueden modificar asignaciones de un período finalizado');
       return;

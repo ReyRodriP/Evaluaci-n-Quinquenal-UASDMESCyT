@@ -49,7 +49,7 @@ class EvidenciaViewSet(viewsets.ModelViewSet):
         desc = (
             f"{'Se subió una nueva versión' if instance.version > 1 else 'Se creó la evidencia'}"
             f" '{instance.nombre}' v{instance.version} "
-            f"para el indicador '{instance.asignacion.indicador.nombre}' "
+            f"para el indicador '{instance.asignacion.indicador_nombre}' "
             f"de la unidad '{instance.asignacion.unidad_responsable.nombre}'"
         )
         registrar_auditoria(

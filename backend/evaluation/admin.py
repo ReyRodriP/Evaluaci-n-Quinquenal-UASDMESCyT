@@ -23,5 +23,5 @@ class IndicadorAdmin(admin.ModelAdmin):
 
 @admin.register(Asignacion)
 class AsignacionAdmin(admin.ModelAdmin):
-    list_display = ["indicador", "unidad_responsable", "periodo", "estado"]
+    list_display = ["indicador_nombre", "tipo_origen", "unidad_responsable", "periodo", "encargado", "estado"]
     list_filter = ["estado", "periodo"]

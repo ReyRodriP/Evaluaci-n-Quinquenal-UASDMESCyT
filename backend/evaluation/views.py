@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 from accounts.permissions import (
     CustomModelPermissions,
@@ -36,7 +36,8 @@ from .serializers import (
     IndicadorSerializer,
     PeriodoSerializer,
 )
-from .services import finalizar_periodos_vencidos, transicion_valida
+from .services import finalizar_periodos_vencidos, relaciones_indicador, transicion_valida
+from .filtros import filtrar_por_marco
 
 
 class PeriodoViewSet(viewsets.ModelViewSet):
@@ -67,6 +68,7 @@ class PeriodoViewSet(viewsets.ModelViewSet):
             return Response({"detail": "No hay un período activo."}, status=status.HTTP_404_NOT_FOUND)
         return Response(self.get_serializer(periodo).data)
 
+    @transaction.atomic
     def perform_create(self, serializer):
         try:
             periodo = serializer.save()
@@ -80,6 +82,7 @@ class PeriodoViewSet(viewsets.ModelViewSet):
             descripcion=f"Se creó el período '{periodo.nombre}' ({periodo.fecha_inicio} a {periodo.fecha_fin}), activo={periodo.activo}.",
         )
 
+    @transaction.atomic
     def perform_update(self, serializer):
         periodo_actual = serializer.instance
         cambios = {
@@ -191,7 +194,9 @@ class AsignacionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         finalizar_periodos_vencidos()
-        qs = Asignacion.objects.all().order_by("periodo", "unidad_responsable")
+        qs = Asignacion.objects.select_related(
+            "periodo", "unidad_responsable", "encargado", *relaciones_indicador()
+        ).order_by("periodo", "unidad_responsable", "pk")
         periodo_id = self.request.query_params.get("periodo")
         indicador_id = self.request.query_params.get("indicador")
         evaluador_externo = "Evaluador Externo" in _grupos_usuario(self.request.user)
@@ -203,6 +208,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             if not indicador_id.isdigit():
                 raise ValidationError({"indicador": "El filtro 'indicador' debe ser un identificador numérico."})
             qs = qs.filter(indicador_id=int(indicador_id))
+        qs = filtrar_por_marco(qs, self.request.query_params)
         return filtrar_por_rol(qs, self.request, dept_field="unidad_responsable")
 
     def get_object(self):
@@ -221,11 +227,21 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @param mensaje Mensaje descriptivo de la notificación.
         @return None
         """
-        if unidad.departamento_legacy_id is None:
-            return
         perfiles = PerfilUsuario.objects.filter(unidad_organizacional=unidad)
         for perfil in perfiles:
             crear_notificacion(usuario=perfil.usuario, titulo=titulo, mensaje=mensaje)
+
+    def _bloquear_estado(self):
+        asignacion = self.get_object()
+        periodo = Periodo.objects.select_for_update().get(pk=asignacion.periodo_id)
+        asignacion = Asignacion.objects.select_for_update().get(pk=asignacion.pk)
+        if asignacion.periodo_id != periodo.pk or not periodo.activo:
+            raise ValidationError({'periodo': 'El período cambió o finalizó; vuelva a consultar la asignación.'})
+        if not self.get_queryset().filter(pk=asignacion.pk).exists():
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound()
+        return asignacion
 
     def _notificar_subido_por(self, instance, titulo, mensaje):
         """@brief Envía una notificación al usuario que subió la evidencia.
@@ -234,6 +250,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @param mensaje Mensaje descriptivo de la notificación.
         @return None
         """
+        if instance.gestion_documental:
+            if instance.encargado_id:
+                crear_notificacion(usuario=instance.encargado, titulo=titulo, mensaje=mensaje)
+            return
         try:
             evidencia = instance.evidencia
             if evidencia and hasattr(evidencia, "subido_por") and evidencia.subido_por:
@@ -292,6 +312,15 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         """
         asignacion = self.get_object()
         data = self.get_serializer(asignacion).data
+        if asignacion.gestion_documental:
+            from evidence.models import VersionDocumento
+
+            data['total_evidencias'] = data['documentos_resumen']['entregados']
+            ultima = VersionDocumento.objects.filter(solicitud__asignacion=asignacion).order_by('-fecha_subida').first()
+            data['ultima_actualizacion'] = ultima.fecha_subida if ultima else None
+            data['historial_reciente'] = [] if 'Evaluador Externo' in _grupos_usuario(request.user) else HistorialEstadoSerializer(
+                asignacion.historial_estados.all()[:10], many=True).data
+            return Response(data)
         try:
             evidencia = asignacion.evidencia
             data["total_evidencias"] = 1
@@ -308,6 +337,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         return Response(data)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def en_revision(self, request, pk=None):
         """@brief Envía una asignación a estado de revisión.
         @param request Objeto de solicitud HTTP.
@@ -315,7 +345,9 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @return Response con el nuevo estado de la asignación.
         @raises ValidationError Si la transición de estado no es válida.
         """
-        asignacion = self.get_object()
+        asignacion = self._bloquear_estado()
+        if asignacion.gestion_documental:
+            raise ValidationError('Envíe cada documento a revisión desde sus solicitudes documentales.')
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.EN_PROGRESO):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
         estado_anterior = asignacion.estado
@@ -327,11 +359,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Enviar a revisión",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"La asignación '{asignacion.indicador.nombre}' fue enviada a revisión",
+            descripcion=f"La asignación '{asignacion.indicador_nombre}' fue enviada a revisión",
         )
         return Response({"estado": EstadoAsignacion.EN_PROGRESO})
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def aprobar(self, request, pk=None):
         """@brief Aprueba la evidencia de una asignación.
         @param request Objeto de solicitud HTTP.
@@ -339,7 +372,18 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @return Response con el nuevo estado de la asignación.
         @raises ValidationError Si la transición de estado no es válida.
         """
-        asignacion = self.get_object()
+        asignacion = self._bloquear_estado()
+        if asignacion.gestion_documental:
+            from evidence.documentos import puede_revisar, validar_cierre_documental
+            from django.core.exceptions import ValidationError as ModelValidationError
+            from rest_framework.exceptions import PermissionDenied
+
+            if not puede_revisar(request):
+                raise PermissionDenied()
+            try:
+                validar_cierre_documental(asignacion)
+            except ModelValidationError as exc:
+                raise ValidationError(exc.message_dict) from exc
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.APROBADO):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
         estado_anterior = asignacion.estado
@@ -353,22 +397,23 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Aprobar evidencia",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"La evidencia para '{asignacion.indicador.nombre}' fue aprobada",
+            descripcion=f"La evidencia para '{asignacion.indicador_nombre}' fue aprobada",
         )
         self._notificar_subido_por(
             instance=asignacion,
             titulo="Evidencia aprobada",
-            mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido aprobada.",
+            mensaje=f"Tu evidencia para '{asignacion.indicador_nombre}' ha sido aprobada.",
         )
         if comentario:
             self._notificar_unidad(
                 unidad=asignacion.unidad_responsable,
                 titulo="Evidencia aprobada con comentarios",
-                mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' fue aprobada. Comentario: {comentario}",
+                mensaje=f"Tu evidencia para '{asignacion.indicador_nombre}' fue aprobada. Comentario: {comentario}",
             )
         return Response({"estado": EstadoAsignacion.APROBADO})
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def rechazar(self, request, pk=None):
         """@brief Rechaza la evidencia de una asignación.
         @param request Objeto de solicitud HTTP.
@@ -376,7 +421,9 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @return Response con el nuevo estado de la asignación.
         @raises ValidationError Si la transición de estado no es válida.
         """
-        asignacion = self.get_object()
+        asignacion = self._bloquear_estado()
+        if asignacion.gestion_documental:
+            raise ValidationError('La revisión se realiza sobre cada documento solicitado.')
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.RECHAZADO):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
         estado_anterior = asignacion.estado
@@ -390,16 +437,17 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Rechazar evidencia",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"La evidencia para '{asignacion.indicador.nombre}' fue rechazada. Motivo: {comentario}",
+            descripcion=f"La evidencia para '{asignacion.indicador_nombre}' fue rechazada. Motivo: {comentario}",
         )
         self._notificar_subido_por(
             instance=asignacion,
             titulo="Evidencia rechazada",
-            mensaje=f"Tu evidencia para '{asignacion.indicador.nombre}' ha sido rechazada. Motivo: {comentario}",
+            mensaje=f"Tu evidencia para '{asignacion.indicador_nombre}' ha sido rechazada. Motivo: {comentario}",
         )
         return Response({"estado": EstadoAsignacion.RECHAZADO})
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def observada(self, request, pk=None):
         """@brief Marca una asignación como observada, solicitando cambios.
         @param request Objeto de solicitud HTTP.
@@ -407,7 +455,9 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @return Response con el nuevo estado de la asignación.
         @raises ValidationError Si la transición de estado no es válida.
         """
-        asignacion = self.get_object()
+        asignacion = self._bloquear_estado()
+        if asignacion.gestion_documental:
+            raise ValidationError('Solicite cambios sobre la versión del documento correspondiente.')
         if not self._validar_transicion(asignacion.estado, EstadoAsignacion.OBSERVADA):
             return Response({"error": "Transición no válida"}, status=status.HTTP_400_BAD_REQUEST)
         estado_anterior = asignacion.estado
@@ -421,12 +471,12 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             accion="Solicitar cambios",
             modelo="Asignacion",
             registro_id=asignacion.pk,
-            descripcion=f"Se solicitaron cambios para '{asignacion.indicador.nombre}'. Observación: {comentario}",
+            descripcion=f"Se solicitaron cambios para '{asignacion.indicador_nombre}'. Observación: {comentario}",
         )
         self._notificar_subido_por(
             instance=asignacion,
             titulo="Cambios solicitados",
-            mensaje=f"Se solicitaron cambios para tu evidencia '{asignacion.indicador.nombre}'. Observación: {comentario}",
+            mensaje=f"Se solicitaron cambios para tu evidencia '{asignacion.indicador_nombre}'. Observación: {comentario}",
         )
         return Response({"estado": EstadoAsignacion.OBSERVADA})
 
@@ -443,6 +493,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         if permitidos is not None and unidad.pk not in permitidos:
             raise ValidationError({"unidad_responsable": "No tiene permiso para asignar indicadores a esta unidad."})
 
+    @transaction.atomic
     def perform_create(self, serializer):
         """@brief Crea una nueva asignación validando el departamento permitido.
         @param serializer Serializador con los datos validados.
@@ -456,7 +507,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             modelo="Asignacion",
             registro_id=instance.pk,
             descripcion=(
-                f"Se asignó el indicador '{instance.indicador.nombre}' "
+                f"Se asignó el indicador '{instance.indicador_nombre}' "
                 f"a la unidad '{instance.unidad_responsable.nombre}' "
                 f"en el período '{instance.periodo.nombre}'"
             ),
@@ -464,9 +515,10 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         self._notificar_unidad(
             unidad=instance.unidad_responsable,
             titulo="Nuevo indicador asignado",
-            mensaje=f"Se te ha asignado el indicador '{instance.indicador.nombre}' en el período {instance.periodo.nombre}",
+            mensaje=f"Se te ha asignado el indicador '{instance.indicador_nombre}' en el período {instance.periodo.nombre}",
         )
 
+    @transaction.atomic
     def perform_update(self, serializer):
         """@brief Actualiza una asignación, validando y registrando cambios de estado.
         @param serializer Serializador con los datos validados.
@@ -489,7 +541,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 modelo="Asignacion",
                 registro_id=instance.pk,
                 descripcion=(
-                    f"La asignación '{instance.indicador.nombre}' cambió de '{old_estado}' a '{instance.estado}'"
+                    f"La asignación '{instance.indicador_nombre}' cambió de '{old_estado}' a '{instance.estado}'"
                 ),
             )
             estado_choices = {k: v for k, v in EstadoAsignacion.choices}
@@ -497,7 +549,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 unidad=instance.unidad_responsable,
                 titulo=f"Estado actualizado: {instance.get_estado_display()}",
                 mensaje=(
-                    f"La asignación '{instance.indicador.nombre}' cambió de "
+                    f"La asignación '{instance.indicador_nombre}' cambió de "
                     f"'{estado_choices.get(old_estado, old_estado)}' "
                     f"a '{instance.get_estado_display()}'"
                 ),
@@ -506,7 +558,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
                 self._notificar_subido_por(
                     instance=instance,
                     titulo="Evidencia aprobada",
-                    mensaje=(f"Tu evidencia para el indicador '{instance.indicador.nombre}' ha sido aprobada"),
+                    mensaje=(f"Tu evidencia para el indicador '{instance.indicador_nombre}' ha sido aprobada"),
                 )
 
     def perform_destroy(self, instance):
@@ -514,13 +566,15 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @param instance Instancia de la asignación a eliminar.
         @return None
         """
+        if instance.gestion_documental:
+            raise ValidationError('La asignación documental conserva sus solicitudes e historial y no puede eliminarse.')
         registrar_auditoria(
             usuario=self.request.user,
             accion="Eliminar registro",
             modelo="Asignacion",
             registro_id=instance.pk,
             descripcion=(
-                f"Se eliminó la asignación del indicador '{instance.indicador.nombre}' "
+                f"Se eliminó la asignación del indicador '{instance.indicador_nombre}' "
                 f"de la unidad '{instance.unidad_responsable.nombre}'"
             ),
         )

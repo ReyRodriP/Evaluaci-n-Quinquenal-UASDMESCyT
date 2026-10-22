@@ -89,3 +89,52 @@ class Observacion(models.Model):
 
     class Meta:
         ordering = ["-fecha_creacion"]
+
+
+class EstadoDocumento(models.TextChoices):
+    PENDIENTE = "pendiente", "Pendiente de entrega"
+    BORRADOR = "borrador", "Borrador"
+    EN_REVISION = "en_revision", "En revisión"
+    OBSERVADA = "observada", "Con cambios solicitados"
+    APROBADA = "aprobada", "Aprobada"
+
+
+class SolicitudDocumental(models.Model):
+    """Requisito operativo obligatorio; no es una evidencia indicativa oficial."""
+
+    asignacion = models.ForeignKey(Asignacion, on_delete=models.PROTECT, related_name="solicitudes_documentales")
+    titulo = models.CharField(max_length=255)
+    descripcion = models.TextField()
+    estado = models.CharField(max_length=20, choices=EstadoDocumento.choices, default=EstadoDocumento.PENDIENTE)
+    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="solicitudes_creadas")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["pk"]
+
+
+class VersionDocumento(models.Model):
+    solicitud = models.ForeignKey(SolicitudDocumental, on_delete=models.PROTECT, related_name="versiones")
+    archivo = models.FileField(upload_to="documentos/")
+    numero = models.PositiveIntegerField()
+    comentario = models.TextField(blank=True)
+    subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="documentos_subidos")
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-numero"]
+        constraints = [
+            models.UniqueConstraint(fields=["solicitud", "numero"], name="documento_version_unica"),
+            models.CheckConstraint(condition=models.Q(numero__gte=1), name="documento_version_positiva"),
+        ]
+
+
+class RevisionDocumento(models.Model):
+    version = models.ForeignKey(VersionDocumento, on_delete=models.PROTECT, related_name="revisiones")
+    decision = models.CharField(max_length=20, choices=[(EstadoDocumento.APROBADA, "Aprobada"), (EstadoDocumento.OBSERVADA, "Solicitar cambios")])
+    comentario = models.TextField(blank=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="revisiones_documentales")
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-fecha", "-pk"]

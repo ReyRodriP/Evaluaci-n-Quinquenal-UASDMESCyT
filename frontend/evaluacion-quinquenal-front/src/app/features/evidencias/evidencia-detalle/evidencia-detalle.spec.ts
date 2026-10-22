@@ -152,6 +152,39 @@ describe('EvidenciaDetalle con contexto EQ-SIDACES', () => {
     expect(texto()).toContain('6.1.1.1');
   });
 
+  it('retira el panel de aprobación si el backend deja de autorizar la consulta', () => {
+    evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ puede_cambiar_estado: true })));
+    crear();
+    expect(texto()).toContain('Revisar evidencia');
+    evidenciasMock.detalleEvidencia.and.returnValue(throwError(() => ({ status: 404 })));
+    component.cargarDetalle(3);
+    fixture.detectChanges();
+    expect(component.evidencia).toBeNull();
+    expect(texto()).not.toContain('Revisar evidencia');
+    expect(texto()).toContain('No se pudo cargar el detalle');
+  });
+
+  it('presenta la ruta de una evidencia del marco sin enviar su ID al contexto operativo', () => {
+    const datos = evidencia();
+    datos.asignacion_info = {
+      ...datos.asignacion_info, indicador: null, indicador_marco: 7, tipo_origen: 'marco',
+      ruta_marco: {
+        version: { id: 1, nombre: 'Marco técnico', slug: 'marco-tecnico', activo: false },
+        dimension: { id: 5, codigo: 'VI', nombre: 'Personal académico' },
+        componente: { id: 6, codigo: '6.1', nombre: 'Carrera académica' },
+        criterio: { id: 11, codigo: '6.1.1', nombre: 'Criterio del marco' },
+        estandar: { id: 20, codigo: '6.1.1.2', nombre: 'Estándar técnico' },
+        indicador: { id: 7, codigo: '6.1.1.2-IND-01', nombre: 'Indicador del marco', orden: 1, codigo_sintetico: true },
+      },
+    };
+    evidenciasMock.detalleEvidencia.and.returnValue(of(datos));
+    crear();
+    expect(texto()).toContain('Personal académico');
+    expect(texto()).toContain('Asignación directa al marco');
+    expect(vinculacionMock.contextoIndicador).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('app-marco-relacionado')).toBeNull();
+  });
+
   it('sin indicador en la asignacion no se monta el marco y la evidencia sigue funcionando', () => {
     evidenciasMock.detalleEvidencia.and.returnValue(
       of(evidencia({ asignacion_info: { id: 5, estado: 'pendiente', estado_display: 'Pendiente' } }))

@@ -134,6 +134,33 @@ describe('Seguimiento', () => {
     fixture.detectChanges();
   };
 
+  it('filtra una asignación directa por su ruta sin confundirla con un origen operativo de igual ID', () => {
+    data.asignaciones.push({
+      id: 5, indicador: null, indicador_marco: 100, tipo_origen: 'marco', indicador_nombre: 'Indicador del marco',
+      unidad_responsable: 7, unidad_responsable_nombre: 'Facultad de Ciencias', periodo: 10, periodo_nombre: 'Período actual', estado: 'pendiente',
+      ruta_marco: {
+        version: { id: 1, nombre: 'Marco técnico', slug: 'marco-tecnico', activo: false },
+        dimension: { id: 2, codigo: 'II', nombre: 'Dimensión técnica II' },
+        componente: { id: 21, codigo: '2.1', nombre: 'Componente técnico' },
+        criterio: { id: 31, codigo: '2.1.1', nombre: 'Criterio del marco' },
+        estandar: { id: 41, codigo: '2.1.1.1', nombre: 'Estándar técnico' },
+        indicador: { id: 100, codigo: '2.1.1.1-IND-01', nombre: 'Indicador del marco', orden: 1, codigo_sintetico: true },
+      },
+    });
+    recargar();
+    expect(component.opcionesCorrespondencia.some(opcion => opcion.valor === 'directa')).toBeTrue();
+    component.onDimensionMarcoChange('1');
+    expect(component.filasFiltradas.some(fila => fila.asignacionId === 5)).toBeFalse();
+    component.onDimensionMarcoChange('2');
+    component.cambiarFiltro('correspondencia', 'directa');
+    fixture.detectChanges();
+    expect(component.filasFiltradas.map(fila => fila.asignacionId)).toEqual([5]);
+    expect(fixture.nativeElement.querySelector('a[href*="/indicadores/marco"]')).toBeNull();
+    const descargar = spyOn(component, 'descargar');
+    component.exportarCsv();
+    expect(descargar.calls.mostRecent().args[0]).toContain('Asignación directa al marco');
+  });
+
   const crearConUrl = (params: Record<string, string>) => {
     const router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));

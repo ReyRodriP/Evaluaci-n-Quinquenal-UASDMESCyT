@@ -71,9 +71,9 @@
       <label>
         Estado de la correspondencia
         <select [ngModel]="filtros.correspondencia" (ngModelChange)="cambiarFiltro('correspondencia', $event)"
-          aria-label="Estado de la correspondencia" [disabled]="!correspondenciasDisponibles">
+          aria-label="Estado de la correspondencia" [disabled]="!correspondenciasDisponibles && !tieneAsignacionesDirectas">
           <option value="">Todos los estados</option>
-          <option *ngFor="let opcion of opcionesCorrespondencia" [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+          <option *ngFor="let opcion of opcionesCorrespondencia" [value]="opcion.valor" [disabled]="opcion.valor !== 'directa' && !correspondenciasDisponibles">{{ opcion.etiqueta }}</option>
         </select>
       </label>
       <div class="filters-actions">
@@ -179,6 +179,12 @@
           <span class="kpi-label">Sin correspondencia confirmada</span>
         </div>
       </div>
+      <div class="kpi-card" *ngIf="metricas.conAsignacionDirecta">
+        <div class="kpi-body">
+          <span class="kpi-value">{{ metricas.conAsignacionDirecta }}</span>
+          <span class="kpi-label">Asignadas directamente al marco</span>
+        </div>
+      </div>
     </div>
 
     <details class="metricas-definiciones">
@@ -190,7 +196,8 @@
         <li><strong>Pendientes de revisión</strong>: asignaciones con evidencia activa cuyo estado es «En progreso» (enviadas y esperando revisión).</li>
         <li><strong>Observadas</strong>: asignaciones con evidencia activa cuyo estado es «Observada».</li>
         <li *ngIf="correspondenciasDisponibles"><strong>Con correspondencia confirmada</strong>: asignaciones cuyo indicador tiene al menos una correspondencia confirmada con el catálogo (las propuestas no cuentan).</li>
-        <li *ngIf="correspondenciasDisponibles"><strong>Sin correspondencia confirmada</strong>: total menos las asignaciones con correspondencia confirmada.</li>
+        <li *ngIf="correspondenciasDisponibles"><strong>Sin correspondencia confirmada</strong>: asignaciones operativas sin correspondencia confirmada; las asignaciones directas al marco se cuentan por separado.</li>
+        <li *ngIf="metricas.conAsignacionDirecta"><strong>Asignadas directamente al marco</strong>: responsabilidades vinculadas a un indicador del catálogo, sin requerir una correspondencia.</li>
       </ul>
     </details>
 
@@ -201,8 +208,8 @@
           <tr>
             <th scope="col">Período</th>
             <th scope="col">Unidad responsable</th>
-            <th scope="col">Criterio operativo</th>
-            <th scope="col">Indicador operativo</th>
+            <th scope="col">Criterio</th>
+            <th scope="col">Indicador</th>
             <th scope="col">Estado de la asignación</th>
             <th scope="col">Existencia de evidencia</th>
             <th scope="col">Estado de revisión de la evidencia</th>
@@ -215,7 +222,7 @@
             <td>{{ fila.periodoNombre }}</td>
             <td>{{ fila.unidadNombre }}</td>
             <td>{{ fila.criterioNombre }}</td>
-            <td>{{ fila.indicadorNombre }}</td>
+            <td>{{ fila.indicadorNombre }}<small *ngIf="fila.tipoOrigen === 'marco'"> · Marco EQ-SIDACES</small></td>
             <td><span class="badge" [ngClass]="'estado-' + fila.estado">{{ fila.estadoDisplay }}</span></td>
             <td>
               <span class="badge" [ngClass]="fila.evidenciaId ? 'ev-si' : 'ev-no'">
@@ -229,10 +236,10 @@
               </span>
             </td>
             <td class="enlaces">
-              <a [routerLink]="['/asignaciones', fila.asignacionId, 'detalle']">Asignación</a>
+              <a [routerLink]="['/asignaciones', fila.asignacionId, 'detalle']" [queryParams]="{ periodo: periodoSeleccionadoId }">Asignación</a>
               <a *ngIf="fila.evidenciaId" [routerLink]="['/evidencias', fila.evidenciaId, 'detalle']"
                 [queryParams]="{ periodo: periodoSeleccionadoId }">Evidencia</a>
-              <a [routerLink]="['/indicadores', fila.indicadorId, 'detalle']">Correspondencias</a>
+              <a *ngIf="fila.tipoOrigen !== 'marco'" [routerLink]="['/indicadores', fila.indicadorId, 'detalle']">Correspondencias</a>
             </td>
           </tr>
         </tbody>

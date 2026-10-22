@@ -8,6 +8,7 @@ import { EvaluacionService } from '../../core/services/evaluacion.service';
 import { SeguimientoResumenService } from '../../core/services/seguimiento-resumen.service';
 import { VinculacionService } from '../../core/services/vinculacion.service';
 import { CatalogoService } from '../../core/services/catalogo.service';
+import { rutaCoincideConMarco } from '../../core/models/asignacion-marco.model';
 import { RespuestaPaginada } from '../../core/models/vinculacion.model';
 import {
   ETIQUETAS_CORRESPONDENCIA,
@@ -25,8 +26,8 @@ import {
 export const COLUMNAS_EXPORTACION = [
   'Período',
   'Unidad responsable',
-  'Criterio operativo',
-  'Indicador operativo',
+  'Criterio',
+  'Indicador',
   'Estado de asignación',
   'Existencia de evidencia',
   'Estado de revisión',
@@ -112,6 +113,10 @@ export class Seguimiento implements OnInit {
 
   get correspondenciasDisponibles(): boolean {
     return !this.errorCorrespondencias;
+  }
+
+  get tieneAsignacionesDirectas(): boolean {
+    return this.filas.some(fila => fila.tipoOrigen === 'marco');
   }
 
   cargarPeriodos(): void {
@@ -270,6 +275,7 @@ export class Seguimiento implements OnInit {
   }
 
   private filaPerteneceAlMarco(fila: FilaSeguimiento): boolean {
+    if (fila.tipoOrigen === 'marco') return rutaCoincideConMarco(fila.rutaMarco, this.filtros);
     if (this.marcoOrigenesIndicador.has(Number(fila.indicadorId))) return true;
     if (fila.criterioId != null && this.marcoOrigenesCriterio.has(Number(fila.criterioId))) return true;
     return false;
@@ -381,12 +387,16 @@ export class Seguimiento implements OnInit {
     this.avisosTruncado = resultado.avisosTruncado;
     this.avisoCorrespondenciaTruncada = resultado.avisoCorrespondenciaTruncada;
     this.errorCorrespondencias = !resultado.correspondenciasDisponibles;
-    if (this.errorCorrespondencias) this.filtros.correspondencia = '';
+    if (this.errorCorrespondencias && this.filtros.correspondencia !== 'directa') this.filtros.correspondencia = '';
     this.construirOpciones();
     this.aplicarFiltros();
   }
 
   private construirOpciones(): void {
+    this.opcionesCorrespondencia = this.opcionesCorrespondencia.filter(opcion => opcion.valor !== 'directa');
+    if (this.tieneAsignacionesDirectas) {
+      this.opcionesCorrespondencia.push({ valor: 'directa', etiqueta: 'Asignación directa al marco' });
+    }
     const unidades = new Map<string, string>();
     const estados = new Map<string, string>();
     const revisiones = new Map<string, string>();
@@ -512,7 +522,7 @@ export class Seguimiento implements OnInit {
     const componente = parametros.get('componente') ?? '';
     const clavesRevision = Object.keys(ETIQUETAS_REVISION);
     this.filtros.revision = clavesRevision.includes(revision) ? revision : '';
-    this.filtros.correspondencia = this.opcionesCorrespondencia.some(
+    this.filtros.correspondencia = correspondencia === 'directa' || this.opcionesCorrespondencia.some(
       (opcion) => opcion.valor === correspondencia
     )
       ? correspondencia

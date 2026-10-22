@@ -7,10 +7,11 @@ import { ToastrService } from 'ngx-toastr';
 import { EvidenciasService } from '../../../core/services/evidencias.service';
 import { EvaluacionService } from '../../../core/services/evaluacion.service';
 import { MarcoRelacionado } from '../../../shared/components/marco-relacionado/marco-relacionado';
+import { RutaMarco } from '../../../shared/components/ruta-marco/ruta-marco';
 
 @Component({
   selector: 'app-evidencia-detalle',
-  imports: [CommonModule, FormsModule, RouterLink, MarcoRelacionado],
+  imports: [CommonModule, FormsModule, RouterLink, MarcoRelacionado, RutaMarco],
   templateUrl: './evidencia-detalle.html',
   styleUrl: './evidencia-detalle.css',
 })
@@ -73,12 +74,14 @@ export class EvidenciaDetalle implements OnInit {
 
   cargarDetalle(id: number): void {
     this.loading = true;
+    this.error = '';
     this.evidenciasService.detalleEvidencia(id, this.periodoId).subscribe({
       next: (data) => {
         this.evidencia = data;
         this.loading = false;
       },
       error: () => {
+        this.evidencia = null;
         this.error = 'No se pudo cargar el detalle de la evidencia';
         this.loading = false;
       },

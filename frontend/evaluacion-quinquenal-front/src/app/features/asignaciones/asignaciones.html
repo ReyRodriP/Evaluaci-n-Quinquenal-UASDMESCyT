@@ -18,11 +18,17 @@
           <a
             *ngFor="let asignacion of row.asignaciones; let i = index"
             class="indicador-link"
-            [routerLink]="['/asignaciones', asignacion.id, 'detalle']">
-            {{ row.indicadores[i]?.nombre || 'Indicador' }}
+             [routerLink]="['/asignaciones', asignacion.id, 'detalle']" [queryParams]="{ periodo: periodoSeleccionadoId }">
+             {{ row.indicadores[i]?.nombre || 'Indicador' }}
           </a>
-        </div>
-      </ng-template>
+         </div>
+         <small *ngIf="row.tipo_origen === 'marco'">Indicador del marco · consulta en el detalle</small>
+       </ng-template>
+       <ng-template #acciones let-row>
+         <a *ngIf="row.tipo_origen === 'marco'" [routerLink]="['/asignaciones', row.id, 'detalle']" [queryParams]="{ periodo: periodoSeleccionadoId }">Ver detalle</a>
+         <button *ngIf="row.tipo_origen !== 'marco' && !ocultarAcciones.includes('edit')" type="button" (click)="openEdit(row)" aria-label="Editar asignación"><i class="bx bx-edit-alt"></i></button>
+         <button *ngIf="!ocultarAcciones.includes('remove')" type="button" (click)="onRemove(row)" aria-label="Eliminar asignación"><i class="bx bx-trash"></i></button>
+       </ng-template>
     </app-crud-table>
     <app-pagination [total]="datosFiltrados.length" [pageSize]="pageSize" [currentPage]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
 

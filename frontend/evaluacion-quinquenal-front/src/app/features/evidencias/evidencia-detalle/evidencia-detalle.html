@@ -131,6 +131,8 @@
              MARCO DE EVALUACIÓN RELACIONADO
         ======================== -->
 
+        <app-ruta-marco *ngIf="evidencia.asignacion_info?.tipo_origen === 'marco'" [ruta]="evidencia.asignacion_info.ruta_marco"></app-ruta-marco>
+
         <app-marco-relacionado
             *ngIf="evidencia.asignacion_info?.indicador"
             [indicadorId]="evidencia.asignacion_info.indicador"

@@ -6,6 +6,7 @@ import { VinculacionService } from '../../../core/services/vinculacion.service';
 import { CatalogoService } from '../../../core/services/catalogo.service';
 import { PermisosService } from '../../../core/services/permisos.service';
 import { AsignacionDetalle } from './asignacion-detalle';
+import { DocumentosService } from '../../../core/services/documentos.service';
 
 describe('AsignacionDetalle', () => {
   let component: AsignacionDetalle;
@@ -90,6 +91,7 @@ describe('AsignacionDetalle', () => {
     await TestBed.configureTestingModule({
       imports: [AsignacionDetalle],
       providers: [
+        { provide: DocumentosService, useValue: { contexto: () => of({ gestion_documental: false }), listar: () => of([]) } },
         { provide: EvaluacionService, useValue: evaluacionMock },
         { provide: VinculacionService, useValue: vinculacionMock },
         { provide: CatalogoService, useValue: catalogoMock },
@@ -157,5 +159,42 @@ describe('AsignacionDetalle', () => {
 
     expect(texto()).toContain('Facultad de Ciencias');
     expect(texto()).toContain('No tiene permisos para consultar el contexto');
+  });
+
+  it('muestra la ruta directa y el encargado sin consultar correspondencias operativas', () => {
+    evaluacionMock.obtenerAsignacion.and.returnValue(of(asignacion({
+      indicador: null, indicador_marco: 7, tipo_origen: 'marco', encargado_nombre: 'responsable',
+      ruta_marco: {
+        version: { id: 1, nombre: 'Marco técnico', slug: 'marco-tecnico', activo: false },
+        dimension: { id: 5, codigo: 'VI', nombre: 'Personal académico' },
+        componente: { id: 6, codigo: '6.1', nombre: 'Carrera académica' },
+        criterio: { id: 11, codigo: '6.1.1', nombre: 'Criterio del marco' },
+        estandar: { id: 20, codigo: '6.1.1.2', nombre: 'Estándar técnico' },
+        indicador: { id: 7, codigo: '6.1.1.2-IND-01', nombre: 'Indicador del marco', orden: 1, codigo_sintetico: true },
+      },
+    })));
+    crear();
+    expect(texto()).toContain('Personal académico');
+    expect(texto()).toContain('6.1.1.2');
+    expect(texto()).toContain('responsable');
+    expect(texto()).toContain('no oficial');
+    expect(vinculacionMock.contextoIndicador).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('app-marco-relacionado')).toBeNull();
+  });
+
+  it('retira información ya cargada cuando una nueva consulta pierde autorización', () => {
+    crear();
+    evaluacionMock.obtenerAsignacion.and.returnValue(throwError(() => ({ status: 404 })));
+    component.cargar();
+    fixture.detectChanges();
+    expect(component.asignacion).toBeNull();
+    expect(fixture.nativeElement.querySelector('.asignacion-card')).toBeNull();
+  });
+
+  it('consulta el detalle histórico con el período de la navegación', () => {
+    const route = TestBed.inject(ActivatedRoute);
+    (route.snapshot as any).queryParamMap = convertToParamMap({ periodo: '3' });
+    crear();
+    expect(evaluacionMock.obtenerAsignacion).toHaveBeenCalledWith(11, '3');
   });
 });

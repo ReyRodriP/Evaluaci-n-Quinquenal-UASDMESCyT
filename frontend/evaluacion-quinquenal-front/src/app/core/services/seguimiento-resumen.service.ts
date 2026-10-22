@@ -226,11 +226,17 @@ export class SeguimientoResumenService {
 
     return cache.asignaciones.map((asignacion: any) => {
       const evidencia = evPorAsignacion.get(asignacion.id) ?? null;
-      const claveRevision = this.claveDeRevision(evidencia, asignacion.estado);
-      const indicadorId = asignacion.indicador;
+      const documental = asignacion.gestion_documental ? asignacion.documentos_resumen : null;
+      const claveRevision = documental?.observados > 0 ? 'observada' : this.claveDeRevision(
+        evidencia || (documental?.entregados > 0 ? { estado: 'activa' } : null), asignacion.estado);
+      const esMarco = asignacion.tipo_origen === 'marco';
+      const rutaMarco = asignacion.ruta_marco ?? undefined;
+      const indicadorId = esMarco ? `marco:${asignacion.indicador_marco}` : asignacion.indicador;
       const vinculo = contexto.preferidas.get(indicadorId);
       let correspondenciaEstado: EstadoCorrespondenciaFila = 'desconocida';
-      if (contexto.correspondenciasDisponibles) {
+      if (esMarco) {
+        correspondenciaEstado = 'directa';
+      } else if (contexto.correspondenciasDisponibles) {
         if (contexto.confirmados.has(indicadorId)) correspondenciaEstado = 'confirmada';
         else if (contexto.pendientes.has(indicadorId)) correspondenciaEstado = 'pendiente';
         else correspondenciaEstado = 'sin';
@@ -242,16 +248,18 @@ export class SeguimientoResumenService {
         unidadNombre: asignacion.unidad_responsable_nombre || '',
         indicadorId,
         indicadorNombre: asignacion.indicador_nombre || '',
-        criterioId: criterioIdPorIndicador.get(indicadorId) ?? null,
-        criterioNombre: criterioPorIndicador.get(indicadorId) || '—',
+        criterioId: esMarco ? null : criterioIdPorIndicador.get(indicadorId) ?? null,
+        criterioNombre: esMarco ? (asignacion.criterio_nombre || rutaMarco?.criterio?.nombre || '—') : criterioPorIndicador.get(indicadorId) || '—',
         estado: asignacion.estado || '',
         estadoDisplay: asignacion.estado_display || asignacion.estado || '',
         evidenciaId: evidencia?.id_evidencia ?? null,
         claveRevision,
         estadoRevision: ETIQUETAS_REVISION[claveRevision],
         correspondenciaEstado,
-        codigoDestino: contexto.correspondenciasDisponibles ? (vinculo?.codigoDestino ?? '') : '',
-        versionMarco: contexto.correspondenciasDisponibles ? (vinculo?.versionMarco ?? '') : '',
+        codigoDestino: esMarco ? (rutaMarco?.indicador?.codigo ?? '') : contexto.correspondenciasDisponibles ? (vinculo?.codigoDestino ?? '') : '',
+        versionMarco: esMarco ? (rutaMarco?.version?.nombre ?? '') : contexto.correspondenciasDisponibles ? (vinculo?.versionMarco ?? '') : '',
+        ...(esMarco ? { tipoOrigen: 'marco', indicadorMarcoId: asignacion.indicador_marco, rutaMarco } : {}),
+        ...(documental ? { documentosResumen: documental } : {}),
       } as FilaSeguimiento;
     });
   }

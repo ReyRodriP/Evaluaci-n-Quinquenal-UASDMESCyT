@@ -1,0 +1,49 @@
+<section aria-label="Documentos solicitados" [attr.aria-busy]="cargando || ocupada">
+  <h3>Documentos solicitados</h3>
+  <p *ngIf="cargando" role="status">Cargando documentación…</p>
+  <p *ngIf="error" class="error" role="alert">{{ error }}</p>
+  <button *ngIf="!contexto && !cargando" type="button" (click)="cargar()">Reintentar</button>
+  <ng-container *ngIf="contexto">
+    <p *ngIf="contexto.gestion_documental">{{ contexto.aprobadas }} de {{ contexto.total }} documentos aprobados. Todas las solicitudes son obligatorias.</p>
+    <p *ngIf="!contexto.gestion_documental && !contexto.puede_definir">Esta asignación conserva su flujo de evidencia única o aún no tiene solicitudes documentales.</p>
+    <p *ngIf="contexto.puede_definir && !contexto.gestion_documental">La primera solicitud inicia el flujo de documentos independientes para esta asignación.</p>
+    <form *ngIf="contexto.puede_definir" (ngSubmit)="guardar()">
+      <h4>{{ editando ? 'Editar solicitud sin entregas' : 'Nueva solicitud obligatoria' }}</h4>
+      <label>Título <input name="titulo" [(ngModel)]="titulo" maxlength="255" required [disabled]="ocupada"></label>
+      <label>Documento requerido <textarea name="descripcion" [(ngModel)]="descripcion" required [disabled]="ocupada"></textarea></label>
+      <button type="submit" [disabled]="ocupada || !titulo.trim() || !descripcion.trim()">Guardar solicitud</button>
+      <button *ngIf="editando" type="button" (click)="cancelarEdicion()">Cancelar edición</button>
+    </form>
+    <article *ngFor="let solicitud of solicitudes">
+      <h4>{{ solicitud.titulo }}</h4>
+      <p>{{ solicitud.descripcion }}</p>
+      <p><strong>Estado del documento:</strong> {{ solicitud.estado_display || solicitud.estado }}</p>
+      <ng-container *ngIf="contexto.puede_definir && !solicitud.versiones.length">
+        <button type="button" (click)="editar(solicitud)" [disabled]="ocupada">Editar solicitud</button>
+        <button type="button" (click)="eliminar(solicitud.id)" [disabled]="ocupada">Eliminar solicitud sin entregas</button>
+      </ng-container>
+      <ng-container *ngIf="contexto.puede_aportar && ['pendiente', 'borrador', 'observada'].includes(solicitud.estado)">
+        <label>Archivo para {{ solicitud.titulo }} <input type="file" (change)="seleccionar(solicitud.id, $event)" [disabled]="ocupada"></label>
+        <label>Comentario de la nueva versión <textarea [(ngModel)]="comentarios[solicitud.id]" [disabled]="ocupada"></textarea></label>
+        <button type="button" (click)="subir(solicitud.id)" [disabled]="ocupada || !archivos[solicitud.id]">Subir nueva versión</button>
+        <button *ngIf="solicitud.estado === 'borrador'" type="button" (click)="enviar(solicitud.id)" [disabled]="ocupada">Enviar documento a revisión</button>
+      </ng-container>
+      <ng-container *ngIf="contexto.puede_revisar && solicitud.estado === 'en_revision'">
+        <label>Comentario de revisión <textarea [(ngModel)]="comentarios[solicitud.id]" [disabled]="ocupada"></textarea></label>
+        <button type="button" (click)="revisar(solicitud, 'aprobar')" [disabled]="ocupada">Aprobar esta versión</button>
+        <button type="button" (click)="revisar(solicitud, 'solicitar_cambios')" [disabled]="ocupada || !comentarios[solicitud.id]?.trim()">Solicitar cambios</button>
+      </ng-container>
+      <details *ngIf="solicitud.versiones.length">
+        <summary>Versiones e historial de este documento</summary>
+        <ul><li *ngFor="let version of solicitud.versiones">
+          <strong>Versión {{ version.numero }}</strong> — {{ version.nombre_archivo }} — {{ version.fecha_subida | date:'short' }}
+          <button type="button" (click)="descargar(solicitud, version)" [disabled]="ocupada">Descargar versión {{ version.numero }}</button>
+          <p>{{ version.comentario }}</p>
+          <p *ngFor="let revision of version.revisiones">{{ revision.decision }} — {{ revision.usuario_nombre }} — {{ revision.fecha | date:'short' }}: {{ revision.comentario }}</p>
+        </li></ul>
+      </details>
+    </article>
+    <p *ngIf="contexto.puede_aprobar_global">Todos los documentos están aprobados. Falta la decisión global explícita del revisor.</p>
+    <button *ngIf="contexto.puede_aprobar_global" type="button" (click)="aprobarGlobal()" [disabled]="ocupada">Aprobar globalmente la asignación</button>
+  </ng-container>
+</section>

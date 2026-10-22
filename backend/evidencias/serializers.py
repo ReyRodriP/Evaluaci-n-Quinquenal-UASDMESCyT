@@ -23,7 +23,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     Incluye validación de tipo y tamaño de archivo.
     """
 
-    asignacion_indicador = serializers.CharField(source="asignacion.indicador.nombre", read_only=True)
+    asignacion_indicador = serializers.CharField(source="asignacion.indicador_nombre", read_only=True)
     asignacion_departamento = serializers.CharField(source="asignacion.unidad_responsable.nombre", read_only=True)
     asignacion_unidad_responsable = serializers.CharField(source="asignacion.unidad_responsable.nombre", read_only=True)
     asignacion_periodo = serializers.CharField(source="asignacion.periodo.nombre", read_only=True)
@@ -77,6 +77,8 @@ class EvidenciaSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         asignacion = attrs.get("asignacion", getattr(self.instance, "asignacion", None))
+        if asignacion and asignacion.gestion_documental:
+            raise serializers.ValidationError({'asignacion': 'Gestione la entrega desde sus solicitudes documentales.'})
         request = self.context.get("request")
         if request and asignacion and not asignacion_revision_permitida(
             request, asignacion.unidad_responsable_id, asignacion.periodo_id
@@ -101,4 +103,7 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         if existing.exists():
             validated_data["version"] = existing.count() + 1
 
-        return super().create(validated_data)
+        from evidence.documentos import bloquear_evidencia_unica
+
+        with bloquear_evidencia_unica(asignacion):
+            return super().create(validated_data)

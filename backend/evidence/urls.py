@@ -7,11 +7,13 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import EvidenciaViewSet, ObservacionViewSet, VersionEvidenciaViewSet
+from .documentos import SolicitudDocumentalViewSet
 
 router = DefaultRouter()
 router.register(r"evidencias", EvidenciaViewSet)
 router.register(r"versiones", VersionEvidenciaViewSet)
 router.register(r"observaciones", ObservacionViewSet, basename="observaciones")
+router.register(r"solicitudes-documentales", SolicitudDocumentalViewSet, basename="solicitudes-documentales")
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -154,7 +154,9 @@ export class Evidencias implements OnInit {
             unidad_responsable: asignacion.unidad_responsable_nombre || asignacion.departamento_nombre || asignacion.unidad_responsable,
             evidenciaId: evidencia?.id_evidencia ?? null,
             evidencia,
-            estado: evidencia
+            estado: asignacion.gestion_documental
+              ? `Documentos: ${asignacion.documentos_resumen?.aprobados ?? 0}/${asignacion.documentos_resumen?.solicitados ?? 0} aprobados`
+              : evidencia
               ? (evidencia.estado === 'cancelada' ? 'Cancelada' : (evidencia.asignacion_estado_display || 'Subida'))
               : 'Pendiente',
             estadoWorkflow: evidencia?.asignacion_estado,
@@ -271,6 +273,7 @@ export class Evidencias implements OnInit {
   }
 
   onEdit(row: any): void {
+    if (this.irADocumentos(row)) return;
     if (!row.evidenciaId) {
       this.crearEvidenciaYIrADetalle(row);
       return;
@@ -280,7 +283,7 @@ export class Evidencias implements OnInit {
 
   private crearEvidenciaYIrADetalle(row: any): void {
     const payload = new FormData();
-    payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`);
+    payload.append('titulo', `Evidencia ${row.indicador_nombre || 'indicador'}`.slice(0, 255));
     payload.append('descripcion', 'Evidencia subida desde la gestión de evidencias');
     payload.append('asignacion', String(row.id));
     this.evidenciasService.crearEvidencia(payload).subscribe({
@@ -300,11 +303,18 @@ export class Evidencias implements OnInit {
   }
 
   openManage(row: any): void {
+    if (this.irADocumentos(row)) return;
     if (!row.evidenciaId) {
       this.crearEvidenciaYIrADetalle(row);
       return;
     }
     this.irADetalle(row.evidenciaId);
+  }
+
+  private irADocumentos(row: any): boolean {
+    if (!row.gestion_documental) return false;
+    void this.router.navigate(['/asignaciones', row.id, 'detalle'], { queryParams: { periodo: this.periodoSeleccionadoId } });
+    return true;
   }
 
   cancelar(row: any): void {

@@ -145,6 +145,8 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     asignacion_estado = serializers.SerializerMethodField()
     asignacion_estado_display = serializers.SerializerMethodField()
     ultima_observacion = serializers.SerializerMethodField()
+    tipo_origen = serializers.CharField(source="asignacion.tipo_origen", read_only=True)
+    ruta_marco = serializers.ReadOnlyField(source="asignacion.ruta_marco")
 
     class Meta:
         model = Evidencia
@@ -152,12 +154,20 @@ class EvidenciaSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         asignacion = attrs.get("asignacion", getattr(self.instance, "asignacion", None))
+        if asignacion and asignacion.gestion_documental:
+            raise serializers.ValidationError({'asignacion': 'Gestione la entrega desde sus solicitudes documentales.'})
         request = self.context.get("request")
         if request and asignacion and not asignacion_revision_permitida(
             request, asignacion.unidad_responsable_id, asignacion.periodo_id
         ):
             raise serializers.ValidationError({"asignacion": "La asignación está fuera de sus ámbitos de revisión."})
         return attrs
+
+    def create(self, validated_data):
+        from .documentos import bloquear_evidencia_unica
+
+        with bloquear_evidencia_unica(validated_data['asignacion']):
+            return super().create(validated_data)
 
     def get_versiones(self, obj):
         versiones = obj.versiones.order_by("-version", "-pk")
