@@ -52,6 +52,7 @@ export class CrudTable {
       'indicadores': 'indicadores',
       'obligatorio': 'obligatorio',
       'estado': 'estado',
+      'decisión': 'decision_display',
       'fecha de creación': 'fechaCreacion',
       'fecha inicio': 'fecha_inicio',
       'fecha fin': 'fecha_fin',

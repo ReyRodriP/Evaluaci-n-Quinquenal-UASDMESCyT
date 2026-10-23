@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -11,9 +11,11 @@ import { DocumentosService } from '../../../core/services/documentos.service';
   templateUrl: './documentos-asignacion.html',
   styleUrls: ['../../evidencias/evidencia-detalle/evidencia-detalle.css', './documentos-asignacion.css'],
 })
-export class DocumentosAsignacion implements OnChanges, OnDestroy {
+export class DocumentosAsignacion implements OnChanges, OnDestroy, AfterViewChecked {
   @Input({ required: true }) asignacionId = 0;
   @Input() solicitudId = 0;
+  @Input() versionId = 0;
+  private enfocarVersion = false;
   @Output() actualizado = new EventEmitter<number>();
   contexto: any = null;
   solicitudes: any[] = [];
@@ -42,11 +44,17 @@ export class DocumentosAsignacion implements OnChanges, OnDestroy {
   private consulta?: Subscription;
   private operacion?: Subscription;
 
-  constructor(private documentos: DocumentosService, private sanitizer: DomSanitizer) {}
-  ngOnChanges(): void { this.cargar(); }
+  constructor(private documentos: DocumentosService, private sanitizer: DomSanitizer, private host: ElementRef<HTMLElement>) {}
+  ngOnChanges(): void { this.enfocarVersion = Number.isSafeInteger(this.versionId) && this.versionId > 0; this.cargar(); }
   ngOnDestroy(): void { this.consulta?.unsubscribe(); this.operacion?.unsubscribe(); this.cerrarPreview(); }
 
   get solicitudActiva(): any { return this.solicitudes.find(s => s.id === this.seleccionadaId) ?? null; }
+
+  ngAfterViewChecked(): void {
+    if (!this.enfocarVersion) return;
+    const elemento = this.host.nativeElement.querySelector<HTMLElement>(`#version-documento-${this.versionId}`);
+    if (elemento) { this.enfocarVersion = false; elemento.scrollIntoView?.({ block: 'center' }); }
+  }
 
   seleccionarDocumento(id: number): void { this.seleccionadaId = id; this.cerrarPreview(); }
 

@@ -13,7 +13,7 @@
       (pageSizeChange)="onPageSizeChange($event)">
       <div class="period-selector">
         <label for="evidencias-periodo">Período</label>
-        <select id="evidencias-periodo" [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)">
+        <select id="evidencias-periodo" [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)" [disabled]="descargandoMasivo">
           <option *ngIf="!periodoSeleccionadoId" value="">Sin período activo</option>
           <option *ngFor="let periodo of periodos" [value]="periodo.id">
             {{ periodo.nombre }} · {{ periodo.activo ? 'Activo' : 'Finalizado' }}
@@ -24,14 +24,14 @@
     </app-search-bar>
 
     <div class="bulk-download-bar" *ngIf="puedeDescargarMasivo">
-      <button type="button" class="select-page-btn" (click)="alternarSeleccionPagina()" [disabled]="!seleccionablesPagina.length">
+      <button type="button" class="select-page-btn" (click)="alternarSeleccionPagina()" [disabled]="!seleccionablesPagina.length || descargandoMasivo">
         {{ paginaCompletaSeleccionada ? 'Quitar selección de esta página' : 'Seleccionar esta página' }}
       </button>
       <span class="selection-count">
-        {{ seleccionadas.size }} evidencias seleccionadas · máximo {{ limiteDescargaMasiva }} por ZIP
+        {{ totalSeleccionadas }} evidencias y documentos seleccionados · máximo {{ limiteDescargaMasiva }} por ZIP
       </span>
       <button type="button" class="bulk-download-btn" (click)="descargarSeleccionadas()"
-        [disabled]="!seleccionadas.size || seleccionadas.size > limiteDescargaMasiva || descargandoMasivo">
+        [disabled]="!totalSeleccionadas || totalSeleccionadas > limiteDescargaMasiva || descargandoMasivo">
         <i class="bx bx-download" aria-hidden="true"></i>
         {{ descargandoMasivo ? 'Preparando ZIP...' : 'Descargar seleccionadas' }}
       </button>
@@ -43,8 +43,8 @@
       [plantillasCelda]="{ 'Selección': plantillaSeleccion, 'Indicador': plantillaIndicador }"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
       <ng-template #plantillaSeleccion let-row>
-        <input class="evidence-select-checkbox" type="checkbox" [checked]="filaSeleccionada(row)" [disabled]="!row.evidenciaId || !puedeDescargarMasivo"
-          [attr.aria-label]="'Seleccionar evidencia ' + row.indicador_nombre"
+        <input class="evidence-select-checkbox" type="checkbox" [checked]="filaSeleccionada(row)" [disabled]="!esSeleccionable(row) || !puedeDescargarMasivo || descargandoMasivo"
+          [attr.aria-label]="'Seleccionar ' + (row.documentoTitulo || row.indicador_nombre)"
           (change)="cambiarSeleccionFila(row, $event)" />
       </ng-template>
       <ng-template #plantillaIndicador let-row>

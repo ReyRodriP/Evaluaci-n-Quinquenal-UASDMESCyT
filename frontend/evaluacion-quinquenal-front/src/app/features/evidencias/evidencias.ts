@@ -33,6 +33,12 @@ export class Evidencias implements OnInit {
   periodoSeleccionadoId = '';
   readonly limiteDescargaMasiva = 100;
   seleccionadas = new Set<number>();
+  solicitudesSeleccionadas = new Set<number>();
+  private cargaDatosId = 0;
+
+  get totalSeleccionadas(): number { return this.seleccionadas.size + this.solicitudesSeleccionadas.size; }
+
+  esSeleccionable(row: any): boolean { return Boolean(row.evidenciaId || (row.solicitudId && row.ultimaVersion)); }
 
   historialAbierto = false;
   historialCampos: any[] = [];
@@ -56,12 +62,12 @@ export class Evidencias implements OnInit {
   }
 
   get seleccionablesPagina(): any[] {
-    return this.rowsPaginados.filter((row) => row.evidenciaId);
+    return this.rowsPaginados.filter((row) => this.esSeleccionable(row));
   }
 
   get paginaCompletaSeleccionada(): boolean {
     return this.seleccionablesPagina.length > 0
-      && this.seleccionablesPagina.every((row) => this.seleccionadas.has(row.evidenciaId));
+      && this.seleccionablesPagina.every((row) => this.filaSeleccionada(row));
   }
 
   constructor(
@@ -113,8 +119,10 @@ export class Evidencias implements OnInit {
   }
 
   onPeriodoChange(periodoId: string): void {
+    if (this.descargandoMasivo) return;
     this.periodoSeleccionadoId = periodoId;
     this.seleccionadas = new Set<number>();
+    this.solicitudesSeleccionadas = new Set<number>();
     this.actualizarPeriodoUrl();
     this.loadData();
   }
@@ -129,6 +137,7 @@ export class Evidencias implements OnInit {
   }
 
   loadData(): void {
+    const cargaId = ++this.cargaDatosId;
     if (!this.periodoSeleccionadoId) {
       this.rows = [];
       this.applySearch();
@@ -142,6 +151,7 @@ export class Evidencias implements OnInit {
       documentos: this.documentosService.listarPeriodo(this.periodoSeleccionadoId),
     }).subscribe({
       next: ({ asignaciones, evidencias, documentos }) => {
+        if (cargaId !== this.cargaDatosId) return;
         this.rows = asignaciones.flatMap((asignacion: any) => {
           if (asignacion.gestion_documental) {
             const solicitudes = documentos.filter((item: any) => Number(item.asignacion) === Number(asignacion.id));
@@ -172,11 +182,17 @@ export class Evidencias implements OnInit {
             ultimaObsUsuario: obs ? obs.usuario_nombre : '',
           }];
         });
+        const evidenciasVisibles = new Set(this.rows.filter(row => row.evidenciaId).map(row => row.evidenciaId));
+        const solicitudesVisibles = new Set(this.rows.filter(row => row.solicitudId && row.ultimaVersion).map(row => row.solicitudId));
+        this.seleccionadas = new Set([...this.seleccionadas].filter(id => evidenciasVisibles.has(id)));
+        this.solicitudesSeleccionadas = new Set([...this.solicitudesSeleccionadas].filter(id => solicitudesVisibles.has(id)));
         this.applySearch();
         this.loading = false;
       },
       error: () => {
+        if (cargaId !== this.cargaDatosId) return;
         this.rows = [];
+        this.seleccionadas = new Set<number>(); this.solicitudesSeleccionadas = new Set<number>();
         this.applySearch();
         this.toast.error('No se pudieron cargar las evidencias del período');
         this.loading = false;
@@ -228,41 +244,45 @@ export class Evidencias implements OnInit {
   }
 
   filaSeleccionada(row: any): boolean {
-    return Boolean(row.evidenciaId && this.seleccionadas.has(row.evidenciaId));
+    return row.solicitudId ? this.solicitudesSeleccionadas.has(row.solicitudId) : Boolean(row.evidenciaId && this.seleccionadas.has(row.evidenciaId));
   }
 
   cambiarSeleccionFila(row: any, event: Event): void {
-    if (!row.evidenciaId) return;
+    if (!this.esSeleccionable(row) || this.descargandoMasivo) return;
     const checked = (event.target as HTMLInputElement).checked;
-    const seleccion = new Set(this.seleccionadas);
-    if (checked) seleccion.add(row.evidenciaId);
-    else seleccion.delete(row.evidenciaId);
-    this.seleccionadas = seleccion;
+    this.actualizarSeleccion(row, checked);
+  }
+
+  private actualizarSeleccion(row: any, checked: boolean): void {
+    const campo = row.solicitudId ? 'solicitudesSeleccionadas' : 'seleccionadas';
+    const id = row.solicitudId || row.evidenciaId;
+    const seleccion = new Set(this[campo]);
+    if (checked) seleccion.add(id); else seleccion.delete(id);
+    this[campo] = seleccion;
   }
 
   alternarSeleccionPagina(): void {
-    const seleccion = new Set(this.seleccionadas);
-    if (this.paginaCompletaSeleccionada) {
-      this.seleccionablesPagina.forEach((row) => seleccion.delete(row.evidenciaId));
-    } else {
-      this.seleccionablesPagina.forEach((row) => seleccion.add(row.evidenciaId));
-    }
-    this.seleccionadas = seleccion;
+    if (this.descargandoMasivo) return;
+    const seleccionar = !this.paginaCompletaSeleccionada;
+    this.seleccionablesPagina.forEach(row => this.actualizarSeleccion(row, seleccionar));
   }
 
   descargarSeleccionadas(): void {
+    if (this.descargandoMasivo) return;
     const evidenciaIds = [...this.seleccionadas];
-    if (!evidenciaIds.length) {
+    const solicitudIds = [...this.solicitudesSeleccionadas];
+    const total = evidenciaIds.length + solicitudIds.length;
+    if (!total) {
       this.toast.error('Seleccione evidencias para descargar');
       return;
     }
-    if (evidenciaIds.length > this.limiteDescargaMasiva) {
-      this.toast.error(`Seleccione como máximo ${this.limiteDescargaMasiva} evidencias por ZIP`);
+    if (total > this.limiteDescargaMasiva) {
+      this.toast.error(`Seleccione como máximo ${this.limiteDescargaMasiva} evidencias y documentos por ZIP`);
       return;
     }
 
     this.descargandoMasivo = true;
-    this.evidenciasService.descargarMasiva(evidenciaIds).subscribe({
+    this.evidenciasService.descargarMasiva(evidenciaIds, solicitudIds).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const enlace = document.createElement('a');
@@ -270,8 +290,9 @@ export class Evidencias implements OnInit {
         enlace.download = 'evidencias_seleccionadas.zip';
         enlace.click();
         window.URL.revokeObjectURL(url);
-        this.toast.success(`ZIP preparado con ${evidenciaIds.length} evidencias`);
+        this.toast.success(`ZIP preparado para ${total} evidencias y documentos`);
         this.seleccionadas = new Set<number>();
+        this.solicitudesSeleccionadas = new Set<number>();
         this.descargandoMasivo = false;
       },
       error: () => {

@@ -170,7 +170,7 @@
 
                 <div
                     *ngFor="let version of versionesOrdenadas; let i = index"
-                    class="version-item">
+                    class="version-item" [id]="'version-evidencia-' + version.id_version" [class.version-referenciada]="version.id_version === versionConsultaId">
 
                     <div class="version-header">
 
@@ -178,6 +178,7 @@
 
                             <strong>
                                 Versión {{ version.version }}
+                                <span *ngIf="version.id_version === versionConsultaId" class="latest-badge">Versión vinculada a la observación</span>
                                 <span *ngIf="i === 0" class="latest-badge">(última)</span>
                             </strong>
 

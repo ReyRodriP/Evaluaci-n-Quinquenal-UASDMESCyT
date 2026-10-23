@@ -152,6 +152,18 @@ describe('EvidenciaDetalle con contexto EQ-SIDACES', () => {
     expect(texto()).toContain('6.1.1.1');
   });
 
+  it('resalta la versión anterior indicada por el reporte sin confundirla con la última', () => {
+    const route = TestBed.inject(ActivatedRoute);
+    (route.snapshot as any).queryParamMap = convertToParamMap({ periodo: '3', version: '10' });
+    evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ versiones: [
+      { id_version: 11, version: 2, nombre_archivo: 'actual.pdf', observaciones: [] },
+      { id_version: 10, version: 1, nombre_archivo: 'anterior.pdf', observaciones: [] },
+    ] })));
+    crear();
+    expect(fixture.nativeElement.querySelector('#version-evidencia-10').classList.contains('version-referenciada')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('#version-evidencia-11').classList.contains('version-referenciada')).toBeFalse();
+  });
+
   it('retira el panel de aprobación si el backend deja de autorizar la consulta', () => {
     evidenciasMock.detalleEvidencia.and.returnValue(of(evidencia({ puede_cambiar_estado: true })));
     crear();

@@ -25,7 +25,6 @@ export class Asignaciones implements OnInit {
   datos: any[] = [];
   datosFiltrados: any[] = [];
   datosPaginados: any[] = [];
-  indicadores: any[] = [];
   searchTerm = '';
   selectedState = 'Todos';
   currentPage = 1;
@@ -41,7 +40,6 @@ export class Asignaciones implements OnInit {
 
   asignacionFields: any[] = [
     { label: 'Unidad responsable', name: 'unidad_responsable', type: 'select', options: [], defaultValue: '' },
-    { label: 'Indicadores', name: 'indicador', type: 'checkboxgroup', options: [], defaultValue: [] },
     { label: 'Período', name: 'periodo', type: 'select', options: [], defaultValue: '' },
     { label: 'Estado', name: 'estado', type: 'select', options: [
       { value: 'pendiente', label: 'Pendiente' },
@@ -60,7 +58,7 @@ export class Asignaciones implements OnInit {
     return this.puedeCrear && (this.permisos.esSuperuser || this.permisos.tieneGrupo('Administrador General') || this.permisos.tieneGrupo('Coordinador Quinquenal'));
   }
 
-  abrirMarco(): void { if (this.puedeCrearMarco) { this.showModal = false; this.showMarco = true; } }
+  abrirMarco(): void { if (this.puedeCrearMarco) { this.selectedItem = null; this.showModal = false; this.showMarco = true; } }
 
   asignacionMarcoCreada(asignacion: any): void {
     this.showMarco = false;
@@ -70,10 +68,10 @@ export class Asignaciones implements OnInit {
 
   get ocultarAcciones(): string[] {
     if (!this.periodoSeleccionadoEsActivo) return ['edit', 'toggle', 'remove'];
-    if (this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion', 'evaluation.delete_asignacion'])) {
-      return ['toggle'];
-    }
-    return ['edit', 'toggle', 'remove'];
+    const ocultas = ['toggle'];
+    if (!this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion'])) ocultas.push('edit');
+    if (!this.permisos.tieneAlgunPermiso(['evaluation.delete_asignacion'])) ocultas.push('remove');
+    return ocultas;
   }
 
   constructor(
@@ -86,7 +84,6 @@ export class Asignaciones implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadIndicadores();
     this.loadUnidades();
     this.loadPeriodos();
   }
@@ -98,10 +95,7 @@ export class Asignaciones implements OnInit {
   }
 
   openNew() {
-    if (!this.periodoSeleccionadoEsActivo) return;
-    this.selectedItem = null;
-    this.showMarco = false;
-    this.showModal = true;
+    this.abrirMarco();
   }
 
   openEdit(item: any) {
@@ -109,6 +103,8 @@ export class Asignaciones implements OnInit {
       void this.router.navigate(['/asignaciones', item.id, 'detalle'], { queryParams: { periodo: this.periodoSeleccionadoId } });
       return;
     }
+    if (!item.id || !this.periodoSeleccionadoEsActivo || !this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion'])) return;
+    this.showMarco = false;
     const indicadoresIds = Array.isArray(item.indicadores)
       ? item.indicadores.map((indicador: any) => indicador.id ?? indicador.value ?? indicador)
       : [item.indicadorId ?? item.indicador];
@@ -116,34 +112,12 @@ export class Asignaciones implements OnInit {
     this.selectedItem = {
       ...item,
       indicador: indicadoresIds,
-      asignaciones: item.asignaciones ?? [],
+      asignaciones: item.asignaciones?.length ? item.asignaciones : [{ id: item.id, indicador: item.indicadorId ?? item.indicador }],
       unidad_responsable: item.unidadResponsableId ?? item.unidad_responsable,
       periodo: item.periodoId ?? item.periodo,
       estado: (item.estadoRaw ?? item.estado) || item.estado_display || 'pendiente',
     };
     this.showModal = true;
-  }
-
-  loadIndicadores() {
-    this.evaluacionService.listarIndicadores().subscribe({
-      next: (data) => {
-        this.indicadores = data;
-        this.asignacionFields = this.asignacionFields.map(field => {
-          if (field.name !== 'indicador') {
-            return field;
-          }
-
-          return {
-            ...field,
-            options: this.indicadores.map((indicador: any) => ({ value: indicador.id, label: indicador.nombre }))
-          };
-        });
-      },
-      error: (err) => {
-        console.error('Error cargando indicadores', err);
-        this.toast.error('No se pudieron cargar los indicadores');
-      }
-    });
   }
 
   loadUnidades() {
@@ -330,13 +304,15 @@ export class Asignaciones implements OnInit {
   }
 
   onModalSave(saved: any) {
-    if (this.selectedItem?.tipo_origen === 'marco') return;
+    if (!this.selectedItem?.id || this.selectedItem.tipo_origen === 'marco'
+      || !this.permisos.tieneAlgunPermiso(['evaluation.change_asignacion'])) return;
     if (!this.periodoSeleccionadoEsActivo) {
       this.toast.error('No se pueden modificar asignaciones de un período finalizado');
       return;
     }
-    const selectedIndicadores = Array.isArray(saved.indicador) ? saved.indicador : [saved.indicador];
-    if (!selectedIndicadores.length || !saved.unidad_responsable || !saved.periodo) {
+    const asignaciones = this.selectedItem.asignaciones;
+    if (!Array.isArray(asignaciones) || !asignaciones.length || asignaciones.some((a: any) => !a.id || !a.indicador)) return;
+    if (!saved.unidad_responsable || !saved.periodo) {
       this.toast.error('Complete todos los campos requeridos');
       return;
     }
@@ -347,77 +323,20 @@ export class Asignaciones implements OnInit {
       estado: saved.estado,
     };
 
-    const crearAsignaciones = (indicadores: any[]) => {
-      const requests = indicadores.map((indicador: any) => this.evaluacionService.crearAsignacion({
-        ...payloadBase,
-        indicador,
-      }));
-      return forkJoin(requests);
-    };
-
-    if (this.selectedItem && Array.isArray(this.selectedItem.asignaciones) && this.selectedItem.asignaciones.length) {
-      const existingAsignaciones = this.selectedItem.asignaciones;
-      const existingIndicadores = existingAsignaciones.map((a: any) => a.indicador);
-      const addedIndicadores = selectedIndicadores.filter((id: any) => !existingIndicadores.includes(id));
-      const removedAsignaciones = existingAsignaciones.filter((a: any) => !selectedIndicadores.includes(a.indicador));
-      const primaryIndicador = selectedIndicadores[0];
-      const updatePayload = {
-        ...payloadBase,
-        indicador: primaryIndicador,
-      };
-
-      this.evaluacionService.actualizarAsignacion(existingAsignaciones[0].id, updatePayload).subscribe({
-        next: () => {
-          const requests: any[] = [];
-
-          if (addedIndicadores.length) {
-            addedIndicadores.forEach((indicador: any) => {
-              requests.push(this.evaluacionService.crearAsignacion({ ...payloadBase, indicador }));
-            });
-          }
-
-          if (removedAsignaciones.length) {
-            removedAsignaciones.forEach((asignacion: any) => {
-              requests.push(this.evaluacionService.eliminarAsignacion(asignacion.id));
-            });
-          }
-
-          if (requests.length) {
-            forkJoin(requests).subscribe({
-              next: () => {
-                this.toast.success('Asignación actualizada correctamente');
-                this.loadAsignaciones();
-                this.onModalClose();
-              },
-              error: (err) => {
-                console.error('Error actualizando asignaciones', err);
-                this.toast.error('Error al actualizar las asignaciones');
-              }
-            });
-          } else {
-            this.toast.success('Asignación actualizada correctamente');
-            this.loadAsignaciones();
-            this.onModalClose();
-          }
-        },
-        error: (err) => {
-          console.error('Error actualizando asignación', err);
-          this.toast.error('Error al actualizar la asignación');
-        }
-      });
-    } else {
-      crearAsignaciones(selectedIndicadores).subscribe({
-        next: () => {
-          this.toast.success('Asignación(es) creada(s) exitosamente');
-          this.loadAsignaciones();
-          this.onModalClose();
-        },
-        error: (err) => {
-          console.error('Error creando asignaciones', err);
-          this.toast.error('Error al crear las asignaciones');
-        }
-      });
-    }
+    forkJoin(asignaciones.map((asignacion: any) => this.evaluacionService.actualizarAsignacion(asignacion.id, {
+      ...payloadBase, indicador: asignacion.indicador,
+    }))).subscribe({
+      next: () => {
+        this.toast.success('Asignaciones existentes actualizadas correctamente');
+        this.loadAsignaciones();
+        this.onModalClose();
+      },
+      error: (err) => {
+        console.error('Error actualizando asignaciones', err);
+        this.toast.error('No se pudieron actualizar todas las asignaciones existentes');
+        this.loadAsignaciones();
+      },
+    });
   }
 
   onRemove(item: any) {

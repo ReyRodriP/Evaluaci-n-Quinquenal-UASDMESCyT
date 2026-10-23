@@ -70,4 +70,59 @@ describe('Asignaciones', () => {
     expect(component.puedeCrearMarco).toBeFalse();
     component.periodos[0].activo = false; component.abrirMarco(); expect(component.showMarco).toBeFalse();
   });
+
+  function habilitarGestion(): void {
+    const permisos = TestBed.inject(PermisosService);
+    spyOn(permisos, 'tieneAlgunPermiso').and.returnValue(true);
+    spyOn(permisos, 'tieneGrupo').and.callFake(rol => rol === 'Coordinador Quinquenal');
+    component.periodos = [{ id: 2, activo: true }]; component.periodoSeleccionadoId = '2';
+  }
+
+  it('presenta una única entrada de alta y abre el formulario del marco', () => {
+    habilitarGestion();
+    spyOn(TestBed.inject(EvaluacionService), 'contextoAsignacionMarco').and.returnValue(of({
+      periodo: { id: 2, nombre: 'P2' }, version: { id: 1, nombre: 'Marco', activo: false }, unidades: [], indicadores: [], encargados: [], asignaciones_existentes: [],
+    }));
+    fixture.detectChanges();
+    const botones = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).filter(b => b.textContent?.trim() === 'Asignar indicador del marco');
+    expect(botones.length).toBe(1);
+    expect(fixture.nativeElement.textContent).not.toContain('+ Nuevo Registro');
+    botones[0].click(); fixture.detectChanges();
+    expect(component.showMarco).toBeTrue(); expect(component.showModal).toBeFalse();
+    expect(fixture.nativeElement.querySelector('app-nueva-asignacion-marco')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-modal')).toBeNull();
+  });
+
+  it('no utiliza el guardado anterior para crear asignaciones sin un registro existente', () => {
+    habilitarGestion();
+    const service = TestBed.inject(EvaluacionService);
+    const crear = spyOn(service, 'crearAsignacion'), actualizar = spyOn(service, 'actualizarAsignacion');
+    component.onModalSave({ unidad_responsable: 10, periodo: 2, indicador: [7], estado: 'pendiente' });
+    expect(crear).not.toHaveBeenCalled(); expect(actualizar).not.toHaveBeenCalled();
+  });
+
+  it('edita todos los registros operativos existentes sin crear, eliminar o cambiar sus indicadores', () => {
+    habilitarGestion();
+    const service = TestBed.inject(EvaluacionService);
+    const crear = spyOn(service, 'crearAsignacion'), eliminar = spyOn(service, 'eliminarAsignacion');
+    const actualizar = spyOn(service, 'actualizarAsignacion').and.returnValue(of({}));
+    spyOn(service, 'listarAsignaciones').and.returnValue(of([]));
+    component.openEdit({ id: 1, tipo_origen: 'operativo', unidadResponsableId: 10, periodoId: 2, estadoRaw: 'pendiente',
+      indicadores: [{ id: 7 }, { id: 8 }], asignaciones: [{ id: 1, indicador: 7 }, { id: 2, indicador: 8 }] });
+    expect(component.showModal).toBeTrue();
+    expect(component.asignacionFields.some(campo => campo.name === 'indicador')).toBeFalse();
+    component.onModalSave({ unidad_responsable: 10, periodo: 2, estado: 'en_progreso', indicador: [99] });
+    expect(actualizar.calls.allArgs()).toEqual([
+      [1, { unidad_responsable: 10, periodo: 2, estado: 'en_progreso', indicador: 7 }],
+      [2, { unidad_responsable: 10, periodo: 2, estado: 'en_progreso', indicador: 8 }],
+    ]);
+    expect(crear).not.toHaveBeenCalled(); expect(eliminar).not.toHaveBeenCalled();
+  });
+
+  it('mantiene la edición operativa en solo consulta al seleccionar un período finalizado', () => {
+    habilitarGestion(); component.periodos[0].activo = false;
+    component.openEdit({ id: 1, tipo_origen: 'operativo', indicador: 7 });
+    expect(component.showModal).toBeFalse();
+    expect(component.ocultarAcciones).toEqual(['edit', 'toggle', 'remove']);
+  });
 });

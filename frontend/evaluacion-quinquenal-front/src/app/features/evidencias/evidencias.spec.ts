@@ -1,7 +1,7 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ToastrModule } from 'ngx-toastr';
-import { of } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
 
@@ -144,5 +144,66 @@ describe('Evidencias', () => {
     cargarDocumentos();
     component.onSearch('Acta');
     expect(component.rowsFiltrados.map(row => row.solicitudId)).toEqual([4]);
+  });
+
+  it('selecciona documentos y evidencias con IDs coincidentes sin mezclarlos', () => {
+    cargarDocumentos();
+    component.rowsPaginados.push({ evidenciaId: 3, ultimaVersion: { id_version: 50 } });
+    component.alternarSeleccionPagina();
+    expect(component.totalSeleccionadas).toBe(3);
+    expect([...component.seleccionadas]).toEqual([3]);
+    expect([...component.solicitudesSeleccionadas]).toEqual([3, 4]);
+    expect(component.paginaCompletaSeleccionada).toBeTrue();
+    component.alternarSeleccionPagina();
+    expect(component.totalSeleccionadas).toBe(0);
+  });
+
+  it('envía la selección mixta una sola vez y limpia ambos conjuntos al descargar', () => {
+    const descarga = new Subject<Blob>();
+    const service = evidenciasService(); service.descargarMasiva.and.returnValue(descarga);
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:zip'); spyOn(URL, 'revokeObjectURL'); spyOn(HTMLAnchorElement.prototype, 'click');
+    component.seleccionadas = new Set([3]); component.solicitudesSeleccionadas = new Set([3, 4]);
+    component.descargarSeleccionadas(); component.descargarSeleccionadas();
+    expect(service.descargarMasiva).toHaveBeenCalledOnceWith([3], [3, 4]);
+    component.onPeriodoChange('11'); expect(component.periodoSeleccionadoId).toBe('10');
+    descarga.next(new Blob(['zip'])); descarga.complete();
+    expect(component.totalSeleccionadas).toBe(0); expect(component.descargandoMasivo).toBeFalse();
+  });
+
+  it('aplica el límite de 100 a la suma de ambos tipos de recurso', () => {
+    component.seleccionadas = new Set(Array.from({ length: 50 }, (_, i) => i + 1));
+    component.solicitudesSeleccionadas = new Set(Array.from({ length: 51 }, (_, i) => i + 1));
+    component.descargarSeleccionadas();
+    expect(component.totalSeleccionadas).toBe(101);
+    expect(evidenciasService().descargarMasiva).not.toHaveBeenCalled();
+  });
+
+  it('retira selecciones si falla la recarga de documentos o se pierde el alcance', () => {
+    component.seleccionadas.add(100); component.solicitudesSeleccionadas.add(3);
+    const documentos = TestBed.inject(DocumentosService) as jasmine.SpyObj<DocumentosService>;
+    documentos.listarPeriodo.and.returnValue(throwError(() => ({ status: 404 })));
+    component.loadData();
+    expect(component.rows).toEqual([]); expect(component.totalSeleccionadas).toBe(0);
+  });
+
+  it('no selecciona solicitudes que todavía no tienen archivo', () => {
+    const pendiente = { solicitudId: 5, ultimaVersion: null };
+    expect(component.esSeleccionable(pendiente)).toBeFalse();
+    component.cambiarSeleccionFila(pendiente, { target: { checked: true } } as unknown as Event);
+    expect(component.totalSeleccionadas).toBe(0);
+    component.solicitudesSeleccionadas.add(3); component.onPeriodoChange('11');
+    expect(component.totalSeleccionadas).toBe(0);
+  });
+
+  it('no restaura filas de un período anterior cuando las respuestas llegan fuera de orden', () => {
+    const documentos = TestBed.inject(DocumentosService) as jasmine.SpyObj<DocumentosService>;
+    const anterior = new Subject<any[]>(), actual = new Subject<any[]>();
+    documentos.listarPeriodo.and.returnValues(anterior, actual);
+    component.loadData(); component.onPeriodoChange('11');
+    actual.next([]); actual.complete();
+    expect(component.rows.map(row => row.id)).toEqual([2]);
+    anterior.next([]); anterior.complete();
+    expect(component.rows.map(row => row.id)).toEqual([2]);
+    expect(component.periodoSeleccionadoId).toBe('11');
   });
 });

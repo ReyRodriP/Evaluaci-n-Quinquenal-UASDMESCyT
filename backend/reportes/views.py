@@ -181,7 +181,7 @@ def _paginar(request, filas):
     return filas[inicio : inicio + page_size], total, page, page_size, ceil(total / page_size) if total else 0
 
 
-def _build_pdf(titulo, columnas, filas):
+def _build_pdf(titulo, columnas, filas, *, split_in_row=False):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -218,7 +218,7 @@ def _build_pdf(titulo, columnas, filas):
     datos += [[Paragraph(str(celda or ""), estilo_celda) for celda in fila] for fila in filas]
 
     ancho_columna = doc.width / len(columnas)
-    tabla = Table(datos, colWidths=[ancho_columna] * len(columnas), repeatRows=1)
+    tabla = Table(datos, colWidths=[ancho_columna] * len(columnas), repeatRows=1, splitInRow=int(split_in_row))
     tabla.setStyle(
         TableStyle(
             [
@@ -752,31 +752,16 @@ def observaciones(request):
     @param request Request HTTP autenticada.
     @return Response con observaciones paginadas.
     """
-    qs = _base_queryset_observaciones(request)
-    filas_completas = _filas_observaciones(qs)
+    from .observaciones import filas_observaciones
 
-    evidencias_observadas = len(set(fila[0] for fila in filas_completas))
-    filas, total, page, page_size, total_pages = _paginar(request, filas_completas)
-
-    filas_json = [
-        {
-            "evidencia": fila[0],
-            "indicador": fila[1],
-            "departamento": fila[2],
-            "periodo": fila[3],
-            "version": fila[4],
-            "observador": fila[5],
-            "comentario": fila[6],
-            "fecha": fila[7],
-            "total_observaciones": fila[8],
-        }
-        for fila in filas
-    ]
+    filas_completas, evidencias_observadas, observadores = filas_observaciones(request)
+    filas_json, total, page, page_size, total_pages = _paginar(request, filas_completas)
 
     return Response(
         {
             "total_observaciones": total,
             "evidencias_observadas": evidencias_observadas,
+            "observadores": observadores,
             "page": page,
             "page_size": page_size,
             "total_pages": total_pages,
@@ -792,15 +777,10 @@ def observaciones_exportar(request):
     @param request Request HTTP autenticada.
     @return HttpResponse con el archivo generado.
     """
-    qs = _base_queryset_observaciones(request)
-    filas = _filas_observaciones(qs)
-    return _responder_exportacion(
-        "Reporte de Observaciones",
-        COLUMNAS_OBSERVACIONES,
-        filas,
-        request.query_params.get("formato", "xlsx"),
-        "reporte_observaciones",
-    )
+    from .observaciones import exportar_observaciones, filas_observaciones
+
+    filas, _, _ = filas_observaciones(request)
+    return exportar_observaciones(request, filas)
 
 
 # ============================================================

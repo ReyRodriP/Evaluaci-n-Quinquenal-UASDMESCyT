@@ -81,8 +81,9 @@ interno conserva el alcance explícito unidad-período de 3A.
 - Seguimiento y dashboard cuentan una asignación con documentos entregados una sola
   vez en cobertura. El resumen distingue solicitados, entregados, aprobados y
   observados. El reporte de evidencias y sus exportaciones incorporan una fila por
-  documento entregado. El ZIP de evidencias anterior conserva su selección por IDs
-  de evidencia; los documentos nuevos se descargan individualmente desde el panel.
+  documento entregado. En el despliegue inicial de 3C, los documentos nuevos se
+  descargaban individualmente desde el panel. El incremento 3G amplía la descarga
+  masiva para incluirlos junto con las evidencias anteriores.
 
 ## Decisiones funcionales confirmadas por el usuario
 

@@ -1,6 +1,6 @@
 <div class="crud-container">
   <div class="crud-header">
-    <app-search-bar [titulo]="'Asignaciones'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todos', 'Pendiente', 'En progreso', 'Completado', 'Aprobado', 'Rechazado']" [stateLabel]="'Estado de asignación'" [showCreate]="puedeCrear" [pageSize]="pageSize" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+    <app-search-bar [titulo]="'Asignaciones'" [placeholder]="'Buscar por nombre'" [stateOptions]="['Todos', 'Pendiente', 'En progreso', 'Completado', 'Aprobado', 'Rechazado']" [stateLabel]="'Estado de asignación'" [showCreate]="puedeCrearMarco" [createLabel]="'Asignar indicador del marco'" [pageSize]="pageSize" (create)="openNew()" (search)="onSearch($event)" (stateChange)="onStateChange($event)" (pageSizeChange)="onPageSizeChange($event)">
       <div class="period-selector">
         <label for="asignaciones-periodo">Período</label>
         <select id="asignaciones-periodo" [ngModel]="periodoSeleccionadoId" (ngModelChange)="onPeriodoChange($event)">
@@ -12,7 +12,6 @@
         <span *ngIf="periodoSeleccionadoId && !periodoSeleccionadoEsActivo">Solo consulta histórica</span>
       </div>
     </app-search-bar>
-    <div class="marco-create-bar" *ngIf="puedeCrearMarco"><button type="button" class="marco-create-btn" (click)="abrirMarco()"><i class="bx bx-book" aria-hidden="true"></i> Asignar indicador del marco</button></div>
     <app-nueva-asignacion-marco *ngIf="showMarco && puedeCrearMarco" [periodoId]="periodoSeleccionadoId" (cerrar)="showMarco = false" (creada)="asignacionMarcoCreada($event)"></app-nueva-asignacion-marco>
     <app-crud-table [columnas]="columnas" [datos]="datosPaginados" [ocultarAcciones]="ocultarAcciones" [plantillasCelda]="{ 'Indicadores': plantillaIndicadores }" (edit)="openEdit($event)" (remove)="onRemove($event)">
       <ng-template #plantillaIndicadores let-row>
@@ -24,7 +23,8 @@
              {{ row.indicadores[i]?.nombre || 'Indicador' }}
           </a>
          </div>
-         <small *ngIf="row.tipo_origen === 'marco'">Indicador del marco · consulta en el detalle</small>
+          <small *ngIf="row.tipo_origen === 'marco'">Indicador del marco · consulta en el detalle</small>
+          <small *ngIf="row.tipo_origen !== 'marco'">Asignación operativa existente</small>
        </ng-template>
        <ng-template #acciones let-row>
          <a *ngIf="row.tipo_origen === 'marco'" [routerLink]="['/asignaciones', row.id, 'detalle']" [queryParams]="{ periodo: periodoSeleccionadoId }">Ver detalle</a>
@@ -35,11 +35,11 @@
     <app-pagination [total]="datosFiltrados.length" [pageSize]="pageSize" [currentPage]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
 
     <app-modal
+      *ngIf="showModal && selectedItem"
       [open]="showModal"
       [data]="selectedItem"
       [title]="'Asignación'"
-      [newTitle]="'Nueva Asignación'"
-      [editTitle]="'Editar Asignación'"
+      [editTitle]="'Editar asignación operativa existente'"
       [fields]="asignacionFields"
       (close)="onModalClose()"
       (save)="onModalSave($event)">

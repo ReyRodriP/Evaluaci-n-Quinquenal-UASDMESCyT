@@ -14,6 +14,7 @@ export class SearchBar {
   @Input() stateOptions: string[] = ['Todas', 'Activas', 'Inactivas'];
   @Input() stateLabel: string = 'Estado';
   @Input() showCreate: boolean = true;
+  @Input() createLabel: string = '+ Nuevo Registro';
   @Input() showState: boolean = true;
   @Input() pageSize: number = 10;
 

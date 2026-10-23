@@ -16,6 +16,7 @@ export class AsignacionDetalle implements OnInit {
   asignacionId = 0;
   periodoId = '';
   documentoId = 0;
+  versionDocumentoId = 0;
   asignacion: any = null;
   cargando = false;
   errorCarga = '';
@@ -29,6 +30,8 @@ export class AsignacionDetalle implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     this.periodoId = this.route.snapshot.queryParamMap.get('periodo') || '';
     this.documentoId = Number(this.route.snapshot.queryParamMap.get('documento')) || 0;
+    const version = Number(this.route.snapshot.queryParamMap.get('version_documento'));
+    this.versionDocumentoId = Number.isSafeInteger(version) && version > 0 ? version : 0;
     this.asignacionId = id ? +id : 0;
     if (!this.asignacionId) {
       this.errorCarga = 'Identificador de asignación no válido';

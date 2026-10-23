@@ -3,7 +3,7 @@
 ## Estado
 
 Implementado y verificado automáticamente y en navegador de desarrollo después
-de la validación manual de 3D. Disponible para la siguiente prueba manual.
+de la validación manual de 3D. El usuario confirmó que funciona perfectamente.
 
 ## Recorrido funcional
 
@@ -27,8 +27,10 @@ de la validación manual de 3D. Disponible para la siguiente prueba manual.
    contrato existente de 3B y abre su detalle. Allí se definen las solicitudes
    obligatorias de 3C, activando el flujo documental al crear la primera solicitud.
 
-La opción de alta operativa existente conserva su formulario. Las referencias al
-marco se guardan directamente en `indicador_marco`, con encargado explícito.
+Durante la implementación de 3E coexistieron las dos opciones de alta. Tras la
+validación del usuario, la transición de `transicion_alta_marco_3f.md` deja el marco
+como única entrada de creación de asignaciones desde la interfaz. Las referencias
+al marco se guardan directamente en `indicador_marco`, con encargado explícito.
 
 ## Contratos y validaciones
 
@@ -98,4 +100,5 @@ por las suites se destruyen al finalizar.
 7. En **Períodos**, comprobar que el período conserva su versión explícita y que
    las versiones inactivas se identifican en el selector.
 
-La validación manual de 3E queda pendiente del usuario.
+El usuario confirmó el funcionamiento de 3E y autorizó retirar el alta operativa
+anterior de la interfaz, conservando el trabajo existente.

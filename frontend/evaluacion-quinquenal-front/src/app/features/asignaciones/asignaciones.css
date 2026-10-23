@@ -63,5 +63,3 @@
 .indicador-link:hover {
   text-decoration: underline;
 }
-.marco-create-bar { display: flex; justify-content: flex-end; margin: 12px 0; }
-.marco-create-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: 0; border-radius: 10px; background: var(--modal-btn-save-bg); color: var(--modal-btn-save-text); box-shadow: var(--modal-btn-save-shadow); font-weight: 600; cursor: pointer; }

@@ -253,9 +253,11 @@
         Observador
         <select name="obs_usuario" [(ngModel)]="obsFiltros.usuario" autocomplete="off" [attr.aria-label]="'Usuario de observaciones'" (change)="obsPage = 1; cargarObservaciones()">
           <option value="">Todos</option>
-          <option *ngFor="let u of usuarios" [value]="u.id">{{ u.username }}</option>
+          <option *ngFor="let u of obsObservadores" [value]="u.id">{{ u.username }}</option>
         </select>
       </label>
+      <label>Origen<select aria-label="Origen de observaciones" [(ngModel)]="obsFiltros.origen" (ngModelChange)="obsPage = 1; cargarObservaciones()"><option value="">Todos los flujos</option><option value="evidencia">Evidencia anterior</option><option value="documento">Documento solicitado</option></select></label>
+      <label>Decisión de revisión<select aria-label="Decisión de observaciones" [(ngModel)]="obsFiltros.decision" (ngModelChange)="obsPage = 1; cargarObservaciones()"><option value="">Todas las decisiones</option><option value="comentario">Comentario del flujo anterior</option><option value="observada">Cambios solicitados</option><option value="aprobada">Aprobada con comentario</option></select></label>
       <button class="btn-limpiar" (click)="limpiarFiltrosObservaciones()">
         <i class="bx bx-reset"></i> Limpiar filtros
       </button>
@@ -268,17 +270,22 @@
       </div>
       <div class="resumen-item">
         <span class="resumen-valor">{{ obsResumen.evidencias }}</span>
-        <span class="resumen-etiqueta">Evidencias observadas</span>
+        <span class="resumen-etiqueta">Evidencias y documentos con comentarios</span>
       </div>
     </div>
 
     <div *ngIf="loading" class="state-message">Cargando reporte...</div>
 
+    <div *ngIf="obsError && !loading" class="state-message" role="alert">{{ obsError }} <button type="button" class="btn-limpiar" (click)="cargarObservaciones()">Reintentar</button></div>
     <app-crud-table
       *ngIf="!loading && obsRows.length"
       [columnas]="obsColumnas"
       [datos]="obsRows"
       [ocultarAcciones]="['edit', 'toggle', 'remove']">
+      <ng-template #acciones let-row>
+        <a *ngIf="row.tipo_recurso === 'documento'" class="observation-detail-link" [routerLink]="['/asignaciones', row.asignacion_id, 'detalle']" [queryParams]="{ periodo: row.periodo_id, documento: row.recurso_id, version_documento: row.version_id }">Ver versión comentada</a>
+        <a *ngIf="row.tipo_recurso === 'evidencia'" class="observation-detail-link" [routerLink]="['/evidencias', row.recurso_id, 'detalle']" [queryParams]="{ periodo: row.periodo_id, version: row.version_id }">Ver versión comentada</a>
+      </ng-template>
     </app-crud-table>
 
     <app-pagination
@@ -289,7 +296,7 @@
       (pageChange)="cambiarPaginaObservaciones($event)">
     </app-pagination>
 
-    <div *ngIf="!loading && !obsRows.length" class="state-message">
+    <div *ngIf="!loading && !obsError && !obsRows.length" class="state-message">
       No hay observaciones registradas con los filtros seleccionados.
     </div>
   </section>
@@ -424,13 +431,13 @@
   <app-reporte-marco *ngIf="pestanaActiva === 'marco'" [periodoId]="genFiltros.periodo" [periodos]="periodos" [unidades]="unidades" (periodoChange)="onPeriodoChange($event)"></app-reporte-marco>
 
   <div class="reporte-exportar" *ngIf="pestanaActiva !== 'marco'">
-    <button class="btn-exportar preview" (click)="previsualizar()">
+    <button class="btn-exportar preview" (click)="previsualizar()" [disabled]="pestanaActiva === 'observaciones' && (loading || !!obsError)">
       <i class="bx bx-show"></i> Vista previa
     </button>
-    <button class="btn-exportar excel" (click)="exportar('xlsx')">
+    <button class="btn-exportar excel" (click)="exportar('xlsx')" [disabled]="pestanaActiva === 'observaciones' && (loading || !!obsError)">
       <i class="bx bxs-file-xls"></i> Exportar Excel
     </button>
-    <button class="btn-exportar pdf" (click)="exportar('pdf')">
+    <button class="btn-exportar pdf" (click)="exportar('pdf')" [disabled]="pestanaActiva === 'observaciones' && (loading || !!obsError)">
       <i class="bx bxs-file-pdf"></i> Exportar PDF
     </button>
   </div>

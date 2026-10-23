@@ -94,4 +94,12 @@ describe('DocumentosAsignacion', () => {
     component.cerrarPreview();
     expect(liberar).toHaveBeenCalledWith('blob:prueba');
   });
+
+  it('identifica la versión exacta indicada por el reporte de observaciones', () => {
+    fixture.componentRef.setInput('solicitudId', 2); fixture.componentRef.setInput('versionId', 22); fixture.detectChanges();
+    const version = fixture.nativeElement.querySelector('#version-documento-22');
+    expect(version.classList.contains('version-referenciada')).toBeTrue();
+    expect(version.textContent).toContain('Versión vinculada a la observación');
+    expect(component.solicitudActiva.id).toBe(2);
+  });
 });

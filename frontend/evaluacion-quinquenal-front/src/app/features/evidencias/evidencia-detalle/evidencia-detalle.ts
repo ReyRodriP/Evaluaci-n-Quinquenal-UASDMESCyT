@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -15,9 +15,11 @@ import { RutaMarco } from '../../../shared/components/ruta-marco/ruta-marco';
   templateUrl: './evidencia-detalle.html',
   styleUrl: './evidencia-detalle.css',
 })
-export class EvidenciaDetalle implements OnInit {
+export class EvidenciaDetalle implements OnInit, AfterViewChecked {
   evidencia: any = null;
   periodoId = '';
+  versionConsultaId = 0;
+  private enfocarVersion = false;
   loading = false;
   error = '';
 
@@ -61,12 +63,16 @@ export class EvidenciaDetalle implements OnInit {
     private evidenciasService: EvidenciasService,
     private evaluacionService: EvaluacionService,
     private toast: ToastrService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private host: ElementRef<HTMLElement>
   ) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     this.periodoId = this.route.snapshot.queryParamMap.get('periodo') || '';
+    const version = Number(this.route.snapshot.queryParamMap.get('version'));
+    this.versionConsultaId = Number.isSafeInteger(version) && version > 0 ? version : 0;
+    this.enfocarVersion = !!this.versionConsultaId;
     if (id) {
       this.cargarDetalle(+id);
     }
@@ -86,6 +92,12 @@ export class EvidenciaDetalle implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.enfocarVersion) return;
+    const elemento = this.host.nativeElement.querySelector<HTMLElement>(`#version-evidencia-${this.versionConsultaId}`);
+    if (elemento) { this.enfocarVersion = false; elemento.scrollIntoView?.({ block: 'center' }); }
   }
 
   private validarArchivo(file: File | null): string {

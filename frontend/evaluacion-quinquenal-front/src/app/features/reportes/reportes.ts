@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, forkJoin, of, throwError } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, forkJoin, of, Subscription, throwError } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReportesService } from '../../core/services/reportes.service';
 import { EvaluacionService } from '../../core/services/evaluacion.service';
@@ -24,7 +24,7 @@ type Pestana =
 
 @Component({
   selector: 'app-reportes',
-  imports: [CommonModule, FormsModule, CrudTable, Pagination, ReporteMarco],
+  imports: [CommonModule, FormsModule, CrudTable, Pagination, ReporteMarco, RouterLink],
   templateUrl: './reportes.html',
   styleUrl: './reportes.css',
 })
@@ -65,11 +65,14 @@ export class Reportes implements OnInit, OnDestroy {
   evColumnas = ['Indicador', 'Evidencia', 'Unidad responsable', 'Criterio', 'Periodo', 'Estado', 'Fecha'];
 
   // Reporte 5: Observaciones
-  obsFiltros = { periodo: '', unidad_organizacional: '', usuario: '' };
+  obsFiltros = { periodo: '', unidad_organizacional: '', usuario: '', origen: '', decision: '' };
   obsRows: any[] = [];
   obsPage = 1;
   obsResumen = { total: 0, evidencias: 0 };
-  obsColumnas = ['Evidencia', 'Indicador', 'Unidad responsable', 'Periodo', 'Versión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones'];
+  obsColumnas = ['Origen', 'Evidencia', 'Indicador', 'Unidad responsable', 'Periodo', 'Versión', 'Decisión', 'Observador', 'Comentario', 'Fecha', 'N° Observaciones'];
+  obsError = '';
+  obsObservadores: any[] = [];
+  private consultaObservaciones?: Subscription;
 
   // Reporte 6: Auditoría
   audFiltros = { usuario: '', fecha_desde: '', fecha_hasta: '', modelo: '', accion: '' };
@@ -104,11 +107,13 @@ export class Reportes implements OnInit, OnDestroy {
   private debounceTimer: any;
 
   ngOnInit(): void {
-    if (this.route.snapshot.queryParamMap.get('reporte') === 'marco') this.pestanaActiva = 'marco';
+    const reporte = this.route.snapshot.queryParamMap.get('reporte');
+    if (reporte === 'marco' || reporte === 'observaciones') this.pestanaActiva = reporte;
     this.loadSelectores();
   }
 
   ngOnDestroy(): void {
+    this.consultaObservaciones?.unsubscribe();
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
@@ -119,6 +124,7 @@ export class Reportes implements OnInit, OnDestroy {
       return;
     }
     this.pestanaActiva = pestana;
+    if (pestana !== 'observaciones') this.consultaObservaciones?.unsubscribe();
     this.cargarReporteActual();
   }
 
@@ -303,15 +309,19 @@ export class Reportes implements OnInit, OnDestroy {
 
   // ===================== OBSERVACIONES =====================
   cargarObservaciones(): void {
+    this.consultaObservaciones?.unsubscribe();
+    this.obsRows = []; this.obsResumen = { total: 0, evidencias: 0 }; this.obsError = ''; this.obsObservadores = [];
     this.loading = true;
     const params = { ...this.limpiarParametros(this.obsFiltros), page: this.obsPage, page_size: this.pageSize };
-    this.reportesService.reporteObservaciones(params).subscribe({
+    this.consultaObservaciones = this.reportesService.reporteObservaciones(params).subscribe({
       next: (data) => {
         this.obsRows = data.rows;
+        this.obsObservadores = data.observadores ?? [];
         this.obsResumen = { total: data.total_observaciones, evidencias: data.evidencias_observadas };
         this.loading = false;
       },
       error: () => {
+        this.obsError = 'No se pudo consultar el reporte de observaciones o perdió el acceso al período.';
         this.toast.error('No se pudo cargar el reporte de observaciones');
         this.loading = false;
       },
@@ -319,7 +329,7 @@ export class Reportes implements OnInit, OnDestroy {
   }
 
   limpiarFiltrosObservaciones(): void {
-    this.obsFiltros = { periodo: this.genFiltros.periodo, unidad_organizacional: '', usuario: '' };
+    this.obsFiltros = { periodo: this.genFiltros.periodo, unidad_organizacional: '', usuario: '', origen: '', decision: '' };
     this.obsPage = 1;
     this.cargarObservaciones();
   }
@@ -327,6 +337,11 @@ export class Reportes implements OnInit, OnDestroy {
   cambiarPaginaObservaciones(pagina: number): void {
     this.obsPage = pagina;
     this.cargarObservaciones();
+  }
+
+  private invalidarObservaciones(): void {
+    this.obsRows = []; this.obsObservadores = []; this.obsResumen = { total: 0, evidencias: 0 };
+    this.obsError = 'Vuelva a consultar las observaciones para verificar su acceso y los filtros actuales.';
   }
 
   // ===================== AUDITORÍA =====================
@@ -423,7 +438,10 @@ export class Reportes implements OnInit, OnDestroy {
         this.descargarBlob(blob, `${nombre}.${formato}`);
         this.toast.success(`Reporte exportado en ${formato.toUpperCase()}`);
       },
-      error: () => this.toast.error('No se pudo exportar el reporte'),
+      error: () => {
+        if (this.pestanaActiva === 'observaciones') this.invalidarObservaciones();
+        this.toast.error('No se pudo exportar el reporte');
+      },
     });
   }
 
@@ -439,7 +457,10 @@ export class Reportes implements OnInit, OnDestroy {
         window.open(url, '_blank');
         setTimeout(() => window.URL.revokeObjectURL(url), 60000);
       },
-      error: () => this.toast.error('No se pudo generar la vista previa'),
+      error: () => {
+        if (this.pestanaActiva === 'observaciones') this.invalidarObservaciones();
+        this.toast.error('No se pudo generar la vista previa');
+      },
     });
   }
 
