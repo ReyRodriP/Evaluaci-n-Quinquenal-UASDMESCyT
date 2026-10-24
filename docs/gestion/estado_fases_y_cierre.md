@@ -13,8 +13,9 @@
 | 3G | ZIP unificado de documentos y evidencias anteriores |
 | 3H | Observaciones y acceso a versiones comentadas |
 | 3I | Notificaciones documentales con destinatarios y destinos autorizados |
+| 3J | Historial global de asignación con autor, estados, fecha y comentario |
 
-Son nueve incrementos validados. Los documentos de diagnóstico anteriores contienen
+Son diez incrementos validados. Los documentos de diagnóstico anteriores contienen
 otra numeración y propuestas históricas: no fijan un número cerrado de incrementos
 restantes con las letras 3A–3I.
 
@@ -32,13 +33,18 @@ incrementos, se propone completar tres bloques, contando el que se aborda ahora:
 3. **3L — Documentación y demostración final.** Actualizar los manuales funcionales
    y técnicos del flujo implementado y preparar un recorrido reproducible de entrega.
 
-3J está implementado y verificado técnicamente, incluida la consulta HTTP y la
-presentación en navegador de escritorio y móvil. Su validación manual está pendiente;
-el recorrido se detalla en `historial_asignacion_3j.md`.
+3J está implementado y validado por el usuario, incluida la distinción entre el
+historial de la asignación y la revisión individual de evidencias. El recorrido se
+detalla en `historial_asignacion_3j.md`.
 
- **Este conteo es una estimación propuesta para el cierre funcional, no una lista
-oficial de fases previamente aprobada.** Al validar 3J quedarían dos bloques de
-esta propuesta. Las nuevas solicitudes de funcionalidad modificarían el alcance.
+3K tiene verificación técnica satisfactoria: dos recorridos integrales nuevos y
+511 pruebas backend satisfactorias. Está pendiente la aceptación manual del recorrido
+desde la interfaz, descrita en `validacion_integral_3k.md`. Después de validarla
+quedará 3L dentro de esta propuesta.
+
+**Este conteo es una estimación propuesta para el cierre funcional, no una lista
+oficial de fases previamente aprobada.** Con 3J validado quedan 3K (pendiente de
+aceptación manual) y 3L. Las nuevas solicitudes de funcionalidad modificarían el alcance.
 
 ## Pendientes que no se consideran resueltos con ese cierre
 

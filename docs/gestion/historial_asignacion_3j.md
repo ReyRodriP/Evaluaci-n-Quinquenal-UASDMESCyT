@@ -2,7 +2,7 @@
 
 ## Estado
 
-Implementado y verificado técnicamente. Pendiente de validación manual del usuario.
+Implementado, verificado técnicamente y validado manualmente por el usuario.
 
 ## Funcionalidad
 
