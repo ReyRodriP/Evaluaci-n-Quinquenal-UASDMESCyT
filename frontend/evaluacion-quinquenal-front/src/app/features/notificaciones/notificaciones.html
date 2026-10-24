@@ -37,6 +37,7 @@
           <div class="notif-titulo">{{ n.titulo }}</div>
           <div class="notif-mensaje">{{ n.mensaje }}</div>
           <div class="notif-fecha">{{ n.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</div>
+          <button *ngIf="destinoNotificacion(n)" type="button" class="notif-abrir" (click)="$event.stopPropagation(); abrir(n)" [disabled]="abriendo.has(n.id)"><i class="bx bx-link-external" aria-hidden="true"></i> {{ abriendo.has(n.id) ? 'Abriendo...' : 'Abrir detalle' }}</button>
         </div>
         <div class="notif-right">
           <i

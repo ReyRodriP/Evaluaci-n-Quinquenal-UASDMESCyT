@@ -57,7 +57,7 @@
           <div *ngIf="!solicitud.versiones.length" class="state-msg">No existen versiones registradas para esta evidencia.</div>
           <div *ngFor="let version of solicitud.versiones; let i = index" class="version-item" [id]="'version-documento-' + version.id" [class.version-referenciada]="version.id === versionId">
             <div class="version-header">
-              <div><strong>Versión {{ version.numero }} <span *ngIf="i === 0" class="latest-badge">(última)</span></strong><span *ngIf="version.id === versionId" class="latest-badge">Versión vinculada a la observación</span><span class="fecha">{{ version.fecha_subida | date:'dd/MM/yyyy HH:mm' }} · {{ version.subido_por_nombre }}</span></div>
+              <div><strong>Versión {{ version.numero }} <span *ngIf="i === 0" class="latest-badge">(última)</span></strong><span *ngIf="version.id === versionId" class="latest-badge">Versión referenciada</span><span class="fecha">{{ version.fecha_subida | date:'dd/MM/yyyy HH:mm' }} · {{ version.subido_por_nombre }}</span></div>
               <div class="version-actions">
                 <button type="button" class="secondary-btn preview-btn" (click)="abrirPreview(solicitud, version)" [disabled]="ocupada"><i class="bx bx-show" aria-hidden="true"></i> Vista previa</button>
                 <button type="button" class="secondary-btn" (click)="descargar(solicitud, version)" [disabled]="ocupada"><i class="bx bx-download" aria-hidden="true"></i> {{ version.nombre_archivo || 'Descargar' }}</button>

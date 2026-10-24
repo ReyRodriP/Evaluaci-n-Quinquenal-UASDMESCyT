@@ -23,6 +23,9 @@ class HistorialEstadoSerializer(serializers.ModelSerializer):
     """
 
     usuario_nombre = serializers.CharField(source="usuario.get_full_name", read_only=True, default="")
+    usuario_identificador = serializers.CharField(source='usuario.username', read_only=True, default=None)
+    estado_anterior_display = serializers.CharField(source='get_estado_anterior_display', read_only=True, default=None)
+    estado_nuevo_display = serializers.CharField(source='get_estado_nuevo_display', read_only=True)
 
     class Meta:
         model = HistorialEstado
@@ -30,9 +33,12 @@ class HistorialEstadoSerializer(serializers.ModelSerializer):
             "id",
             "asignacion",
             "estado_anterior",
+            "estado_anterior_display",
             "estado_nuevo",
+            "estado_nuevo_display",
             "usuario",
             "usuario_nombre",
+            "usuario_identificador",
             "comentario",
             "fecha",
         ]

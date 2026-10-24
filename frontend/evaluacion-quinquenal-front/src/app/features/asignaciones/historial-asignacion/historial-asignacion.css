@@ -1,0 +1,14 @@
+:host { display: block; }
+.historial-global { margin-top: 25px; }
+.historial-nota, .historial-vacio, .historial-total { color: var(--text-color); line-height: 1.6; }
+.historial-nota { margin-bottom: 20px; }
+.historial-total { font-size: .85rem; }
+.historial-lista { list-style: none; padding: 0; margin: 0 0 20px; }
+.historial-registro { border: 1px solid var(--border-color); border-left: 4px solid var(--primary-color); border-radius: 12px; background: var(--background-selected); padding: 18px; margin: 12px 0; overflow-wrap: anywhere; }
+.historial-cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; color: var(--text-title-color); }
+.historial-cabecera time { color: var(--text-color); font-size: .85rem; white-space: nowrap; }
+.historial-autor { color: var(--text-color); margin: 12px 0; }
+.historial-comentario { white-space: pre-wrap; line-height: 1.7; color: var(--text-title-color); margin: 0; }
+.historial-sin-comentario { color: var(--text-color); font-size: .85rem; margin: 0; }
+.state-msg { flex-wrap: wrap; }
+@media (max-width: 650px) { .historial-cabecera { flex-direction: column; gap: 8px; } .card-title { flex-wrap: wrap; gap: 8px; } }

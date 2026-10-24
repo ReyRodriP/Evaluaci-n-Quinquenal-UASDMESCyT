@@ -27,6 +27,12 @@ def crear_notificacion(usuario, titulo, mensaje):
     """
     Notificacion.objects.create(usuario=usuario, titulo=titulo, mensaje=mensaje)
 
+    enviar_correo_notificacion(usuario, titulo, mensaje)
+
+
+def enviar_correo_notificacion(usuario, titulo, mensaje):
+    """Entrega SMTP compartida; el flujo documental la programa después del commit."""
+
     if settings.NOTIFICACIONES_EMAIL_ENABLED and usuario and getattr(usuario, "email", None):
         try:
             send_mail(

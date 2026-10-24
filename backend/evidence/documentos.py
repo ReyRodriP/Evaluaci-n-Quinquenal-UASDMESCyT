@@ -18,7 +18,7 @@ from accounts.permissions import ROLES_SIN_RESTRICCION, _grupos_usuario, es_eval
 from auditoria.utils import registrar_auditoria
 from evaluation.models import Asignacion, EstadoAsignacion, HistorialEstado, Periodo
 from evaluation.services import finalizar_periodos_vencidos
-from notificaciones.utils import crear_notificacion
+from notificaciones.documentales import avisar_envio, avisar_revision, avisar_solicitud
 
 from .models import EstadoDocumento, RevisionDocumento, SolicitudDocumental, VersionDocumento
 from .validators import validate_evidence_file
@@ -208,6 +208,7 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
                 asignacion.save(update_fields=['gestion_documental'])
             solicitud = serializer.save(creada_por=request.user, asignacion=asignacion)
             registrar(request, solicitud, 'Crear solicitud documental')
+            avisar_solicitud(solicitud, request.user)
         return Response(self.get_serializer(solicitud).data, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, pk=None):
@@ -222,8 +223,11 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
                 raise ValidationError('No puede trasladar una solicitud a otra asignación.')
             serializer = self.get_serializer(solicitud, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
+            anterior = (solicitud.titulo, solicitud.descripcion)
             serializer.save()
             registrar(request, solicitud, 'Editar solicitud documental')
+            if anterior != (solicitud.titulo, solicitud.descripcion):
+                avisar_solicitud(solicitud, request.user, accion='actualizada')
         return Response(serializer.data)
 
     def destroy(self, request, pk=None):
@@ -235,6 +239,7 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
             if solicitud.versiones.exists():
                 raise ValidationError('No puede eliminar una solicitud con entregas.')
             registrar(request, solicitud, 'Eliminar solicitud documental')
+            avisar_solicitud(solicitud, request.user, accion='retirada')
             solicitud.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -282,6 +287,7 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
                 HistorialEstado.objects.create(asignacion=asignacion, estado_anterior='pendiente',
                     estado_nuevo='en_progreso', usuario=request.user, comentario='Primer documento enviado a revisión.')
             registrar(request, solicitud, 'Enviar documento a revisión')
+            avisar_envio(solicitud, solicitud.versiones.first(), request.user)
         return Response(self.get_serializer(solicitud).data)
 
     def decidir(self, request, decision):
@@ -291,7 +297,7 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
         comentario = str(request.data.get('comentario', '')).strip()
         if decision == EstadoDocumento.OBSERVADA and not comentario:
             raise ValidationError({'comentario': 'Explique los cambios solicitados.'})
-        with bloquear_asignacion(request, solicitud.asignacion_id) as asignacion:
+        with bloquear_asignacion(request, solicitud.asignacion_id):
             solicitud = SolicitudDocumental.objects.select_for_update().get(pk=solicitud.pk)
             ultima = solicitud.versiones.first()
             if solicitud.estado != EstadoDocumento.EN_REVISION or ultima is None:
@@ -302,11 +308,7 @@ class SolicitudDocumentalViewSet(viewsets.GenericViewSet):
             solicitud.estado = decision
             solicitud.save(update_fields=['estado'])
             registrar(request, solicitud, 'Revisar documento', f'Versión {ultima.numero}, ID {ultima.pk}: {decision}. {comentario}')
-            for usuario_id in {asignacion.encargado_id, ultima.subido_por_id} - {None}:
-                from accounts.models import Usuario
-
-                crear_notificacion(Usuario.objects.get(pk=usuario_id), 'Documento revisado',
-                    f'{solicitud.titulo}, versión {ultima.numero}: {decision}. {comentario}')
+            avisar_revision(solicitud, ultima, request.user, decision, comentario)
         return Response(self.get_serializer(solicitud).data)
 
     @action(detail=True, methods=['post'])

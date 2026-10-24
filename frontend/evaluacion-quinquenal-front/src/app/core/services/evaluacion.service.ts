@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { RespuestaPaginada } from '../models/vinculacion.model';
 import { ContextoAsignacionMarco } from '../models/contexto-asignacion-marco.model';
+import { PaginaHistorialAsignacion } from '../models/historial-asignacion.model';
 
 @Injectable({
   providedIn: 'root',
@@ -130,6 +131,12 @@ export class EvaluacionService {
     const params: Record<string, string> = {};
     if (periodoId) params['periodo'] = String(periodoId);
     return this.http.get(`${this.apiUrl}/asignaciones/${id}/`, { params });
+  }
+
+  historialAsignacion(id: number, periodoId?: string | number, page = 1, pageSize = 10): Observable<PaginaHistorialAsignacion> {
+    const params: Record<string, string> = { page: String(page), page_size: String(pageSize) };
+    if (periodoId) params['periodo'] = String(periodoId);
+    return this.http.get<PaginaHistorialAsignacion>(`${this.apiUrl}/asignaciones/${id}/historial/`, { params });
   }
 
   crearAsignacion(payload: any): Observable<any> {

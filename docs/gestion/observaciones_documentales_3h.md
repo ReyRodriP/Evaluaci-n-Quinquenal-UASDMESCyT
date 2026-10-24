@@ -4,7 +4,8 @@
 
 Implementado y verificado automáticamente y en navegador de desarrollo, después
 de que el usuario validó la descarga ZIP de 3G. Disponible para la siguiente
-comprobación manual.
+comprobación manual. El usuario confirmó después que todo estaba bien y autorizó
+continuar; se da por validada manualmente la fase 3H.
 
 ## Alcance funcional
 
@@ -113,4 +114,4 @@ solicitudes, versiones, observaciones y decisiones permanecieron iguales.
 5. Exportar Excel y PDF y comprobar que reflejan los filtros. En Excel, revisar
    también los identificadores de recurso y versión.
 
-La validación manual de 3H queda pendiente del usuario.
+El usuario confirmó «Todo bien, podemos continuar».

@@ -17,7 +17,16 @@ class NotificacionSerializer(serializers.ModelSerializer):
     campos de solo lectura para usuario, título, mensaje y fecha.
     """
 
+    destino = serializers.SerializerMethodField()
+
     class Meta:
         model = Notificacion
-        fields = "__all__"
+        fields = ['id', 'usuario', 'titulo', 'mensaje', 'leida', 'fecha_creacion', 'destino']
         read_only_fields = ["usuario", "titulo", "mensaje", "fecha_creacion"]
+
+    def get_destino(self, obj):
+        destino = getattr(obj, 'destino_documental', None)
+        if not destino or not destino.asignacion_id:
+            return None
+        return {'asignacion_id': destino.asignacion_id, 'periodo_id': destino.asignacion.periodo_id,
+            'solicitud_id': destino.solicitud_id, 'version_id': destino.version_id}

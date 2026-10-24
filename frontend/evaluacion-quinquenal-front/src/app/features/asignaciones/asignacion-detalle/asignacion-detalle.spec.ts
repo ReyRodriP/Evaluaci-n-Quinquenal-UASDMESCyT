@@ -15,6 +15,7 @@ describe('AsignacionDetalle', () => {
   const evaluacionMock = {
     obtenerAsignacion: jasmine.createSpy('obtenerAsignacion'),
     obtenerIndicador: jasmine.createSpy('obtenerIndicador'),
+    historialAsignacion: jasmine.createSpy('historialAsignacion'),
   };
 
   const vinculacionMock = {
@@ -77,6 +78,8 @@ describe('AsignacionDetalle', () => {
 
   beforeEach(async () => {
     evaluacionMock.obtenerAsignacion.calls.reset();
+    evaluacionMock.historialAsignacion.calls.reset();
+    evaluacionMock.historialAsignacion.and.returnValue(of({ count: 0, results: [], next: null, previous: null, page: 1, page_size: 10 }));
     evaluacionMock.obtenerIndicador.calls.reset();
     vinculacionMock.contextoIndicador.calls.reset();
     catalogoMock.obtenerIndicadorMarco.calls.reset();

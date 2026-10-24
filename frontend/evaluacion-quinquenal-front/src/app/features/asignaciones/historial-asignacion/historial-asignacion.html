@@ -1,0 +1,16 @@
+<section *ngIf="!restringido" class="card historial-global" aria-label="Historial global de la asignación" [attr.aria-busy]="cargando">
+  <div class="card-title"><h3><i class="bx bx-history" aria-hidden="true"></i> Historial global de la asignación</h3><span class="historial-total" *ngIf="!cargando && !error">{{ total }} registros</span></div>
+  <p class="historial-nota">Cambios de estado y decisiones internas de la asignación. Las versiones y revisiones de cada documento se consultan en su propio historial.</p>
+  <div *ngIf="cargando" class="state-msg" role="status">Cargando historial...</div>
+  <div *ngIf="error" class="state-msg error" role="alert">{{ error }}<button type="button" class="secondary-btn" (click)="cargar()">Reintentar</button></div>
+  <p *ngIf="!cargando && !error && !total" class="historial-vacio">Aún no hay cambios de estado registrados para esta asignación.</p>
+  <ol *ngIf="!cargando && !error && registros.length" class="historial-lista">
+    <li *ngFor="let registro of registros" class="historial-registro">
+      <div class="historial-cabecera"><strong>{{ registro.estado_anterior_display || registro.estado_anterior || 'Sin estado previo' }} <i class="bx bx-right-arrow-alt" aria-hidden="true"></i> {{ registro.estado_nuevo_display || registro.estado_nuevo }}</strong><time [attr.datetime]="registro.fecha">{{ registro.fecha | date:'dd/MM/yyyy HH:mm' }}</time></div>
+      <p class="historial-autor"><i class="bx bx-user-circle" aria-hidden="true"></i> {{ autor(registro) }}</p>
+      <p *ngIf="registro.comentario" class="historial-comentario">{{ registro.comentario }}</p>
+      <p *ngIf="!registro.comentario" class="historial-sin-comentario">Sin comentario registrado.</p>
+    </li>
+  </ol>
+  <app-pagination *ngIf="!cargando && !error && total > pageSize" [total]="total" [currentPage]="pagina" [pageSize]="pageSize" (pageChange)="cargar($event)"></app-pagination>
+</section>

@@ -5,8 +5,9 @@ import { Router } from "@angular/router";
 import { NotificacionesService } from '../../../core/services/notificaciones.service';
 import { SistemaService } from '../../../core/services/sistema.service';
 import { PermisosService } from '../../../core/services/permisos.service';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { destinoNotificacion } from '../../../core/models/notificacion.model';
 
 @Component({
   selector: 'app-navbar',
@@ -19,6 +20,8 @@ export class Navbar implements OnInit, OnDestroy {
 
   notificaciones: any[] = []
   dropdownOpen = false
+  private abriendoNotificaciones = new Set<number>()
+  private operacionesNotificaciones = new Subscription()
 
   searchQuery = ''
   searchResults: any = {}
@@ -60,6 +63,7 @@ export class Navbar implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.operacionesNotificaciones.unsubscribe()
     if (this.polling) clearInterval(this.polling)
     this.searchTerms.complete()
   }
@@ -121,12 +125,12 @@ export class Navbar implements OnInit, OnDestroy {
   }
 
   cargarNotificaciones(): void {
-    this.notificacionesService.listarNotificaciones().subscribe({
+    this.operacionesNotificaciones.add(this.notificacionesService.listarNotificaciones().subscribe({
       next: (data) => this.notificaciones = data ?? [],
       error: () => {
         this.notificaciones = [];
       },
-    })
+    }))
   }
 
   get noLeidas(): number {
@@ -151,14 +155,21 @@ export class Navbar implements OnInit, OnDestroy {
   }
 
   marcarYcerrar(id: number): void {
-    this.notificacionesService.marcarNotificacionLeida(id).subscribe({
-      next: () => {
+    if (this.abriendoNotificaciones.has(id)) return
+    this.abriendoNotificaciones.add(id)
+    this.operacionesNotificaciones.add(this.notificacionesService.marcarNotificacionLeida(id).subscribe({
+      next: actualizada => {
+        this.abriendoNotificaciones.delete(id)
         const n = this.notificaciones.find(x => x.id === id)
         if (n) n.leida = true
+        const destino = destinoNotificacion(actualizada)
+        this.dropdownOpen = false
+        if (destino) void this.router.navigate(destino.comandos, { queryParams: destino.queryParams })
       },
       error: () => {
-        this.notificaciones = this.notificaciones.filter(x => x.id !== id)
+        this.abriendoNotificaciones.delete(id)
+        this.cargarNotificaciones()
       }
-    })
+    }))
   }
 }

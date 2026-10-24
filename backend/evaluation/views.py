@@ -38,6 +38,7 @@ from .serializers import (
 )
 from .services import finalizar_periodos_vencidos, relaciones_indicador, transicion_valida
 from .filtros import filtrar_por_marco
+from .historial import HistorialAsignacionPagination, puede_consultar_historial
 
 
 class PeriodoViewSet(viewsets.ModelViewSet):
@@ -207,6 +208,8 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         indicador_id = self.request.query_params.get("indicador")
         evaluador_externo = "Evaluador Externo" in _grupos_usuario(self.request.user)
         if periodo_id:
+            if not periodo_id.isdigit() or len(periodo_id) > 19 or not 1 <= int(periodo_id) <= 9223372036854775807:
+                raise ValidationError({'periodo': 'El filtro debe ser un identificador entero positivo.'})
             qs = qs.filter(periodo_id=periodo_id)
         elif self.request.method in ("GET", "HEAD", "OPTIONS") and not evaluador_externo:
             qs = qs.filter(periodo__activo=True)
@@ -257,8 +260,9 @@ class AsignacionViewSet(viewsets.ModelViewSet):
         @return None
         """
         if instance.gestion_documental:
-            if instance.encargado_id:
-                crear_notificacion(usuario=instance.encargado, titulo=titulo, mensaje=mensaje)
+            from notificaciones.documentales import avisar_cierre
+
+            avisar_cierre(instance, self.request.user, comentario=self.request.data.get('comentario', ''))
             return
         try:
             evidencia = instance.evidencia
@@ -342,6 +346,17 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             data["historial_reciente"] = HistorialEstadoSerializer(historial, many=True).data
         return Response(data)
 
+    @action(detail=True, methods=['get'], pagination_class=HistorialAsignacionPagination)
+    def historial(self, request, pk=None):
+        from rest_framework.exceptions import PermissionDenied
+
+        asignacion = self.get_object()
+        if not puede_consultar_historial(request):
+            raise PermissionDenied('El historial global de decisiones es de consulta interna.')
+        queryset = asignacion.historial_estados.select_related('usuario').order_by('-fecha', '-pk')
+        pagina = self.paginate_queryset(queryset)
+        return self.get_paginated_response(HistorialEstadoSerializer(pagina, many=True).data)
+
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def en_revision(self, request, pk=None):
@@ -410,7 +425,7 @@ class AsignacionViewSet(viewsets.ModelViewSet):
             titulo="Evidencia aprobada",
             mensaje=f"Tu evidencia para '{asignacion.indicador_nombre}' ha sido aprobada.",
         )
-        if comentario:
+        if comentario and not asignacion.gestion_documental:
             self._notificar_unidad(
                 unidad=asignacion.unidad_responsable,
                 titulo="Evidencia aprobada con comentarios",

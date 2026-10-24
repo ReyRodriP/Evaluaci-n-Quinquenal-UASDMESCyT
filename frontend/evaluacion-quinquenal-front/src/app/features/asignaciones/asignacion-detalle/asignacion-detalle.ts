@@ -5,10 +5,11 @@ import { EvaluacionService } from '../../../core/services/evaluacion.service';
 import { MarcoRelacionado } from '../../../shared/components/marco-relacionado/marco-relacionado';
 import { RutaMarco } from '../../../shared/components/ruta-marco/ruta-marco';
 import { DocumentosAsignacion } from '../documentos-asignacion/documentos-asignacion';
+import { HistorialAsignacion } from '../historial-asignacion/historial-asignacion';
 
 @Component({
   selector: 'app-asignacion-detalle',
-  imports: [CommonModule, RouterLink, MarcoRelacionado, RutaMarco, DocumentosAsignacion],
+  imports: [CommonModule, RouterLink, MarcoRelacionado, RutaMarco, DocumentosAsignacion, HistorialAsignacion],
   templateUrl: './asignacion-detalle.html',
   styleUrls: ['../../evidencias/evidencia-detalle/evidencia-detalle.css', './asignacion-detalle.css'],
 })

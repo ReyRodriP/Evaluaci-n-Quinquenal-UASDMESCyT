@@ -99,7 +99,7 @@ describe('DocumentosAsignacion', () => {
     fixture.componentRef.setInput('solicitudId', 2); fixture.componentRef.setInput('versionId', 22); fixture.detectChanges();
     const version = fixture.nativeElement.querySelector('#version-documento-22');
     expect(version.classList.contains('version-referenciada')).toBeTrue();
-    expect(version.textContent).toContain('Versión vinculada a la observación');
+    expect(version.textContent).toContain('Versión referenciada');
     expect(component.solicitudActiva.id).toBe(2);
   });
 });

@@ -119,6 +119,7 @@
 }
 
 .notif-mensaje {
+  overflow-wrap: anywhere;
   font-size: .82rem;
   color: var(--text-color);
   line-height: 1.4;
@@ -138,3 +139,5 @@
 .notif-right i {
   font-size: 1.3rem;
 }
+.notif-abrir { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 12px; background: var(--button-bg); color: var(--primary-color); font-weight: 600; cursor: pointer; }
+.notif-abrir:disabled { opacity: .6; cursor: not-allowed; }
